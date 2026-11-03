@@ -1266,8 +1266,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	return (
 		<main id="canvas-container" ref={containerRef}>
 			<div id="placeholder" className={hasCanvas ? 'hidden' : ''}>
-				<div className="music-badge">
-					<BrandLogo size={36} showBadge={false} />
+				<div style={{ marginBottom: '1.25rem' }}>
+					<BrandLogo size={56} showBadge={true} />
 				</div>
 				<h2>Нотний редактор</h2>
 				<p>Створіть чистий білий аркуш або відкрийте фото чи партитуру для розмітки</p>

@@ -27,20 +27,24 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 				position: 'relative',
 				width: size,
 				height: size,
-				borderRadius: showBadge ? `${Math.round(numericSize * 0.25)}px` : undefined,
-				backgroundColor: showBadge ? 'var(--panel-2)' : 'transparent',
-				border: showBadge ? '1px solid var(--line-strong)' : 'none',
+				borderRadius: showBadge ? `${Math.round(numericSize * 0.26)}px` : undefined,
+				background: showBadge
+					? 'linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)'
+					: 'transparent',
+				border: showBadge ? '1px solid rgba(255, 255, 255, 0.25)' : 'none',
 				display: 'inline-flex',
 				alignItems: 'center',
 				justifyContent: 'center',
-				boxShadow: showBadge ? '0 8px 24px rgba(0, 0, 0, 0.45)' : 'none',
+				boxShadow: showBadge
+					? '0 8px 24px rgba(56, 189, 248, 0.35), 0 2px 8px rgba(99, 102, 241, 0.25)'
+					: 'none',
 				flexShrink: 0,
 			}}
 			aria-label="Notyka Logo"
 		>
 			<svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }}>
 				<defs>
-					<linearGradient id="notyka-lucide-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+					<linearGradient id="notyka-note-grad" x1="0%" y1="0%" x2="100%" y2="100%">
 						<stop offset="0%" stopColor="#38bdf8" />
 						<stop offset="100%" stopColor="#6366f1" />
 					</linearGradient>
@@ -50,9 +54,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 				style={{
 					width: iconSize,
 					height: iconSize,
-					stroke: 'url(#notyka-lucide-grad)',
-					strokeWidth: 2,
+					stroke: showBadge ? '#ffffff' : 'url(#notyka-note-grad)',
+					strokeWidth: 2.2,
 					display: 'block',
+					filter: showBadge ? 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))' : 'none',
 				}}
 			/>
 		</div>
