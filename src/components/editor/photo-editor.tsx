@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppPreloader } from '@/components/common/app-preloader';
 import { ColorPaletteModal } from '@/components/modals/color-palette-modal';
+import { ImageCropModal } from '@/components/modals/image-crop-modal';
 import { ImageMenuModal } from '@/components/modals/image-menu-modal';
 import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal';
 import { BrushSettings } from '@/components/settings/brush-settings';
@@ -59,6 +60,11 @@ export const PhotoEditor: React.FC = () => {
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
 	const [projectsList, setProjectsList] = useState<ProjectItem[]>([]);
+
+	// Image crop & edit modal state
+	const [cropModalOpen, setCropModalOpen] = useState<boolean>(false);
+	const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+	const [cropFileName, setCropFileName] = useState<string>('');
 
 	// Custom toast state matching #toast from original code
 	const [toastText, setToastText] = useState<string>('');
@@ -481,10 +487,33 @@ export const PhotoEditor: React.FC = () => {
 	const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (file) {
-			stageRef.current?.loadImage(file);
-			setHasCanvas(true);
+			const cleanName = file.name.replace(/\.[^/.]+$/, '').trim();
+			setCropFileName(cleanName);
+			const reader = new FileReader();
+			reader.onload = (ev) => {
+				const src = ev.target?.result;
+				if (typeof src !== 'string') return;
+				setCropImageSrc(src);
+				setCropModalOpen(true);
+			};
+			reader.readAsDataURL(file);
 			e.target.value = '';
 		}
+	}, []);
+
+	const handleApplyCrop = useCallback(
+		(processedDataUrl: string, title?: string) => {
+			setCropModalOpen(false);
+			setCropImageSrc(null);
+			stageRef.current?.loadImage(processedDataUrl, title || cropFileName);
+			setHasCanvas(true);
+		},
+		[cropFileName],
+	);
+
+	const handleCancelCrop = useCallback(() => {
+		setCropModalOpen(false);
+		setCropImageSrc(null);
 	}, []);
 
 	const handleToggleMenu = useCallback((e: React.MouseEvent) => {
@@ -610,6 +639,14 @@ export const PhotoEditor: React.FC = () => {
 				onSave={handleSave}
 				onShare={handleShare}
 				onToggleDeleteBtn={handleToggleDeleteBtn}
+			/>
+
+			<ImageCropModal
+				opened={cropModalOpen}
+				imageSrc={cropImageSrc}
+				fileName={cropFileName}
+				onApply={handleApplyCrop}
+				onCancel={handleCancelCrop}
 			/>
 
 			<ProjectsHistoryModal

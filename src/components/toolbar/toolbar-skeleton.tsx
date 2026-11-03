@@ -116,4 +116,3 @@ export const ToolbarSkeleton: React.FC = () => {
 		</footer>
 	);
 };
-
