@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef } from 'react';
-import { FilePlus, Image as ImageIcon } from 'lucide-react';
+import { FilePlus } from 'lucide-react';
+import { BrandLogo } from '@/components/common/brand-logo';
 import {
 	DRAG_SLOP,
 	MAX_HISTORY,
@@ -172,6 +173,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
+		ctx.imageSmoothingEnabled = true;
+		ctx.imageSmoothingQuality = 'high';
+
 		ctx.fillStyle = '#ffffff';
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -332,18 +336,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 					const cw = container.clientWidth - 20;
 					const ch = container.clientHeight - 20;
-					const fit = Math.min(cw / img.width, ch / img.height);
+					const naturalW = img.naturalWidth || img.width;
+					const naturalH = img.naturalHeight || img.height;
+					const fit = Math.min(cw / naturalW, ch / naturalH);
 					const k = Math.min(
 						1,
-						Math.sqrt(MAX_PIXELS / (img.width * img.height)),
-						MAX_SIDE / Math.max(img.width, img.height),
+						Math.sqrt(MAX_PIXELS / (naturalW * naturalH)),
+						MAX_SIDE / Math.max(naturalW, naturalH),
 					);
 
 					initCanvas(
-						Math.round(img.width * k),
-						Math.round(img.height * k),
-						Math.round(img.width * fit),
-						Math.round(img.height * fit),
+						Math.round(naturalW * k),
+						Math.round(naturalH * k),
+						Math.round(naturalW * fit),
+						Math.round(naturalH * fit),
 					);
 
 					const bg = bgCanvasRef.current;
@@ -823,7 +829,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				const tctx = thumbCanvas.getContext('2d');
 				if (tctx) {
 					tctx.drawImage(expCanvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
-					thumbnail = thumbCanvas.toDataURL('image/jpeg', 0.7);
+					thumbnail = thumbCanvas.toDataURL('image/jpeg', 0.85);
 				}
 			}
 
@@ -1260,8 +1266,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	return (
 		<main id="canvas-container" ref={containerRef}>
 			<div id="placeholder" className={hasCanvas ? 'hidden' : ''}>
-				<ImageIcon className="icon xl" />
-				<p>Відкрийте зображення або почніть на білому аркуші</p>
+				<div className="music-badge">
+					<BrandLogo size={36} showBadge={false} />
+				</div>
+				<h2>Нотний редактор</h2>
+				<p>Створіть чистий білий аркуш або відкрийте фото чи партитуру для розмітки</p>
 				<button
 					id="btn-create-blank"
 					type="button"
