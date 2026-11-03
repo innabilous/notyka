@@ -35,11 +35,11 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	}
 
 	const handleDecrease = () => {
-		onChangeSize(Math.max(1, brushSize - 2));
+		onChangeSize(Math.max(1, brushSize - 1));
 	};
 
 	const handleIncrease = () => {
-		onChangeSize(Math.min(100, brushSize + 2));
+		onChangeSize(Math.min(100, brushSize + 1));
 	};
 
 	return (
