@@ -10,6 +10,7 @@ import { BrushSettings } from '@/components/settings/brush-settings';
 import { StampSettings } from '@/components/settings/stamp-settings';
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
 import { ToolbarSkeleton } from '@/components/toolbar/toolbar-skeleton';
+import { TopToolbar } from '@/components/toolbar/top-toolbar';
 import { StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
@@ -580,7 +581,6 @@ export const PhotoEditor: React.FC = () => {
 			style={{
 				display: 'flex',
 				flexDirection: 'column',
-				justifyContent: 'space-between',
 				width: '100%',
 				height: '100%',
 				overflow: 'hidden',
@@ -588,6 +588,14 @@ export const PhotoEditor: React.FC = () => {
 			}}
 		>
 			<AppPreloader isLoading={isLoading} />
+
+			<TopToolbar
+				canUndo={canUndo}
+				canRedo={canRedo}
+				onUndo={() => stageRef.current?.undo()}
+				onRedo={() => stageRef.current?.redo()}
+				onToggleMenu={handleToggleMenu}
+			/>
 
 			<CanvasStage
 				currentMode={currentMode}
@@ -690,15 +698,7 @@ export const PhotoEditor: React.FC = () => {
 						onTogglePalette={handleTogglePalette}
 					/>
 
-					<BottomToolbar
-						currentMode={currentMode}
-						canUndo={canUndo}
-						canRedo={canRedo}
-						onSelectMode={handleSelectMode}
-						onUndo={() => stageRef.current?.undo()}
-						onRedo={() => stageRef.current?.redo()}
-						onToggleMenu={handleToggleMenu}
-					/>
+					<BottomToolbar currentMode={currentMode} onSelectMode={handleSelectMode} />
 				</footer>
 			)}
 
