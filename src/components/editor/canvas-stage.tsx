@@ -269,7 +269,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		uRef.current = w / cssW;
 
 		const bctx = base.getContext('2d');
-		if (bctx) bctx.imageSmoothingQuality = 'high';
+		if (bctx) {
+			bctx.imageSmoothingEnabled = true;
+			bctx.imageSmoothingQuality = 'high';
+		}
+		const bgctx = bg.getContext('2d');
+		if (bgctx) {
+			bgctx.imageSmoothingEnabled = true;
+			bgctx.imageSmoothingQuality = 'high';
+		}
 	}, []);
 
 	const createBlank = useCallback(() => {
@@ -750,6 +758,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		const expCtx = exportCanvas.getContext('2d');
 		if (!expCtx) return null;
 
+		expCtx.imageSmoothingEnabled = true;
+		expCtx.imageSmoothingQuality = 'high';
 		expCtx.fillStyle = '#ffffff';
 		expCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
 		if (currentImageRef.current) {
