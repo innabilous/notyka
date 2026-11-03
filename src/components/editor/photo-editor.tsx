@@ -8,6 +8,7 @@ import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { StampSettings } from '@/components/settings/stamp-settings';
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
+import { ToolbarSkeleton } from '@/components/toolbar/toolbar-skeleton';
 import { StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
@@ -53,7 +54,7 @@ export const PhotoEditor: React.FC = () => {
 	const [sizeLocked, setSizeLocked] = useState<boolean>(true);
 	const [noteSizes, setNoteSizes] = useState<Record<string, number>>({});
 
-	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(true);
+	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(false);
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
@@ -628,37 +629,41 @@ export const PhotoEditor: React.FC = () => {
 				onChangeStrokeColor={handleChangeStrokeColor}
 			/>
 
-			<footer>
-				<BrushSettings
-					currentMode={currentMode}
-					brushSize={currentSize}
-					sizeLocked={sizeLocked}
-					mainColor={currentMainColor}
-					strokeColor={currentStrokeColor}
-					onChangeSize={handleChangeSize}
-					onToggleLock={handleToggleLock}
-					onTogglePalette={handleTogglePalette}
-				/>
-
-				{currentMode === 'stamp' && (
-					<StampSettings
-						selectedNote={selectedNote}
-						selectedAccidental={selectedAccidental}
-						onSelectNote={handleSelectNote}
-						onSelectAccidental={handleSelectAccidental}
+			{isLoading ? (
+				<ToolbarSkeleton />
+			) : (
+				<footer>
+					<BrushSettings
+						currentMode={currentMode}
+						brushSize={currentSize}
+						sizeLocked={sizeLocked}
+						mainColor={currentMainColor}
+						strokeColor={currentStrokeColor}
+						onChangeSize={handleChangeSize}
+						onToggleLock={handleToggleLock}
+						onTogglePalette={handleTogglePalette}
 					/>
-				)}
 
-				<BottomToolbar
-					currentMode={currentMode}
-					canUndo={canUndo}
-					canRedo={canRedo}
-					onSelectMode={handleSelectMode}
-					onUndo={() => stageRef.current?.undo()}
-					onRedo={() => stageRef.current?.redo()}
-					onToggleMenu={handleToggleMenu}
-				/>
-			</footer>
+					{currentMode === 'stamp' && (
+						<StampSettings
+							selectedNote={selectedNote}
+							selectedAccidental={selectedAccidental}
+							onSelectNote={handleSelectNote}
+							onSelectAccidental={handleSelectAccidental}
+						/>
+					)}
+
+					<BottomToolbar
+						currentMode={currentMode}
+						canUndo={canUndo}
+						canRedo={canRedo}
+						onSelectMode={handleSelectMode}
+						onUndo={() => stageRef.current?.undo()}
+						onRedo={() => stageRef.current?.redo()}
+						onToggleMenu={handleToggleMenu}
+					/>
+				</footer>
+			)}
 
 			<div id="toast" className={toastText ? 'show' : ''}>
 				{toastText}

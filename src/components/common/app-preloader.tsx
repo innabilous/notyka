@@ -127,4 +127,3 @@ export const AppPreloader: React.FC<AppPreloaderProps> = ({ isLoading }) => {
 		</div>
 	);
 };
-
