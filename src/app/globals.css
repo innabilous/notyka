@@ -305,6 +305,20 @@ button {
 	justify-content: center;
 }
 
+.swatch.active {
+	outline: 2px solid #ffffff;
+	outline-offset: 2px;
+	box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+	transform: scale(1.12);
+}
+
+.menu-divider {
+	border: none;
+	height: 1px;
+	background: rgba(55, 65, 81, 0.7);
+	margin: 0.35rem 0.25rem;
+}
+
 /* Нижня панель */
 footer {
 	background: rgba(31, 41, 55, 0.9);
@@ -326,8 +340,15 @@ footer {
 	gap: 0.75rem;
 	padding: 0.4rem 0.75rem;
 	background: rgba(17, 24, 39, 0.8);
-	border-radius: 0.75rem;
+	border-radius: 9999px;
 	font-size: 0.75rem;
+}
+
+.size-stepper-group {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	flex-shrink: 0;
 }
 
 #brush-settings .lbl {
