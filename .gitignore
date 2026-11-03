@@ -44,5 +44,9 @@ next-env.d.ts
 .eslintcache
 .eslintcache.staged
 
+# ide
+.vscode/
+
 # temp folders / files
 *._*
+._temp/
