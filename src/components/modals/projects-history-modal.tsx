@@ -74,7 +74,7 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 						<Clock className="icon" style={{ color: 'var(--accent-text)' }} />
 						<span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Історія проектів</span>
 						<span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-							({projects.length}/15)
+							({projects.length}/50)
 						</span>
 					</div>
 					<button

@@ -5,7 +5,7 @@ const DB_VERSION = 1;
 const STORE_PROJECTS = 'projects';
 const STORE_SESSION = 'session';
 const SETTINGS_KEY = 'notyka_editor_settings';
-const MAX_PROJECTS = 15;
+const MAX_PROJECTS = 50;
 
 function openDB(): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
