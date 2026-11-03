@@ -298,7 +298,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		resetTransform();
 
 		const cssW = Math.max(300, container.clientWidth - 20);
-		const cssH = Math.max(300, container.clientHeight - 20);
+		const cssH = Math.max(300, container.clientHeight - 130);
 		const k = Math.min(
 			Math.max(2, window.devicePixelRatio || 1),
 			Math.sqrt(MAX_PIXELS / (cssW * cssH)),
@@ -335,7 +335,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					resetTransform();
 
 					const cw = container.clientWidth - 20;
-					const ch = container.clientHeight - 20;
+					const ch = container.clientHeight - 130;
 					const naturalW = img.naturalWidth || img.width;
 					const naturalH = img.naturalHeight || img.height;
 					const fit = Math.min(cw / naturalW, ch / naturalH);
