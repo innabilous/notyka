@@ -276,6 +276,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		const container = containerRef.current;
 		if (!container) return;
 
+		currentProjectIdRef.current = `proj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+		currentProjectTitleRef.current = `Аркуш ${new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+
 		currentImageRef.current = null;
 		stampsListRef.current = [];
 		activeStampRef.current = null;
@@ -311,6 +314,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 				const img = new Image();
 				img.onload = () => {
+					currentProjectIdRef.current = `proj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+					const cleanName = file.name.replace(/\.[^/.]+$/, '').trim();
+					currentProjectTitleRef.current =
+						cleanName ||
+						`Фото ${new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
+
 					currentImageRef.current = img;
 					stampsListRef.current = [];
 					activeStampRef.current = null;

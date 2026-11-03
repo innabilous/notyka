@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AppPreloader } from '@/components/common/app-preloader';
 import { ColorPaletteModal } from '@/components/modals/color-palette-modal';
 import { ImageMenuModal } from '@/components/modals/image-menu-modal';
 import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal';
@@ -26,6 +27,7 @@ export const PhotoEditor: React.FC = () => {
 	const isMountedRef = useRef<boolean>(false);
 	const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+	const [isLoading, setIsLoading] = useState<boolean>(true);
 	const [hasCanvas, setHasCanvas] = useState<boolean>(false);
 	const [currentMode, setCurrentMode] = useState<ToolMode>('pencil');
 	const [canUndo, setCanUndo] = useState<boolean>(false);
@@ -100,12 +102,18 @@ export const PhotoEditor: React.FC = () => {
 			if (savedSettings.deleteBtnOn !== undefined) setDeleteBtnOn(savedSettings.deleteBtnOn);
 		}
 
-		loadCurrentSession().then((session) => {
-			if (session && stageRef.current) {
-				stageRef.current.loadProject(session);
-				setHasCanvas(true);
-			}
-		});
+		loadCurrentSession()
+			.then((session) => {
+				if (session && stageRef.current) {
+					stageRef.current.loadProject(session);
+					setHasCanvas(true);
+				}
+			})
+			.finally(() => {
+				setTimeout(() => {
+					setIsLoading(false);
+				}, 250);
+			});
 
 		isMountedRef.current = true;
 	}, []);
@@ -147,6 +155,7 @@ export const PhotoEditor: React.FC = () => {
 			const project = await stageRef.current.serializeProject();
 			if (project) {
 				await saveCurrentSession(project);
+				await saveProject(project);
 			}
 		}, 800);
 	}, []);
@@ -548,6 +557,8 @@ export const PhotoEditor: React.FC = () => {
 				position: 'relative',
 			}}
 		>
+			<AppPreloader isLoading={isLoading} />
+
 			<CanvasStage
 				currentMode={currentMode}
 				mainColor={currentMainColor}
