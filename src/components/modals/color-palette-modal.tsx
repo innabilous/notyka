@@ -43,15 +43,19 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 					</label>
 				</div>
 				<div id="palette-row-fill" className="palette-row">
-					{PALETTE_COLORS.map((color) => (
-						<button
-							key={`fill-${color}`}
-							type="button"
-							className="swatch"
-							style={{ backgroundColor: color }}
-							onClick={() => onChangeMainColor(color)}
-						/>
-					))}
+					{PALETTE_COLORS.map((color) => {
+						const isSelected = mainColor.toLowerCase() === color.toLowerCase();
+						return (
+							<button
+								key={`fill-${color}`}
+								type="button"
+								className={`swatch ${isSelected ? 'active' : ''}`}
+								style={{ backgroundColor: color }}
+								onClick={() => onChangeMainColor(color)}
+								aria-label={`Обрати колір ${color}`}
+							/>
+						);
+					})}
 				</div>
 			</div>
 
@@ -71,19 +75,24 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 						</label>
 					</div>
 					<div id="palette-row-stroke" className="palette-row">
-						{PALETTE_COLORS.map((color) => (
-							<button
-								key={`stroke-${color}`}
-								type="button"
-								className="swatch"
-								style={{ backgroundColor: color }}
-								onClick={() => onChangeStrokeColor(color)}
-							/>
-						))}
+						{PALETTE_COLORS.map((color) => {
+							const isSelected = strokeColor.toLowerCase() === color.toLowerCase();
+							return (
+								<button
+									key={`stroke-${color}`}
+									type="button"
+									className={`swatch ${isSelected ? 'active' : ''}`}
+									style={{ backgroundColor: color }}
+									onClick={() => onChangeStrokeColor(color)}
+									aria-label={`Обрати обводку ${color}`}
+								/>
+							);
+						})}
 						<button
 							type="button"
-							className="swatch none"
+							className={`swatch none ${strokeColor === 'transparent' ? 'active' : ''}`}
 							onClick={() => onChangeStrokeColor('transparent')}
+							aria-label="Вимкнути обводку"
 						>
 							✕
 						</button>
