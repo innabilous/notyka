@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ActionIcon, Box, Group, Slider, Text } from '@mantine/core';
-import { Lock, Unlock } from 'lucide-react';
+import { Lock, Minus, Plus, Unlock } from 'lucide-react';
 import { ToolMode } from '@/types/editor';
 
 interface BrushSettingsProps {
@@ -12,8 +11,8 @@ interface BrushSettingsProps {
 	mainColor: string;
 	strokeColor: string;
 	onChangeSize: (size: number) => void;
-	onToggleLock: () => void;
-	onTogglePalette: () => void;
+	onToggleLock: (e: React.MouseEvent) => void;
+	onTogglePalette: (e: React.MouseEvent) => void;
 }
 
 export const BrushSettings: React.FC<BrushSettingsProps> = ({
@@ -26,100 +25,85 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	onToggleLock,
 	onTogglePalette,
 }) => {
-	const isTransparent = strokeColor === 'transparent';
+	const isStamp = currentMode === 'stamp';
+	const isEraser = currentMode === 'eraser';
+	const isStrokeTransparent = isStamp && strokeColor === 'transparent';
+
+	let previewBorderColor = 'rgba(255, 255, 255, 0.35)';
+	if (isStamp) {
+		previewBorderColor = isStrokeTransparent ? 'rgba(255, 255, 255, 0.4)' : strokeColor;
+	}
+
+	const handleDecrease = () => {
+		onChangeSize(Math.max(1, brushSize - 2));
+	};
+
+	const handleIncrease = () => {
+		onChangeSize(Math.min(100, brushSize + 2));
+	};
 
 	return (
-		<Group
-			justify="space-between"
-			gap="xs"
-			wrap="nowrap"
-			style={{
-				padding: '6px 12px',
-				backgroundColor: 'rgba(17, 24, 39, 0.85)',
-				borderRadius: 12,
-				border: '1px solid rgba(55, 65, 81, 0.6)',
-			}}
-		>
-			{currentMode === 'stamp' && (
-				<ActionIcon
-					size={32}
-					radius="xl"
-					variant="filled"
-					color={sizeLocked ? 'indigo.6' : 'dark.4'}
-					onClick={onToggleLock}
-					aria-label={sizeLocked ? 'Розмір спільний для всіх нот' : 'Розмір індивідуальний'}
-				>
-					{sizeLocked ? <Lock size={15} /> : <Unlock size={15} />}
-				</ActionIcon>
-			)}
-
-			<Text size="xs" c="dimmed" style={{ flexShrink: 0, fontWeight: 500 }}>
-				Розмір:
-			</Text>
-
-			<Box style={{ flex: 1, minWidth: 60 }}>
-				<Slider
-					value={brushSize}
-					onChange={onChangeSize}
-					min={1}
-					max={100}
-					size="sm"
-					color="indigo.5"
-					label={null}
-				/>
-			</Box>
-
-			<Text
-				size="xs"
-				fw={700}
-				c="indigo.3"
-				style={{
-					width: 36,
-					textAlign: 'right',
-					fontFamily: 'monospace',
-					flexShrink: 0,
-				}}
+		<div id="brush-settings">
+			<button
+				id="btn-size-lock"
+				type="button"
+				className={`${sizeLocked ? 'locked' : ''} ${!isStamp ? 'hidden' : ''}`}
+				aria-label={
+					sizeLocked ? 'Спільний розмір для всіх нот' : 'Кожна нота має власний розмір'
+				}
+				onClick={onToggleLock}
 			>
-				{brushSize}px
-			</Text>
+				{sizeLocked ? <Lock className="icon" /> : <Unlock className="icon" />}
+			</button>
 
-			{currentMode !== 'eraser' && (
-				<ActionIcon
-					size={32}
-					radius="xl"
-					variant="default"
-					onClick={onTogglePalette}
-					aria-label="Кольори"
+			<button
+				type="button"
+				className="btn-size-step"
+				aria-label="Зменшити розмір"
+				onClick={handleDecrease}
+			>
+				<Minus className="icon" />
+			</button>
+
+			<input
+				type="range"
+				id="brush-size"
+				min="1"
+				max="100"
+				value={brushSize}
+				onChange={(e) => onChangeSize(parseInt(e.target.value, 10))}
+			/>
+
+			<button
+				type="button"
+				className="btn-size-step"
+				aria-label="Збільшити розмір"
+				onClick={handleIncrease}
+			>
+				<Plus className="icon" />
+			</button>
+
+			<span id="brush-size-val">{brushSize}px</span>
+
+			<button
+				id="btn-toggle-palette"
+				type="button"
+				className={isEraser ? 'hidden' : ''}
+				aria-label="Кольори"
+				onClick={onTogglePalette}
+			>
+				<div
+					id="color-preview"
 					style={{
-						backgroundColor: 'rgba(55, 65, 81, 0.8)',
-						border: '1px solid #4b5563',
-						flexShrink: 0,
+						backgroundColor: mainColor,
+						borderColor: previewBorderColor,
 					}}
 				>
-					<div
-						style={{
-							width: 20,
-							height: 20,
-							borderRadius: '50%',
-							backgroundColor: mainColor,
-							border:
-								currentMode !== 'stamp'
-									? '2px solid rgba(255, 255, 255, 0.4)'
-									: isTransparent
-										? '2px solid rgba(255, 255, 255, 0.3)'
-										: `2px solid ${strokeColor}`,
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-						}}
-					>
-						{currentMode === 'stamp' && isTransparent && (
-							<span style={{ fontSize: 9, color: '#ef4444', fontWeight: 'bold' }}>✕</span>
-						)}
-					</div>
-				</ActionIcon>
-			)}
-		</Group>
+					<span id="stroke-transparent-icon" className={!isStrokeTransparent ? 'hidden' : ''}>
+						✕
+					</span>
+				</div>
+			</button>
+		</div>
 	);
 };

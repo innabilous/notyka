@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { ActionIcon, Group } from '@mantine/core';
 import { Eraser, Menu, Pencil, Redo2, Stamp, Undo2 } from 'lucide-react';
 import { ToolMode } from '@/types/editor';
 
@@ -12,7 +11,7 @@ interface BottomToolbarProps {
 	onSelectMode: (mode: ToolMode) => void;
 	onUndo: () => void;
 	onRedo: () => void;
-	onToggleMenu: () => void;
+	onToggleMenu: (e: React.MouseEvent) => void;
 }
 
 export const BottomToolbar: React.FC<BottomToolbarProps> = ({
@@ -25,99 +24,67 @@ export const BottomToolbar: React.FC<BottomToolbarProps> = ({
 	onToggleMenu,
 }) => {
 	return (
-		<Group justify="space-between" gap="xs" wrap="nowrap" style={{ width: '100%' }}>
-			<ActionIcon
-				variant="filled"
-				color="dark.5"
-				size={46}
-				radius="md"
-				onClick={onToggleMenu}
+		<div id="toolbar">
+			<button
+				id="btn-toggle-menu"
+				type="button"
+				className="tool"
 				aria-label="Меню"
-				style={{ flex: 1, height: 46 }}
+				onClick={onToggleMenu}
 			>
-				<Menu size={22} />
-			</ActionIcon>
-
-			<div
-				style={{
-					width: 1,
-					height: 28,
-					backgroundColor: 'rgba(55, 65, 81, 0.8)',
-					flexShrink: 0,
-				}}
-			/>
-
-			<Group gap={6} style={{ flex: 2 }} wrap="nowrap">
-				<ActionIcon
-					variant="filled"
-					color="dark.5"
-					size={46}
-					radius="md"
+				<Menu className="icon lg" />
+			</button>
+			<div className="vsep" />
+			<div className="pair">
+				<button
+					id="btn-undo"
+					type="button"
+					className="tool"
 					disabled={!canUndo}
-					onClick={onUndo}
 					aria-label="Скасувати"
-					style={{ flex: 1, height: 46, opacity: canUndo ? 1 : 0.3 }}
+					onClick={onUndo}
 				>
-					<Undo2 size={22} />
-				</ActionIcon>
-				<ActionIcon
-					variant="filled"
-					color="dark.5"
-					size={46}
-					radius="md"
+					<Undo2 className="icon lg" />
+				</button>
+				<button
+					id="btn-redo"
+					type="button"
+					className="tool"
 					disabled={!canRedo}
-					onClick={onRedo}
 					aria-label="Повернути"
-					style={{ flex: 1, height: 46, opacity: canRedo ? 1 : 0.3 }}
+					onClick={onRedo}
 				>
-					<Redo2 size={22} />
-				</ActionIcon>
-			</Group>
-
-			<div
-				style={{
-					width: 1,
-					height: 28,
-					backgroundColor: 'rgba(55, 65, 81, 0.8)',
-					flexShrink: 0,
-				}}
-			/>
-
-			<ActionIcon
-				variant="filled"
-				color={currentMode === 'pencil' ? 'indigo.6' : 'dark.5'}
-				size={46}
-				radius="md"
-				onClick={() => onSelectMode('pencil')}
+					<Redo2 className="icon lg" />
+				</button>
+			</div>
+			<div className="vsep" />
+			<button
+				id="btn-pencil"
+				type="button"
+				className={`tool ${currentMode === 'pencil' ? 'active' : ''}`}
 				aria-label="Олівець"
-				style={{ flex: 1, height: 46 }}
+				onClick={() => onSelectMode('pencil')}
 			>
-				<Pencil size={22} />
-			</ActionIcon>
-
-			<ActionIcon
-				variant="filled"
-				color={currentMode === 'stamp' ? 'indigo.6' : 'dark.5'}
-				size={46}
-				radius="md"
-				onClick={() => onSelectMode('stamp')}
+				<Pencil className="icon lg" />
+			</button>
+			<button
+				id="btn-stamp"
+				type="button"
+				className={`tool ${currentMode === 'stamp' ? 'active' : ''}`}
 				aria-label="Штамп"
-				style={{ flex: 1, height: 46 }}
+				onClick={() => onSelectMode('stamp')}
 			>
-				<Stamp size={22} />
-			</ActionIcon>
-
-			<ActionIcon
-				variant="filled"
-				color={currentMode === 'eraser' ? 'indigo.6' : 'dark.5'}
-				size={46}
-				radius="md"
-				onClick={() => onSelectMode('eraser')}
+				<Stamp className="icon lg" />
+			</button>
+			<button
+				id="btn-eraser"
+				type="button"
+				className={`tool ${currentMode === 'eraser' ? 'active' : ''}`}
 				aria-label="Гумка"
-				style={{ flex: 1, height: 46 }}
+				onClick={() => onSelectMode('eraser')}
 			>
-				<Eraser size={22} />
-			</ActionIcon>
-		</Group>
+				<Eraser className="icon lg" />
+			</button>
+		</div>
 	);
 };
