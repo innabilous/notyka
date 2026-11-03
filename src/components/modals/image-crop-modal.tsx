@@ -8,6 +8,7 @@ import {
 	FlipVertical,
 	RotateCcw,
 	RotateCw,
+	Sparkles,
 	Undo2,
 	X,
 } from 'lucide-react';
@@ -43,8 +44,9 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 	const [flipH, setFlipH] = useState<boolean>(false);
 	const [flipV, setFlipV] = useState<boolean>(false);
 	const [aspectRatio, setAspectRatio] = useState<AspectRatio>('free');
+	const [enhanceClarity, setEnhanceClarity] = useState<boolean>(false);
 
-	const [crop, setCrop] = useState<NormalizedRect>({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 });
+	const [crop, setCrop] = useState<NormalizedRect>({ x: 0, y: 0, w: 1, h: 1 });
 	const dragModeRef = useRef<'move' | 'nw' | 'ne' | 'se' | 'sw' | null>(null);
 	const dragStartRef = useRef<{ clientX: number; clientY: number; startCrop: NormalizedRect }>({
 		clientX: 0,
@@ -64,7 +66,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 			setRotation(0);
 			setFlipH(false);
 			setFlipV(false);
-			setCrop({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 });
+			setEnhanceClarity(false);
+			setCrop({ x: 0, y: 0, w: 1, h: 1 });
 		};
 		img.src = imageSrc;
 	}, [imageSrc, opened]);
@@ -110,7 +113,9 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 	const handleAspectChange = (ratio: AspectRatio) => {
 		setAspectRatio(ratio);
 		if (!imageElement) return;
-		setCrop((prev) => applyAspect(ratio, prev, imageElement.width, imageElement.height));
+		const nw = imageElement.naturalWidth || imageElement.width;
+		const nh = imageElement.naturalHeight || imageElement.height;
+		setCrop((prev) => applyAspect(ratio, prev, nw, nh));
 	};
 
 	const handleRotateLeft = () => {
@@ -129,12 +134,17 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 		setFlipV((prev) => !prev);
 	};
 
+	const handleToggleEnhance = () => {
+		setEnhanceClarity((prev) => !prev);
+	};
+
 	const handleReset = () => {
 		setRotation(0);
 		setFlipH(false);
 		setFlipV(false);
+		setEnhanceClarity(false);
 		setAspectRatio('free');
-		setCrop({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 });
+		setCrop({ x: 0, y: 0, w: 1, h: 1 });
 	};
 
 	// Start dragging
@@ -264,12 +274,28 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 
 	// Render processed image in full high resolution
 	const handleApply = () => {
-		if (!imageElement) return;
+		if (!imageElement || !imageSrc) return;
 
-		// 1. First offscreen canvas: rotate and flip
+		// If no modifications were made, return original image without generation loss
+		if (
+			rotation === 0 &&
+			!flipH &&
+			!flipV &&
+			crop.x === 0 &&
+			crop.y === 0 &&
+			crop.w === 1 &&
+			crop.h === 1 &&
+			!enhanceClarity
+		) {
+			onApply(imageSrc, fileName);
+			return;
+		}
+
+		const naturalW = imageElement.naturalWidth || imageElement.width;
+		const naturalH = imageElement.naturalHeight || imageElement.height;
 		const isSwap = rotation % 180 !== 0;
-		const rotW = isSwap ? imageElement.height : imageElement.width;
-		const rotH = isSwap ? imageElement.width : imageElement.height;
+		const rotW = isSwap ? naturalH : naturalW;
+		const rotH = isSwap ? naturalW : naturalH;
 
 		const rotCanvas = document.createElement('canvas');
 		rotCanvas.width = rotW;
@@ -284,14 +310,14 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 		rctx.translate(rotW / 2, rotH / 2);
 		rctx.rotate((rotation * Math.PI) / 180);
 		rctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-		rctx.drawImage(imageElement, -imageElement.width / 2, -imageElement.height / 2);
+		rctx.drawImage(imageElement, -naturalW / 2, -naturalH / 2, naturalW, naturalH);
 		rctx.restore();
 
 		// 2. Second offscreen canvas: crop
-		const cropPxX = Math.round(crop.x * rotW);
-		const cropPxY = Math.round(crop.y * rotH);
-		const cropPxW = Math.max(10, Math.round(crop.w * rotW));
-		const cropPxH = Math.max(10, Math.round(crop.h * rotH));
+		const cropPxX = Math.max(0, Math.min(rotW - 1, Math.round(crop.x * rotW)));
+		const cropPxY = Math.max(0, Math.min(rotH - 1, Math.round(crop.y * rotH)));
+		const cropPxW = Math.max(1, Math.min(rotW - cropPxX, Math.round(crop.w * rotW)));
+		const cropPxH = Math.max(1, Math.min(rotH - cropPxY, Math.round(crop.h * rotH)));
 
 		const cropCanvas = document.createElement('canvas');
 		cropCanvas.width = cropPxW;
@@ -301,6 +327,11 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 
 		cctx.imageSmoothingEnabled = true;
 		cctx.imageSmoothingQuality = 'high';
+
+		if (enhanceClarity) {
+			// Boost contrast and brightness for crisp, readable musical score lines
+			cctx.filter = 'contrast(1.14) brightness(1.02)';
+		}
 
 		cctx.drawImage(rotCanvas, cropPxX, cropPxY, cropPxW, cropPxH, 0, 0, cropPxW, cropPxH);
 
@@ -394,8 +425,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 							maxWidth: '100%',
 							maxHeight: '100%',
 							aspectRatio: isRotated90or270
-								? `${imageElement.height} / ${imageElement.width}`
-								: `${imageElement.width} / ${imageElement.height}`,
+								? `${imageElement.naturalHeight || imageElement.height} / ${imageElement.naturalWidth || imageElement.width}`
+								: `${imageElement.naturalWidth || imageElement.width} / ${imageElement.naturalHeight || imageElement.height}`,
 							boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
 							userSelect: 'none',
 							touchAction: 'none',
@@ -412,7 +443,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 								display: 'block',
 								objectFit: 'contain',
 								transform: `rotate(${rotation}deg) scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})`,
-								transition: 'transform 0.15s ease-out',
+								filter: enhanceClarity ? 'contrast(1.14) brightness(1.02)' : 'none',
+								transition: 'transform 0.15s ease-out, filter 0.15s ease-out',
 								pointerEvents: 'none',
 							}}
 						/>
@@ -679,6 +711,32 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 						aria-label="Віддзеркалити вертикально"
 					>
 						<FlipVertical className="icon" />
+					</button>
+
+					<button
+						type="button"
+						style={{
+							width: '2.5rem',
+							height: '2.5rem',
+							borderRadius: '50%',
+							background: enhanceClarity ? 'var(--accent-gradient)' : 'var(--panel-2)',
+							border: enhanceClarity ? 'none' : '1px solid var(--line)',
+							color: enhanceClarity ? '#ffffff' : 'var(--text)',
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							cursor: 'pointer',
+							boxShadow: enhanceClarity ? '0 2px 8px rgba(56, 189, 248, 0.3)' : 'none',
+						}}
+						onClick={handleToggleEnhance}
+						title={
+							enhanceClarity
+								? 'Покращення чіткості увімкнено (натисніть, щоб вимкнути)'
+								: 'Покращити чіткість нот та контраст партитури'
+						}
+						aria-label="Покращити чіткість нот та контраст партитури"
+					>
+						<Sparkles className="icon" />
 					</button>
 
 					<button
