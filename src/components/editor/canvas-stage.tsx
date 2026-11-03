@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Button, Stack, Text } from '@mantine/core';
 import { FilePlus, Image as ImageIcon } from 'lucide-react';
 import {
 	DRAG_SLOP,
@@ -13,7 +12,9 @@ import {
 	SMOOTH,
 } from '@/constants/editor';
 import { HistoryItem, Point, StampItem, ToolMode } from '@/types/editor';
+import { ProjectItem } from '@/types/storage';
 import {
+	calculateStampBox,
 	drawStamp,
 	getDeleteCoords,
 	getHandleCoords,
@@ -35,6 +36,8 @@ interface CanvasStageProps {
 	onHistoryChange: (canUndo: boolean, canRedo: boolean) => void;
 	onNotify: (message: string) => void;
 	onInitBlank: () => void;
+	onResetCanvas: () => void;
+	onContentChange?: () => void;
 	stageRef: React.MutableRefObject<CanvasStageHandle | null>;
 }
 
@@ -45,7 +48,10 @@ export interface CanvasStageHandle {
 	undo: () => void;
 	redo: () => void;
 	commitActiveStamp: () => void;
+	prepareExport: () => void;
 	getExportBlob: () => Promise<Blob | null>;
+	serializeProject: (title?: string) => Promise<ProjectItem | null>;
+	loadProject: (project: ProjectItem) => Promise<void>;
 	updateActiveStampProps: (
 		size: number,
 		text: string,
@@ -67,6 +73,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	onHistoryChange,
 	onNotify,
 	onInitBlank,
+	onResetCanvas,
+	onContentChange,
 	stageRef,
 }) => {
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -82,6 +90,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const activeStampRef = useRef<StampItem | null>(null);
 	const activeOrigRef = useRef<string>('');
 	const cursorPosRef = useRef<Point | null>(null);
+
+	const currentProjectIdRef = useRef<string>('');
+	const currentProjectTitleRef = useRef<string>('');
 
 	// Canvas dimensions & scale
 	const uRef = useRef<number>(1);
@@ -111,8 +122,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	});
 	const initialPinchDistRef = useRef<number>(0);
 	const startScaleRef = useRef<number>(1);
-	const startPanRef = useRef<Point>({ x: 0, y: 0 });
-	const startPinchCenterRef = useRef<Point>({ x: 0, y: 0 });
+	const pinchFocalRef = useRef<{ x: number; y: number; baseLeft: number; baseTop: number } | null>(
+		null,
+	);
 	const ignoreMouseDownRef = useRef<boolean>(false);
 
 	const pendingStartRef = useRef<Point | null>(null);
@@ -122,6 +134,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	// History stack
 	const historyStackRef = useRef<HistoryItem[]>([]);
 	const historyStepRef = useRef<number>(-1);
+
+	// Export cache
+	const exportBlobRef = useRef<Blob | null>(null);
+	const exportTokenRef = useRef<number>(0);
 
 	// RAF render scheduler
 	const rafIdRef = useRef<number>(0);
@@ -145,6 +161,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	}, [onHistoryChange]);
 
 	const render = useCallback(() => {
+		exportTokenRef.current++;
+		exportBlobRef.current = null;
+
 		const canvas = canvasRef.current;
 		const baseCanvas = baseCanvasRef.current;
 		const bgCanvas = bgCanvasRef.current;
@@ -216,7 +235,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		historyStackRef.current = currentStack;
 		historyStepRef.current = currentStack.length - 1;
 		updateUndoRedo();
-	}, [updateUndoRedo]);
+		onContentChange?.();
+	}, [onContentChange, updateUndoRedo]);
 
 	const commitActiveStamp = useCallback(() => {
 		const active = activeStampRef.current;
@@ -351,13 +371,23 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			render();
 			saveHistory();
 		} else {
+			onResetCanvas();
 			resetTransform();
 			historyStackRef.current = [];
 			historyStepRef.current = -1;
 			updateUndoRedo();
+			onContentChange?.();
 		}
 		onNotify('Очищено');
-	}, [onNotify, render, resetTransform, saveHistory, updateUndoRedo]);
+	}, [
+		onContentChange,
+		onNotify,
+		onResetCanvas,
+		render,
+		resetTransform,
+		saveHistory,
+		updateUndoRedo,
+	]);
 
 	const restoreHistory = useCallback(
 		(step: number) => {
@@ -374,8 +404,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			activeOrigRef.current = '';
 			render();
 			updateUndoRedo();
+			onContentChange?.();
 		},
-		[render, updateUndoRedo],
+		[onContentChange, render, updateUndoRedo],
 	);
 
 	const handleUndo = useCallback(() => {
@@ -622,8 +653,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				const canvas = canvasRef.current;
 				const ctx = canvas?.getContext('2d');
 				if (ctx) {
+					const bx = calculateStampBox(active, uRef.current, ctx);
 					active.x = pt.x - dragOffsetRef.current.x;
-					active.y = pt.y - dragOffsetRef.current.y - 24 * uRef.current;
+					active.y =
+						pt.y - dragOffsetRef.current.y - 24 * uRef.current - (bx.y + bx.h - active.y);
 					render();
 				}
 			} else if (isDraggingStampRef.current) {
@@ -697,6 +730,167 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		isDraggingHandleRef.current = false;
 	}, [currentMode, quadSegment, saveHistory]);
 
+	const buildExportCanvas = useCallback((): HTMLCanvasElement | null => {
+		const base = baseCanvasRef.current;
+		const bg = bgCanvasRef.current;
+		if (!base || !bg) return null;
+
+		const exportCanvas = document.createElement('canvas');
+		exportCanvas.width = base.width;
+		exportCanvas.height = base.height;
+		const expCtx = exportCanvas.getContext('2d');
+		if (!expCtx) return null;
+
+		expCtx.fillStyle = '#ffffff';
+		expCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+		if (currentImageRef.current) {
+			expCtx.drawImage(bg, 0, 0);
+		}
+		expCtx.drawImage(base, 0, 0);
+
+		stampsListRef.current.forEach((st) => {
+			drawStamp(st, false, expCtx, uRef.current, false);
+		});
+		if (activeStampRef.current) {
+			drawStamp(activeStampRef.current, false, expCtx, uRef.current, false);
+		}
+
+		return exportCanvas;
+	}, []);
+
+	const prepareExport = useCallback(() => {
+		if (!hasCanvas) return;
+		const token = ++exportTokenRef.current;
+		exportBlobRef.current = null;
+		const exp = buildExportCanvas();
+		if (!exp) return;
+		exp.toBlob((b) => {
+			if (token === exportTokenRef.current) {
+				exportBlobRef.current = b;
+			}
+		}, 'image/png');
+	}, [buildExportCanvas, hasCanvas]);
+
+	const serializeProject = useCallback(
+		async (title?: string): Promise<ProjectItem | null> => {
+			const canvas = canvasRef.current;
+			const base = baseCanvasRef.current;
+			const bg = bgCanvasRef.current;
+			if (!canvas || !base || !bg || !hasCanvas) return null;
+
+			const currentStamps = [...stampsListRef.current];
+			if (activeStampRef.current) {
+				currentStamps.push({ ...activeStampRef.current });
+			}
+
+			let thumbnail = '';
+			const expCanvas = buildExportCanvas();
+			if (expCanvas) {
+				const thumbCanvas = document.createElement('canvas');
+				const maxDim = 180;
+				const scale = Math.min(maxDim / expCanvas.width, maxDim / expCanvas.height, 1);
+				thumbCanvas.width = Math.max(1, Math.round(expCanvas.width * scale));
+				thumbCanvas.height = Math.max(1, Math.round(expCanvas.height * scale));
+				const tctx = thumbCanvas.getContext('2d');
+				if (tctx) {
+					tctx.drawImage(expCanvas, 0, 0, thumbCanvas.width, thumbCanvas.height);
+					thumbnail = thumbCanvas.toDataURL('image/jpeg', 0.7);
+				}
+			}
+
+			const baseDataUrl = base.toDataURL('image/png');
+			const bgDataUrl = currentImageRef.current ? bg.toDataURL('image/png') : null;
+
+			const project: ProjectItem = {
+				id:
+					currentProjectIdRef.current ||
+					`proj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+				title:
+					title ||
+					currentProjectTitleRef.current ||
+					`Малюнок ${new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`,
+				updatedAt: Date.now(),
+				thumbnail,
+				hasImage: !!currentImageRef.current,
+				bgDataUrl,
+				baseDataUrl,
+				stamps: currentStamps,
+				width: canvas.width,
+				height: canvas.height,
+				cssW: parseFloat(canvas.style.width) || canvas.width,
+				cssH: parseFloat(canvas.style.height) || canvas.height,
+			};
+
+			currentProjectIdRef.current = project.id;
+			currentProjectTitleRef.current = project.title;
+			return project;
+		},
+		[buildExportCanvas, hasCanvas],
+	);
+
+	const loadProject = useCallback(
+		async (project: ProjectItem) => {
+			const container = containerRef.current;
+			if (!container) return;
+
+			currentProjectIdRef.current = project.id;
+			currentProjectTitleRef.current = project.title;
+
+			initCanvas(project.width, project.height, project.cssW, project.cssH);
+			const canvas = canvasRef.current;
+			const base = baseCanvasRef.current;
+			const bg = bgCanvasRef.current;
+			if (!canvas || !base || !bg) return;
+
+			const bctx = base.getContext('2d');
+			const bgctx = bg.getContext('2d');
+			if (!bctx || !bgctx) return;
+
+			bctx.clearRect(0, 0, base.width, base.height);
+			bgctx.clearRect(0, 0, bg.width, bg.height);
+
+			if (project.hasImage && project.bgDataUrl) {
+				await new Promise<void>((resolve) => {
+					const img = new Image();
+					img.onload = () => {
+						currentImageRef.current = img;
+						bgctx.drawImage(img, 0, 0);
+						resolve();
+					};
+					img.onerror = () => resolve();
+					img.src = project.bgDataUrl!;
+				});
+			} else {
+				currentImageRef.current = null;
+			}
+
+			if (project.baseDataUrl) {
+				await new Promise<void>((resolve) => {
+					const img = new Image();
+					img.onload = () => {
+						bctx.drawImage(img, 0, 0);
+						resolve();
+					};
+					img.onerror = () => resolve();
+					img.src = project.baseDataUrl!;
+				});
+			}
+
+			stampsListRef.current = JSON.parse(JSON.stringify(project.stamps || []));
+			activeStampRef.current = null;
+			activeOrigRef.current = '';
+
+			resetTransform();
+			onInitBlank();
+			render();
+
+			historyStackRef.current = [];
+			historyStepRef.current = -1;
+			saveHistory();
+		},
+		[initCanvas, onInitBlank, render, resetTransform, saveHistory],
+	);
+
 	// Attach stageRef imperative handle
 	useEffect(() => {
 		stageRef.current = {
@@ -706,33 +900,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			undo: handleUndo,
 			redo: handleRedo,
 			commitActiveStamp,
+			prepareExport,
 			getExportBlob: async () => {
-				const base = baseCanvasRef.current;
-				const bg = bgCanvasRef.current;
-				if (!base || !bg) return null;
-
-				const exportCanvas = document.createElement('canvas');
-				exportCanvas.width = base.width;
-				exportCanvas.height = base.height;
-				const expCtx = exportCanvas.getContext('2d');
-				if (!expCtx) return null;
-
-				expCtx.fillStyle = '#ffffff';
-				expCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-				if (currentImageRef.current) {
-					expCtx.drawImage(bg, 0, 0);
-				}
-				expCtx.drawImage(base, 0, 0);
-
-				stampsListRef.current.forEach((st) => {
-					drawStamp(st, false, expCtx, uRef.current, false);
-				});
-				if (activeStampRef.current) {
-					drawStamp(activeStampRef.current, false, expCtx, uRef.current, false);
-				}
-
-				return new Promise<Blob | null>((res) => exportCanvas.toBlob(res, 'image/png'));
+				if (exportBlobRef.current) return exportBlobRef.current;
+				const exp = buildExportCanvas();
+				if (!exp) return null;
+				return new Promise<Blob | null>((res) => exp.toBlob(res, 'image/png'));
 			},
+			serializeProject,
+			loadProject,
 			updateActiveStampProps: (sz, txt, mClr, sClr) => {
 				const active = activeStampRef.current;
 				if (!active) return;
@@ -744,13 +920,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			},
 		};
 	}, [
+		buildExportCanvas,
 		clearCanvas,
 		commitActiveStamp,
 		createBlank,
 		handleRedo,
 		handleUndo,
 		loadImage,
+		loadProject,
+		prepareExport,
 		render,
+		serializeProject,
 		stageRef,
 	]);
 
@@ -778,6 +958,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			pendingStartRef.current = null;
 		};
 
+		const getTouchStats = (a: Touch, b: Touch) => {
+			return {
+				dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+				center: { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 },
+			};
+		};
+
 		const onTouchStart = (e: TouchEvent) => {
 			ignoreMouseDownRef.current = true;
 			if (e.touches.length === 2) {
@@ -790,14 +977,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 				const a = e.touches[0];
 				const b = e.touches[1];
-				initialPinchDistRef.current = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+				const s = getTouchStats(a, b);
+				initialPinchDistRef.current = s.dist;
 				startScaleRef.current = scaleRef.current;
-				startPanRef.current = { ...panRef.current };
-				startPinchCenterRef.current = {
-					x: (a.clientX + b.clientX) / 2,
-					y: (a.clientY + b.clientY) / 2,
-				};
+
+				const canvas = canvasRef.current;
+				if (canvas) {
+					const cr = canvas.getBoundingClientRect();
+					pinchFocalRef.current = {
+						x: (s.center.x - cr.left) / scaleRef.current,
+						y: (s.center.y - cr.top) / scaleRef.current,
+						baseLeft: cr.left - panRef.current.x,
+						baseTop: cr.top - panRef.current.y,
+					};
+				}
 			} else if (e.touches.length === 1 && !isMultiTouchRef.current) {
+				const target = e.target as HTMLElement | null;
+				if (target?.closest('#placeholder button')) return;
+				if (!hasCanvas) createBlank();
 				const t = e.touches[0];
 				cancelPending();
 				pendingStartRef.current = getCanvasCoords(t.clientX, t.clientY);
@@ -811,27 +1008,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			if (e.touches.length >= 2 && isMultiTouchRef.current) {
 				const a = e.touches[0];
 				const b = e.touches[1];
-				const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-				const center = { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+				const s = getTouchStats(a, b);
 
-				if (initialPinchDistRef.current > 0) {
+				if (initialPinchDistRef.current > 0 && pinchFocalRef.current) {
 					const ns = Math.min(
-						Math.max(MIN_SCALE, (startScaleRef.current * dist) / initialPinchDistRef.current),
+						Math.max(
+							MIN_SCALE,
+							(startScaleRef.current * s.dist) / initialPinchDistRef.current,
+						),
 						MAX_SCALE,
 					);
-					const r = container.getBoundingClientRect();
-					const fx = startPinchCenterRef.current.x - r.left;
-					const fy = startPinchCenterRef.current.y - r.top;
+					const focal = pinchFocalRef.current;
 
 					panRef.current = {
-						x:
-							fx -
-							(fx - startPanRef.current.x) * (ns / startScaleRef.current) +
-							(center.x - startPinchCenterRef.current.x),
-						y:
-							fy -
-							(fy - startPanRef.current.y) * (ns / startScaleRef.current) +
-							(center.y - startPinchCenterRef.current.y),
+						x: s.center.x - focal.x * ns - focal.baseLeft,
+						y: s.center.y - focal.y * ns - focal.baseTop,
 					};
 					scaleRef.current = ns;
 					applyTransform();
@@ -856,6 +1047,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		const onTouchEnd = (e: TouchEvent) => {
 			if (e.touches.length < 2) {
 				isMultiTouchRef.current = false;
+				pinchFocalRef.current = null;
 			}
 			if (e.touches.length === 0) {
 				flushPending();
@@ -870,8 +1062,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			}
 		};
 
-		const onMouseDown = (e: MouseEvent) => {
-			if (ignoreMouseDownRef.current) return;
+		// Pointer events for robust middle-click drag across browsers
+		const onPointerDown = (e: PointerEvent) => {
 			if (e.button === 1) {
 				// Middle click pan
 				e.preventDefault();
@@ -883,14 +1075,37 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					panY: panRef.current.y,
 				};
 				container.style.cursor = 'grabbing';
+			}
+		};
+
+		const onMouseDown = (e: MouseEvent) => {
+			if (e.button === 1) {
+				e.preventDefault();
+				isPanningRef.current = true;
+				panStartRef.current = {
+					clientX: e.clientX,
+					clientY: e.clientY,
+					panX: panRef.current.x,
+					panY: panRef.current.y,
+				};
+				container.style.cursor = 'grabbing';
 				return;
 			}
+			if (ignoreMouseDownRef.current) return;
 			if (e.button !== 0) return;
+			const target = e.target as HTMLElement | null;
+			if (target?.closest('#placeholder button')) return;
+			if (!hasCanvas) createBlank();
 			pointerDown(getCanvasCoords(e.clientX, e.clientY));
 		};
 
 		const onMouseMove = (e: MouseEvent) => {
 			if (isPanningRef.current) {
+				if (e.buttons === 0 || (e.buttons & 4) === 0) {
+					isPanningRef.current = false;
+					container.style.cursor = '';
+					return;
+				}
 				panRef.current = {
 					x: panStartRef.current.panX + (e.clientX - panStartRef.current.clientX),
 					y: panStartRef.current.panY + (e.clientY - panStartRef.current.clientY),
@@ -909,13 +1124,27 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		};
 
 		const onMouseUp = (e: MouseEvent) => {
-			if (isPanningRef.current && e.button === 1) {
+			if (isPanningRef.current) {
 				isPanningRef.current = false;
 				container.style.cursor = '';
 				return;
 			}
 			if (!ignoreMouseDownRef.current && e.button === 0) {
 				pointerUp();
+			}
+		};
+
+		const onPointerUpGlobal = () => {
+			if (isPanningRef.current) {
+				isPanningRef.current = false;
+				container.style.cursor = '';
+			}
+		};
+
+		const onWindowBlur = () => {
+			if (isPanningRef.current) {
+				isPanningRef.current = false;
+				container.style.cursor = '';
 			}
 		};
 
@@ -928,13 +1157,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 		const onWheel = (e: WheelEvent) => {
 			e.preventDefault();
+			const canvas = canvasRef.current;
+			if (!canvas || !hasCanvas) return;
+
 			const ns = Math.min(
 				Math.max(MIN_SCALE, scaleRef.current * Math.exp(-e.deltaY * 0.0015)),
 				MAX_SCALE,
 			);
 			if (ns === scaleRef.current) return;
 
-			const r = container.getBoundingClientRect();
+			const r = canvas.getBoundingClientRect();
 			const lx = (e.clientX - r.left) / scaleRef.current;
 			const ly = (e.clientY - r.top) / scaleRef.current;
 			const baseLeft = r.left - panRef.current.x;
@@ -953,72 +1185,66 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			}
 		};
 
+		const onAuxClick = (e: MouseEvent) => {
+			e.preventDefault();
+		};
+
+		container.addEventListener('pointerdown', onPointerDown);
 		container.addEventListener('touchstart', onTouchStart, { passive: false });
 		container.addEventListener('touchmove', onTouchMove, { passive: false });
 		container.addEventListener('touchend', onTouchEnd);
 		container.addEventListener('mousedown', onMouseDown);
 		window.addEventListener('mousemove', onMouseMove);
 		window.addEventListener('mouseup', onMouseUp);
+		window.addEventListener('pointerup', onPointerUpGlobal);
+		window.addEventListener('blur', onWindowBlur);
 		container.addEventListener('mouseleave', onMouseLeave);
 		container.addEventListener('wheel', onWheel, { passive: false });
+		container.addEventListener('auxclick', onAuxClick);
 
 		return () => {
+			container.removeEventListener('pointerdown', onPointerDown);
 			container.removeEventListener('touchstart', onTouchStart);
 			container.removeEventListener('touchmove', onTouchMove);
 			container.removeEventListener('touchend', onTouchEnd);
 			container.removeEventListener('mousedown', onMouseDown);
 			window.removeEventListener('mousemove', onMouseMove);
 			window.removeEventListener('mouseup', onMouseUp);
+			window.removeEventListener('pointerup', onPointerUpGlobal);
+			window.removeEventListener('blur', onWindowBlur);
 			container.removeEventListener('mouseleave', onMouseLeave);
 			container.removeEventListener('wheel', onWheel);
+			container.removeEventListener('auxclick', onAuxClick);
 		};
-	}, [applyTransform, currentMode, getCanvasCoords, pointerDown, pointerMove, pointerUp, render]);
+	}, [
+		applyTransform,
+		createBlank,
+		currentMode,
+		getCanvasCoords,
+		hasCanvas,
+		pointerDown,
+		pointerMove,
+		pointerUp,
+		render,
+	]);
 
 	return (
-		<div
-			ref={containerRef}
-			style={{
-				position: 'relative',
-				flex: 1,
-				width: '100%',
-				height: '100%',
-				backgroundColor: '#030712',
-				display: 'flex',
-				alignItems: 'center',
-				justifyContent: 'center',
-				overflow: 'hidden',
-				touchAction: 'none',
-			}}
-		>
-			{!hasCanvas ? (
-				<Stack align="center" gap="md" p="xl" style={{ zIndex: 10, textAlign: 'center' }}>
-					<ImageIcon size={64} style={{ opacity: 0.4, color: '#6b7280' }} />
-					<Text size="md" fw={500} c="gray.5">
-						Відкрийте зображення або почніть на білому аркуші
-					</Text>
-					<Button
-						leftSection={<FilePlus size={18} />}
-						color="indigo"
-						size="md"
-						radius="md"
-						onClick={createBlank}
-						style={{ boxShadow: '0 10px 15px -3px rgba(0,0,0,0.4)' }}
-					>
-						Новий білий аркуш
-					</Button>
-				</Stack>
-			) : (
-				<canvas
-					ref={canvasRef}
-					style={{
-						backgroundColor: '#ffffff',
-						boxShadow: '0 25px 50px -12px rgba(0,0,0,.6)',
-						cursor: currentMode === 'stamp' ? 'move' : 'crosshair',
-						transformOrigin: '0 0',
-						willChange: 'transform',
-					}}
-				/>
-			)}
-		</div>
+		<main id="canvas-container" ref={containerRef}>
+			<div id="placeholder" className={hasCanvas ? 'hidden' : ''}>
+				<ImageIcon className="icon xl" />
+				<p>Відкрийте зображення або почніть на білому аркуші</p>
+				<button
+					id="btn-create-blank"
+					type="button"
+					className="btn-primary"
+					onClick={createBlank}
+				>
+					<FilePlus className="icon" />
+					<span>Новий білий аркуш</span>
+				</button>
+			</div>
+
+			<canvas id="editor-canvas" ref={canvasRef} className={!hasCanvas ? 'hidden' : ''} />
+		</main>
 	);
 };

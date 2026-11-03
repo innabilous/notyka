@@ -1,5 +1,20 @@
 import { BoundingBox, Point, StampItem } from '@/types/editor';
 
+let trashPaths: Path2D[] | null = null;
+
+function getTrashPaths(): Path2D[] {
+	if (!trashPaths && typeof Path2D !== 'undefined') {
+		trashPaths = [
+			'M3 6h18',
+			'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6',
+			'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2',
+			'M10 11v6',
+			'M14 11v6',
+		].map((d) => new Path2D(d));
+	}
+	return trashPaths ?? [];
+}
+
 export function getStampFont(size: number, U: number): string {
 	return `bold ${size * 2 * U}px system-ui, -apple-system, sans-serif`;
 }
@@ -84,50 +99,12 @@ export function isPointInDelete(
 	return dx * dx + dy * dy <= d.radius * d.radius;
 }
 
-function drawTrashIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, U: number): void {
-	const k = (12 * U) / 24;
-	ctx.save();
-	ctx.translate(cx - 12 * k, cy - 12 * k);
-	ctx.scale(k, k);
-	ctx.strokeStyle = '#ffffff';
-	ctx.lineWidth = 2.4;
-	ctx.lineCap = 'round';
-	ctx.lineJoin = 'round';
-
-	ctx.beginPath();
-	// Lid
-	ctx.moveTo(3, 6);
-	ctx.lineTo(21, 6);
-	// Handle
-	ctx.moveTo(8, 6);
-	ctx.lineTo(8, 4);
-	ctx.arcTo(8, 2, 10, 2, 2);
-	ctx.lineTo(14, 2);
-	ctx.arcTo(16, 2, 16, 4, 2);
-	ctx.lineTo(16, 6);
-	// Body
-	ctx.moveTo(19, 6);
-	ctx.lineTo(19, 20);
-	ctx.arcTo(19, 22, 17, 22, 2);
-	ctx.lineTo(7, 22);
-	ctx.arcTo(5, 22, 5, 20, 2);
-	ctx.lineTo(5, 6);
-	// Ribs
-	ctx.moveTo(10, 11);
-	ctx.lineTo(10, 17);
-	ctx.moveTo(14, 11);
-	ctx.lineTo(14, 17);
-
-	ctx.stroke();
-	ctx.restore();
-}
-
 export function drawStamp(
 	stamp: StampItem,
 	isActive: boolean,
 	ctx: CanvasRenderingContext2D,
 	U: number,
-	deleteBtnOn: boolean,
+	deleteBtnOn: boolean = true,
 ): void {
 	const fontSize = stamp.size * 2 * U;
 	ctx.save();
@@ -192,7 +169,19 @@ export function drawStamp(
 			ctx.lineWidth = 2 * U;
 			ctx.stroke();
 
-			drawTrashIcon(ctx, d.x, d.y, U);
+			const paths = getTrashPaths();
+			if (paths.length > 0) {
+				ctx.save();
+				const k = (12 * U) / 24;
+				ctx.translate(d.x - 12 * k, d.y - 12 * k);
+				ctx.scale(k, k);
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 2.4;
+				ctx.lineCap = 'round';
+				ctx.lineJoin = 'round';
+				paths.forEach((pth) => ctx.stroke(pth));
+				ctx.restore();
+			}
 		}
 	}
 
