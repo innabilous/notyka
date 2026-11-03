@@ -1,0 +1,31 @@
+{
+	"name": "notyka",
+	"version": "1.0.0",
+	"private": true,
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"typecheck": "tsc --noEmit",
+		"format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,json,md}\""
+	},
+	"dependencies": {
+		"@mantine/core": "^9.7.4",
+		"@mantine/hooks": "^9.7.4",
+		"@mantine/notifications": "^9.7.4",
+		"lucide-react": "^1.67.0",
+		"next": "^16.4.4",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0"
+	},
+	"devDependencies": {
+		"@types/node": "^22.13.1",
+		"@types/react": "^19.0.8",
+		"@types/react-dom": "^19.0.3",
+		"postcss": "^8.5.1",
+		"postcss-preset-mantine": "^1.18.0",
+		"postcss-simple-vars": "^7.0.1",
+		"prettier": "^3.9.10",
+		"typescript": "^5.7.3"
+	}
+}

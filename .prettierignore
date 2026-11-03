@@ -1,0 +1,7 @@
+# Prevent Prettier from formatting the lock file as yaml
+pnpm-lock.yaml
+
+# Prevent Prettier from removing custom indentation and alignment in properties files
+**/*.properties.scss
+.next
+node_modules
