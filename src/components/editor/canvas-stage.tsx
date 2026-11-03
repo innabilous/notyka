@@ -43,7 +43,7 @@ interface CanvasStageProps {
 
 export interface CanvasStageHandle {
 	createBlank: () => void;
-	loadImage: (file: File) => void;
+	loadImage: (fileOrSrc: File | string, title?: string) => void;
 	clear: () => void;
 	undo: () => void;
 	redo: () => void;
@@ -311,21 +311,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	}, [initCanvas, onInitBlank, onNotify, render, resetTransform, saveHistory]);
 
 	const loadImage = useCallback(
-		(file: File) => {
+		(fileOrSrc: File | string, title?: string) => {
 			const container = containerRef.current;
 			if (!container) return;
 
-			const reader = new FileReader();
-			reader.onload = (ev) => {
-				const src = ev.target?.result;
-				if (typeof src !== 'string') return;
-
+			const handleImageSource = (src: string, defaultTitle: string) => {
 				const img = new Image();
 				img.onload = () => {
 					currentProjectIdRef.current = `proj_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-					const cleanName = file.name.replace(/\.[^/.]+$/, '').trim();
 					currentProjectTitleRef.current =
-						cleanName ||
+						title ||
+						defaultTitle ||
 						`Фото ${new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}`;
 
 					currentImageRef.current = img;
@@ -354,6 +350,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					if (bg) {
 						const bgctx = bg.getContext('2d');
 						if (bgctx) {
+							bgctx.imageSmoothingEnabled = true;
 							bgctx.imageSmoothingQuality = 'high';
 							bgctx.drawImage(img, 0, 0, bg.width, bg.height);
 						}
@@ -369,7 +366,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				};
 				img.src = src;
 			};
-			reader.readAsDataURL(file);
+
+			if (typeof fileOrSrc === 'string') {
+				handleImageSource(fileOrSrc, title || 'Фото');
+			} else {
+				const reader = new FileReader();
+				const cleanName = fileOrSrc.name.replace(/\.[^/.]+$/, '').trim();
+				reader.onload = (ev) => {
+					const src = ev.target?.result;
+					if (typeof src === 'string') {
+						handleImageSource(src, cleanName);
+					}
+				};
+				reader.readAsDataURL(fileOrSrc);
+			}
 		},
 		[initCanvas, onInitBlank, onNotify, render, resetTransform, saveHistory],
 	);
