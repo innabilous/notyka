@@ -1,19 +1,30 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Box } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { ImageMenuModal } from '@/components/modals/image-menu-modal';
 import { ColorPaletteModal } from '@/components/modals/color-palette-modal';
+import { ImageMenuModal } from '@/components/modals/image-menu-modal';
+import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal';
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { StampSettings } from '@/components/settings/stamp-settings';
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
 import { StampItem, ToolMode } from '@/types/editor';
+import { ProjectItem } from '@/types/storage';
+import {
+	deleteProject,
+	getProjectsList,
+	loadCurrentSession,
+	loadSettings,
+	saveCurrentSession,
+	saveProject,
+	saveSettings,
+} from '@/utils/storage';
 import { CanvasStage, CanvasStageHandle } from './canvas-stage';
 
 export const PhotoEditor: React.FC = () => {
 	const stageRef = useRef<CanvasStageHandle | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const isMountedRef = useRef<boolean>(false);
+	const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 	const [hasCanvas, setHasCanvas] = useState<boolean>(false);
 	const [currentMode, setCurrentMode] = useState<ToolMode>('pencil');
@@ -28,7 +39,13 @@ export const PhotoEditor: React.FC = () => {
 		stamp: { main: '#ff0055', stroke: '#000000' },
 	});
 
-	const [brushSize, setBrushSize] = useState<number>(24);
+	// Independent tool sizes
+	const [toolSizes, setToolSizes] = useState<Record<ToolMode, number>>({
+		pencil: 24,
+		stamp: 24,
+		eraser: 24,
+	});
+
 	const [selectedNote, setSelectedNote] = useState<string>('до');
 	const [selectedAccidental, setSelectedAccidental] = useState<string>('');
 	const [sizeLocked, setSizeLocked] = useState<boolean>(true);
@@ -37,53 +54,111 @@ export const PhotoEditor: React.FC = () => {
 	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(true);
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
+	const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
+	const [projectsList, setProjectsList] = useState<ProjectItem[]>([]);
 
-	// Load delete button preference
+	// Custom toast state matching #toast from original code
+	const [toastText, setToastText] = useState<string>('');
+	const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+	const showToast = useCallback((message: string) => {
+		setToastText(message);
+		if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+		toastTimerRef.current = setTimeout(() => {
+			setToastText('');
+		}, 1800);
+	}, []);
+
+	// Outside click listener for popups
 	useEffect(() => {
-		try {
-			const saved = localStorage.getItem('pe_delete_btn');
-			if (saved !== null) {
-				setDeleteBtnOn(saved !== '0');
+		const handleDocClick = (e: MouseEvent) => {
+			const target = e.target as HTMLElement | null;
+			if (!target) return;
+			if (!target.closest('#image-menu') && !target.closest('#btn-toggle-menu')) {
+				setIsMenuOpen(false);
 			}
-		} catch {
-			// Ignore local storage error in private mode
-		}
+			if (!target.closest('#color-palette-popup') && !target.closest('#btn-toggle-palette')) {
+				setIsPaletteOpen(false);
+			}
+		};
+		document.addEventListener('click', handleDocClick);
+		return () => document.removeEventListener('click', handleDocClick);
 	}, []);
 
-	const notify = useCallback((message: string) => {
-		notifications.show({
-			message,
-			color: 'indigo',
-			autoClose: 1800,
-			withCloseButton: false,
-			styles: {
-				root: {
-					backgroundColor: 'rgba(31, 41, 55, 0.95)',
-					backdropFilter: 'blur(12px)',
-					border: '1px solid rgba(99, 102, 241, 0.5)',
-					color: '#ffffff',
-					borderRadius: 9999,
-					padding: '8px 16px',
-				},
-				description: { color: '#ffffff', fontSize: 13, fontWeight: 500 },
-			},
+	// Initial restore from localStorage & IndexedDB
+	useEffect(() => {
+		const savedSettings = loadSettings();
+		if (savedSettings) {
+			if (savedSettings.currentMode) setCurrentMode(savedSettings.currentMode);
+			if (savedSettings.toolSizes) setToolSizes(savedSettings.toolSizes);
+			if (savedSettings.toolColors) setToolColors(savedSettings.toolColors);
+			if (savedSettings.selectedNote) setSelectedNote(savedSettings.selectedNote);
+			if (savedSettings.selectedAccidental !== undefined)
+				setSelectedAccidental(savedSettings.selectedAccidental);
+			if (savedSettings.sizeLocked !== undefined) setSizeLocked(savedSettings.sizeLocked);
+			if (savedSettings.noteSizes) setNoteSizes(savedSettings.noteSizes);
+			if (savedSettings.deleteBtnOn !== undefined) setDeleteBtnOn(savedSettings.deleteBtnOn);
+		}
+
+		loadCurrentSession().then((session) => {
+			if (session && stageRef.current) {
+				stageRef.current.loadProject(session);
+				setHasCanvas(true);
+			}
 		});
+
+		isMountedRef.current = true;
 	}, []);
+
+	// Persist settings changes to localStorage
+	useEffect(() => {
+		if (!isMountedRef.current) return;
+		saveSettings({
+			currentMode,
+			toolSizes,
+			toolColors,
+			selectedNote,
+			selectedAccidental,
+			sizeLocked,
+			noteSizes,
+			deleteBtnOn,
+		});
+	}, [
+		currentMode,
+		deleteBtnOn,
+		noteSizes,
+		selectedAccidental,
+		selectedNote,
+		sizeLocked,
+		toolColors,
+		toolSizes,
+	]);
+
+	const currentSize = toolSizes[currentMode];
+	const currentMainColor = toolColors[currentMode === 'eraser' ? 'pencil' : currentMode].main;
+	const currentStrokeColor = toolColors[currentMode === 'eraser' ? 'pencil' : currentMode].stroke;
 
 	const getStampKey = useCallback((note: string, acc: string) => `${note}${acc}`, []);
 
-	const currentMainColor = toolColors[currentMode === 'eraser' ? 'pencil' : currentMode].main;
-	const currentStrokeColor = toolColors[currentMode === 'eraser' ? 'pencil' : currentMode].stroke;
+	const handleContentChange = useCallback(() => {
+		if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+		autoSaveTimerRef.current = setTimeout(async () => {
+			if (!stageRef.current) return;
+			const project = await stageRef.current.serializeProject();
+			if (project) {
+				await saveCurrentSession(project);
+			}
+		}, 800);
+	}, []);
 
 	const handleSelectMode = useCallback(
 		(mode: ToolMode) => {
 			stageRef.current?.commitActiveStamp();
 
-			// Remember size for note if unlocked
 			if (!sizeLocked && currentMode === 'stamp') {
 				setNoteSizes((prev) => ({
 					...prev,
-					[getStampKey(selectedNote, selectedAccidental)]: brushSize,
+					[getStampKey(selectedNote, selectedAccidental)]: toolSizes.stamp,
 				}));
 			}
 
@@ -93,18 +168,21 @@ export const PhotoEditor: React.FC = () => {
 			if (!sizeLocked && mode === 'stamp') {
 				const key = getStampKey(selectedNote, selectedAccidental);
 				if (noteSizes[key] != null) {
-					setBrushSize(noteSizes[key]);
+					setToolSizes((prev) => ({
+						...prev,
+						stamp: noteSizes[key],
+					}));
 				}
 			}
 		},
 		[
-			brushSize,
 			currentMode,
 			getStampKey,
 			noteSizes,
 			selectedAccidental,
 			selectedNote,
 			sizeLocked,
+			toolSizes.stamp,
 		],
 	);
 
@@ -113,16 +191,19 @@ export const PhotoEditor: React.FC = () => {
 			if (!sizeLocked && currentMode === 'stamp') {
 				setNoteSizes((prev) => ({
 					...prev,
-					[getStampKey(selectedNote, selectedAccidental)]: brushSize,
+					[getStampKey(selectedNote, selectedAccidental)]: toolSizes.stamp,
 				}));
 			}
 
 			setSelectedNote(note);
 
 			const key = getStampKey(note, selectedAccidental);
-			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : brushSize;
+			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
 			if (!sizeLocked && noteSizes[key] != null) {
-				setBrushSize(newSize);
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: newSize,
+				}));
 			}
 
 			stageRef.current?.updateActiveStampProps(
@@ -133,7 +214,6 @@ export const PhotoEditor: React.FC = () => {
 			);
 		},
 		[
-			brushSize,
 			currentMainColor,
 			currentMode,
 			currentStrokeColor,
@@ -142,6 +222,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedAccidental,
 			selectedNote,
 			sizeLocked,
+			toolSizes.stamp,
 		],
 	);
 
@@ -150,7 +231,7 @@ export const PhotoEditor: React.FC = () => {
 			if (!sizeLocked && currentMode === 'stamp') {
 				setNoteSizes((prev) => ({
 					...prev,
-					[getStampKey(selectedNote, selectedAccidental)]: brushSize,
+					[getStampKey(selectedNote, selectedAccidental)]: toolSizes.stamp,
 				}));
 			}
 
@@ -158,9 +239,12 @@ export const PhotoEditor: React.FC = () => {
 			setSelectedAccidental(nextAcc);
 
 			const key = getStampKey(selectedNote, nextAcc);
-			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : brushSize;
+			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
 			if (!sizeLocked && noteSizes[key] != null) {
-				setBrushSize(newSize);
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: newSize,
+				}));
 			}
 
 			stageRef.current?.updateActiveStampProps(
@@ -171,7 +255,6 @@ export const PhotoEditor: React.FC = () => {
 			);
 		},
 		[
-			brushSize,
 			currentMainColor,
 			currentMode,
 			currentStrokeColor,
@@ -180,24 +263,32 @@ export const PhotoEditor: React.FC = () => {
 			selectedAccidental,
 			selectedNote,
 			sizeLocked,
+			toolSizes.stamp,
 		],
 	);
 
 	const handleChangeSize = useCallback(
 		(sz: number) => {
-			setBrushSize(sz);
+			setToolSizes((prev) => ({
+				...prev,
+				[currentMode]: sz,
+			}));
+
 			if (!sizeLocked && currentMode === 'stamp') {
 				setNoteSizes((prev) => ({
 					...prev,
 					[getStampKey(selectedNote, selectedAccidental)]: sz,
 				}));
 			}
-			stageRef.current?.updateActiveStampProps(
-				sz,
-				`${selectedNote}${selectedAccidental}`,
-				currentMainColor,
-				currentStrokeColor,
-			);
+
+			if (currentMode === 'stamp') {
+				stageRef.current?.updateActiveStampProps(
+					sz,
+					`${selectedNote}${selectedAccidental}`,
+					currentMainColor,
+					currentStrokeColor,
+				);
+			}
 		},
 		[
 			currentMainColor,
@@ -210,19 +301,23 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
-	const handleToggleLock = useCallback(() => {
-		setSizeLocked((prev) => {
-			const next = !prev;
-			if (!next) {
-				setNoteSizes((s) => ({
-					...s,
-					[getStampKey(selectedNote, selectedAccidental)]: brushSize,
-				}));
-			}
-			notify(next ? 'Розмір спільний для всіх нот' : 'Кожна нота має власний розмір');
-			return next;
-		});
-	}, [brushSize, getStampKey, notify, selectedAccidental, selectedNote]);
+	const handleToggleLock = useCallback(
+		(e: React.MouseEvent) => {
+			e.stopPropagation();
+			setSizeLocked((prev) => {
+				const next = !prev;
+				if (!next) {
+					setNoteSizes((s) => ({
+						...s,
+						[getStampKey(selectedNote, selectedAccidental)]: toolSizes.stamp,
+					}));
+				}
+				showToast(next ? 'Розмір спільний для всіх нот' : 'Кожна нота має власний розмір');
+				return next;
+			});
+		},
+		[getStampKey, selectedAccidental, selectedNote, showToast, toolSizes.stamp],
+	);
 
 	const handleChangeMainColor = useCallback(
 		(color: string) => {
@@ -234,14 +329,16 @@ export const PhotoEditor: React.FC = () => {
 				},
 			}));
 
-			stageRef.current?.updateActiveStampProps(
-				brushSize,
-				`${selectedNote}${selectedAccidental}`,
-				color,
-				currentStrokeColor,
-			);
+			if (currentMode === 'stamp') {
+				stageRef.current?.updateActiveStampProps(
+					currentSize,
+					`${selectedNote}${selectedAccidental}`,
+					color,
+					currentStrokeColor,
+				);
+			}
 		},
-		[brushSize, currentMode, currentStrokeColor, selectedAccidental, selectedNote],
+		[currentMode, currentSize, currentStrokeColor, selectedAccidental, selectedNote],
 	);
 
 	const handleChangeStrokeColor = useCallback(
@@ -255,21 +352,24 @@ export const PhotoEditor: React.FC = () => {
 			}));
 
 			if (color === 'transparent') {
-				notify('Обводку вимкнено');
+				showToast('Обводку вимкнено');
 			}
 
 			stageRef.current?.updateActiveStampProps(
-				brushSize,
+				currentSize,
 				`${selectedNote}${selectedAccidental}`,
 				currentMainColor,
 				color,
 			);
 		},
-		[brushSize, currentMainColor, notify, selectedAccidental, selectedNote],
+		[currentMainColor, currentSize, selectedAccidental, selectedNote, showToast],
 	);
 
 	const handleSelectStampFromCanvas = useCallback((stamp: StampItem) => {
-		setBrushSize(stamp.size);
+		setToolSizes((prev) => ({
+			...prev,
+			stamp: stamp.size,
+		}));
 		setToolColors((prev) => ({
 			...prev,
 			stamp: { main: stamp.mainColor, stroke: stamp.strokeColor },
@@ -286,22 +386,17 @@ export const PhotoEditor: React.FC = () => {
 	const handleToggleDeleteBtn = useCallback(() => {
 		setDeleteBtnOn((prev) => {
 			const next = !prev;
-			try {
-				localStorage.setItem('pe_delete_btn', next ? '1' : '0');
-			} catch {
-				// Ignore
-			}
-			notify(next ? 'Кошик на штампі увімкнено' : 'Кошик на штампі вимкнено');
+			showToast(next ? 'Кошик на штампі увімкнено' : 'Кошик на штампі вимкнено');
 			return next;
 		});
-	}, [notify]);
+	}, [showToast]);
 
 	// Save / Share logic
 	const downloadBlob = useCallback((blob: Blob) => {
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = 'notyka-edited.png';
+		a.download = 'photo-edited.png';
 		document.body.appendChild(a);
 		a.click();
 		document.body.removeChild(a);
@@ -309,7 +404,7 @@ export const PhotoEditor: React.FC = () => {
 	}, []);
 
 	const shareBlob = useCallback(async (blob: Blob): Promise<boolean> => {
-		const file = new File([blob], 'notyka-edited.png', { type: 'image/png' });
+		const file = new File([blob], 'photo-edited.png', { type: 'image/png' });
 		if (navigator.canShare && navigator.canShare({ files: [file] })) {
 			try {
 				await navigator.share({ files: [file] });
@@ -323,14 +418,20 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleSave = useCallback(async () => {
 		setIsMenuOpen(false);
-		if (!hasCanvas) {
-			notify('Немає зображення для збереження');
+		if (!hasCanvas || !stageRef.current) {
+			showToast('Немає зображення для збереження');
 			return;
 		}
 
-		const blob = await stageRef.current?.getExportBlob();
+		// Also persist project to history in IndexedDB
+		const project = await stageRef.current.serializeProject();
+		if (project) {
+			await saveProject(project);
+		}
+
+		const blob = await stageRef.current.getExportBlob();
 		if (!blob) {
-			notify('Помилка створення файлу');
+			showToast('Помилка створення файлу');
 			return;
 		}
 
@@ -341,31 +442,31 @@ export const PhotoEditor: React.FC = () => {
 		if (isIOS && (await shareBlob(blob))) return;
 
 		downloadBlob(blob);
-		notify('Зображення збережено!');
-	}, [downloadBlob, hasCanvas, notify, shareBlob]);
+		showToast('Зображення збережено!');
+	}, [downloadBlob, hasCanvas, shareBlob, showToast]);
 
 	const handleShare = useCallback(async () => {
 		setIsMenuOpen(false);
-		if (!hasCanvas) {
-			notify('Немає зображення');
+		if (!hasCanvas || !stageRef.current) {
+			showToast('Немає зображення');
 			return;
 		}
 
-		const blob = await stageRef.current?.getExportBlob();
+		const blob = await stageRef.current.getExportBlob();
 		if (!blob) {
-			notify('Помилка створення файлу');
+			showToast('Помилка створення файлу');
 			return;
 		}
 
 		if (await shareBlob(blob)) return;
 
 		if (!window.isSecureContext) {
-			notify('Поділитися працює лише через HTTPS — файл завантажено');
+			showToast('Поділитися працює лише через HTTPS — файл завантажено');
 		} else {
-			notify('Поділитися недоступне — файл завантажено');
+			showToast('Поділитися недоступне — файл завантажено');
 		}
 		downloadBlob(blob);
-	}, [downloadBlob, hasCanvas, notify, shareBlob]);
+	}, [downloadBlob, hasCanvas, shareBlob, showToast]);
 
 	const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -376,23 +477,82 @@ export const PhotoEditor: React.FC = () => {
 		}
 	}, []);
 
+	const handleToggleMenu = useCallback((e: React.MouseEvent) => {
+		e.stopPropagation();
+		setIsMenuOpen((prev) => {
+			const next = !prev;
+			if (next) {
+				setIsPaletteOpen(false);
+				stageRef.current?.prepareExport();
+			}
+			return next;
+		});
+	}, []);
+
+	const handleTogglePalette = useCallback((e: React.MouseEvent) => {
+		e.stopPropagation();
+		setIsPaletteOpen((prev) => {
+			const next = !prev;
+			if (next) {
+				setIsMenuOpen(false);
+			}
+			return next;
+		});
+	}, []);
+
+	const handleOpenHistory = useCallback(async () => {
+		setIsMenuOpen(false);
+		if (hasCanvas && stageRef.current) {
+			const current = await stageRef.current.serializeProject();
+			if (current) {
+				await saveProject(current);
+			}
+		}
+		const list = await getProjectsList();
+		setProjectsList(list);
+		setIsHistoryOpen(true);
+	}, [hasCanvas]);
+
+	const handleSelectProject = useCallback(
+		async (project: ProjectItem) => {
+			setIsHistoryOpen(false);
+			if (stageRef.current) {
+				await stageRef.current.loadProject(project);
+				setHasCanvas(true);
+				await saveCurrentSession(project);
+				showToast('Проект відкрито');
+			}
+		},
+		[showToast],
+	);
+
+	const handleDeleteProject = useCallback(
+		async (id: string, e: React.MouseEvent) => {
+			e.stopPropagation();
+			await deleteProject(id);
+			setProjectsList((prev) => prev.filter((p) => p.id !== id));
+			showToast('Проект видалено');
+		},
+		[showToast],
+	);
+
 	return (
-		<main
+		<div
 			style={{
-				position: 'relative',
 				display: 'flex',
 				flexDirection: 'column',
 				justifyContent: 'space-between',
 				width: '100%',
 				height: '100%',
 				overflow: 'hidden',
+				position: 'relative',
 			}}
 		>
 			<CanvasStage
 				currentMode={currentMode}
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
-				currentSize={brushSize}
+				currentSize={currentSize}
 				selectedNote={selectedNote}
 				selectedAccidental={selectedAccidental}
 				deleteBtnOn={deleteBtnOn}
@@ -402,16 +562,19 @@ export const PhotoEditor: React.FC = () => {
 					setCanUndo(undo);
 					setCanRedo(redo);
 				}}
-				onNotify={notify}
+				onNotify={showToast}
 				onInitBlank={() => setHasCanvas(true)}
+				onResetCanvas={() => setHasCanvas(false)}
+				onContentChange={handleContentChange}
 				stageRef={stageRef}
 			/>
 
 			<input
 				ref={fileInputRef}
 				type="file"
+				id="image-loader"
 				accept="image/*"
-				style={{ display: 'none' }}
+				className="hidden"
 				onChange={handleFileChange}
 			/>
 
@@ -427,6 +590,7 @@ export const PhotoEditor: React.FC = () => {
 					stageRef.current?.createBlank();
 					setHasCanvas(true);
 				}}
+				onOpenHistory={handleOpenHistory}
 				onClear={() => {
 					setIsMenuOpen(false);
 					stageRef.current?.clear();
@@ -434,7 +598,14 @@ export const PhotoEditor: React.FC = () => {
 				onSave={handleSave}
 				onShare={handleShare}
 				onToggleDeleteBtn={handleToggleDeleteBtn}
-				onClose={() => setIsMenuOpen(false)}
+			/>
+
+			<ProjectsHistoryModal
+				opened={isHistoryOpen}
+				projects={projectsList}
+				onSelectProject={handleSelectProject}
+				onDeleteProject={handleDeleteProject}
+				onClose={() => setIsHistoryOpen(false)}
 			/>
 
 			<ColorPaletteModal
@@ -444,36 +615,18 @@ export const PhotoEditor: React.FC = () => {
 				strokeColor={currentStrokeColor}
 				onChangeMainColor={handleChangeMainColor}
 				onChangeStrokeColor={handleChangeStrokeColor}
-				onClose={() => setIsPaletteOpen(false)}
 			/>
 
-			<Box
-				component="footer"
-				style={{
-					backgroundColor: 'rgba(31, 41, 55, 0.9)',
-					backdropFilter: 'blur(12px)',
-					WebkitBackdropFilter: 'blur(12px)',
-					borderTop: '1px solid rgba(55, 65, 81, 0.8)',
-					padding: '12px',
-					paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
-					zIndex: 20,
-					display: 'flex',
-					flexDirection: 'column',
-					gap: 8,
-				}}
-			>
+			<footer>
 				<BrushSettings
 					currentMode={currentMode}
-					brushSize={brushSize}
+					brushSize={currentSize}
 					sizeLocked={sizeLocked}
 					mainColor={currentMainColor}
 					strokeColor={currentStrokeColor}
 					onChangeSize={handleChangeSize}
 					onToggleLock={handleToggleLock}
-					onTogglePalette={() => {
-						setIsPaletteOpen((prev) => !prev);
-						setIsMenuOpen(false);
-					}}
+					onTogglePalette={handleTogglePalette}
 				/>
 
 				{currentMode === 'stamp' && (
@@ -492,12 +645,13 @@ export const PhotoEditor: React.FC = () => {
 					onSelectMode={handleSelectMode}
 					onUndo={() => stageRef.current?.undo()}
 					onRedo={() => stageRef.current?.redo()}
-					onToggleMenu={() => {
-						setIsMenuOpen((prev) => !prev);
-						setIsPaletteOpen(false);
-					}}
+					onToggleMenu={handleToggleMenu}
 				/>
-			</Box>
-		</main>
+			</footer>
+
+			<div id="toast" className={toastText ? 'show' : ''}>
+				{toastText}
+			</div>
+		</div>
 	);
 };
