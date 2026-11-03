@@ -568,3 +568,13 @@ footer {
 #toast.show {
 	opacity: 1;
 }
+
+.preloader-spinner {
+	animation: preloader-spin 0.75s linear infinite;
+}
+
+@keyframes preloader-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
