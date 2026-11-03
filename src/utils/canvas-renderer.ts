@@ -151,12 +151,30 @@ export function drawStamp(
 		ctx.strokeStyle = '#ffffff';
 		ctx.stroke();
 
-		// Crosshair inside handle
+		// 4-directional move arrows inside handle
+		const s = 6.5 * U;
+		const a = 2.5 * U;
+		ctx.lineWidth = 1.5 * U;
 		ctx.beginPath();
-		ctx.moveTo(hx - 5 * U, hy);
-		ctx.lineTo(hx + 5 * U, hy);
-		ctx.moveTo(hx, hy - 5 * U);
-		ctx.lineTo(hx, hy + 5 * U);
+		// Horizontal axis & arrows
+		ctx.moveTo(hx - s, hy);
+		ctx.lineTo(hx + s, hy);
+		ctx.moveTo(hx - s + a, hy - a);
+		ctx.lineTo(hx - s, hy);
+		ctx.lineTo(hx - s + a, hy + a);
+		ctx.moveTo(hx + s - a, hy - a);
+		ctx.lineTo(hx + s, hy);
+		ctx.lineTo(hx + s - a, hy + a);
+
+		// Vertical axis & arrows
+		ctx.moveTo(hx, hy - s);
+		ctx.lineTo(hx, hy + s);
+		ctx.moveTo(hx - a, hy - s + a);
+		ctx.lineTo(hx, hy - s);
+		ctx.lineTo(hx + a, hy - s + a);
+		ctx.moveTo(hx - a, hy + s - a);
+		ctx.lineTo(hx, hy + s);
+		ctx.lineTo(hx + a, hy + s - a);
 		ctx.stroke();
 
 		if (deleteBtnOn) {
