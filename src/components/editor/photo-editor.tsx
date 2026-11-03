@@ -670,6 +670,15 @@ export const PhotoEditor: React.FC = () => {
 				<ToolbarSkeleton />
 			) : (
 				<footer>
+					{currentMode === 'stamp' && (
+						<StampSettings
+							selectedNote={selectedNote}
+							selectedAccidental={selectedAccidental}
+							onSelectNote={handleSelectNote}
+							onSelectAccidental={handleSelectAccidental}
+						/>
+					)}
+
 					<BrushSettings
 						currentMode={currentMode}
 						brushSize={currentSize}
@@ -680,15 +689,6 @@ export const PhotoEditor: React.FC = () => {
 						onToggleLock={handleToggleLock}
 						onTogglePalette={handleTogglePalette}
 					/>
-
-					{currentMode === 'stamp' && (
-						<StampSettings
-							selectedNote={selectedNote}
-							selectedAccidental={selectedAccidental}
-							onSelectNote={handleSelectNote}
-							onSelectAccidental={handleSelectAccidental}
-						/>
-					)}
 
 					<BottomToolbar
 						currentMode={currentMode}
