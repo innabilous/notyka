@@ -48,11 +48,11 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 		>
 			<div
 				style={{
-					backgroundColor: 'rgba(31, 41, 55, 0.98)',
-					border: '1px solid var(--line)',
-					borderRadius: '1rem',
-					boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
-					width: 'min(440px, 100%)',
+					backgroundColor: 'rgba(22, 23, 27, 0.98)',
+					border: '1px solid var(--line-strong)',
+					borderRadius: '0.875rem',
+					boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.7)',
+					width: 'min(420px, 100%)',
 					maxHeight: '80vh',
 					display: 'flex',
 					flexDirection: 'column',
@@ -66,14 +66,22 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 						display: 'flex',
 						alignItems: 'center',
 						justifyContent: 'space-between',
-						padding: '0.9rem 1.25rem',
+						padding: '0.85rem 1rem',
 						borderBottom: '1px solid var(--line)',
 					}}
 				>
 					<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-						<Clock className="icon" style={{ color: 'var(--accent-text)' }} />
-						<span style={{ fontWeight: 600, fontSize: '0.95rem' }}>Історія проектів</span>
-						<span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+						<Clock className="icon" style={{ color: 'var(--text-secondary)' }} />
+						<span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text)' }}>
+							Історія проектів
+						</span>
+						<span
+							style={{
+								fontSize: '0.75rem',
+								color: 'var(--muted)',
+								fontVariantNumeric: 'tabular-nums',
+							}}
+						>
 							({projects.length}/50)
 						</span>
 					</div>
@@ -122,21 +130,23 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 									display: 'flex',
 									alignItems: 'center',
 									gap: '0.75rem',
-									padding: '0.5rem 0.75rem',
-									borderRadius: '0.75rem',
+									padding: '0.45rem 0.65rem',
+									borderRadius: '0.625rem',
 									backgroundColor: 'var(--panel-2)',
+									border: '1px solid var(--line)',
 									cursor: 'pointer',
-									transition: 'background 0.15s',
+									transition: 'background 0.12s',
 								}}
 								onClick={() => onSelectProject(item)}
 							>
 								{/* Thumbnail */}
 								<div
 									style={{
-										width: '54px',
-										height: '54px',
-										borderRadius: '0.5rem',
+										width: '50px',
+										height: '50px',
+										borderRadius: '0.4rem',
 										backgroundColor: '#000000',
+										border: '1px solid var(--line)',
 										overflow: 'hidden',
 										flexShrink: 0,
 										display: 'flex',
@@ -166,7 +176,7 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 								<div style={{ flex: 1, minWidth: 0 }}>
 									<div
 										style={{
-											fontSize: '0.875rem',
+											fontSize: '0.85rem',
 											fontWeight: 600,
 											color: 'var(--text)',
 											whiteSpace: 'nowrap',
@@ -180,10 +190,11 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 										style={{
 											fontSize: '0.75rem',
 											color: 'var(--muted)',
-											marginTop: '2px',
+											marginTop: '0.15rem',
+											fontVariantNumeric: 'tabular-nums',
 										}}
 									>
-										{formatDate(item.updatedAt)}
+										{formatDate(item.updatedAt)} • {item.stamps.length} нот
 									</div>
 								</div>
 
@@ -191,16 +202,17 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 								<button
 									type="button"
 									style={{
-										padding: '0.5rem',
+										padding: '0.4rem',
 										color: 'var(--muted)',
 										cursor: 'pointer',
-										borderRadius: '0.5rem',
+										borderRadius: '0.35rem',
 										display: 'flex',
 									}}
 									onClick={(e) => onDeleteProject(item.id, e)}
 									aria-label="Видалити проект"
+									title="Видалити проект"
 								>
-									<Trash2 className="icon" style={{ color: '#f87171' }} />
+									<Trash2 className="icon" />
 								</button>
 							</div>
 						))
