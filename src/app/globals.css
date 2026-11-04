@@ -729,6 +729,52 @@ footer {
 	box-sizing: border-box;
 }
 
+.stamp-chips-scroll.multi-row {
+	height: auto;
+	max-height: none;
+	overflow: visible;
+	align-items: stretch;
+}
+
+.stamp-chords-container {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	width: 100%;
+}
+
+.chord-chip {
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.chord-slash-btn {
+	font-weight: 700;
+	color: var(--accent);
+}
+
+.chord-slash-btn.active {
+	background: var(--accent-gradient);
+	border-color: transparent;
+	color: #ffffff;
+}
+
+.stamp-chord-bass-row {
+	padding: 0.15rem 0.2rem;
+	background: rgba(255, 255, 255, 0.03);
+	border-radius: 0.5rem;
+	border: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.stamp-chord-bass-lbl {
+	font-size: 0.8rem;
+	font-weight: 700;
+	color: var(--accent);
+	padding: 0 0.2rem;
+	flex-shrink: 0;
+	user-select: none;
+}
+
 .stamp-chips-row {
 	display: flex;
 	align-items: center;
@@ -760,6 +806,50 @@ footer {
 
 .stamp-chips-row.fit-width .sep {
 	margin: 0 0.1rem;
+}
+
+.stamp-custom-empty-row {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+}
+
+.stamp-custom-container {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	height: 100%;
+	gap: 0.35rem;
+}
+
+.stamp-custom-chips-scroll {
+	flex: 1 1 0;
+	min-width: 0;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	overflow-x: auto;
+	overflow-y: visible;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	padding: 0 0.15rem;
+	box-sizing: border-box;
+}
+
+.stamp-custom-chips-scroll::-webkit-scrollbar {
+	display: none;
+}
+
+.stamp-custom-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.3rem;
+	flex-shrink: 0;
+	padding-left: 0.25rem;
+	border-left: 1px solid var(--line);
 }
 
 .stamp-custom-chips-row {

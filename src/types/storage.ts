@@ -6,6 +6,12 @@ export interface EditorSettings {
 	toolColors: Record<'pencil' | 'stamp', { main: string; stroke: string }>;
 	selectedNote: string;
 	selectedAccidental: string;
+	selectedChordRoot?: string;
+	selectedChordAccidental?: string;
+	selectedChordModifier?: string;
+	selectedChordSlash?: boolean;
+	selectedChordBassRoot?: string;
+	selectedChordBassAccidental?: string;
 	activeStampText?: string;
 	stampCategory?: string;
 	customStamps?: string[];

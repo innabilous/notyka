@@ -1,6 +1,31 @@
 export const NOTES = ['до', 'ре', 'мі', 'фа', 'соль', 'ля', 'сі'] as const;
 export const ACCIDENTALS = ['♭', '♯'] as const;
 
+export const CHORD_ROOTS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
+export const CHORD_ACCIDENTALS = ['#', 'b'] as const;
+
+export const CHORD_QUALITIES = [
+	'm',
+	'7',
+	'maj7',
+	'm7',
+	'sus4',
+	'sus2',
+	'dim',
+	'aug',
+] as const;
+
+export const CHORD_EXTENSIONS = [
+	'6',
+	'm6',
+	'9',
+	'maj9',
+	'm9',
+	'add9',
+	'm7b5',
+	'5',
+] as const;
+
 export const COUNT_ITEMS = ['1', '2', '3', '4', 'і', 'та', 'на'] as const;
 
 export const REMARKS_ITEMS = [
