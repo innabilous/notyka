@@ -25,6 +25,10 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	onToggleLock,
 	onTogglePalette,
 }) => {
+	if (currentMode === 'ruler') {
+		return null;
+	}
+
 	const isStamp = currentMode === 'stamp';
 	const isEraser = currentMode === 'eraser';
 	const isStrokeTransparent = isStamp && strokeColor === 'transparent';

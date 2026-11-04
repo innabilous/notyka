@@ -50,6 +50,7 @@ export const PhotoEditor: React.FC = () => {
 		pencil: 24,
 		stamp: 24,
 		eraser: 24,
+		ruler: 24,
 	});
 
 	const [selectedNote, setSelectedNote] = useState<string>('до');
@@ -106,7 +107,8 @@ export const PhotoEditor: React.FC = () => {
 		const savedSettings = loadSettings();
 		if (savedSettings) {
 			if (savedSettings.currentMode) setCurrentMode(savedSettings.currentMode);
-			if (savedSettings.toolSizes) setToolSizes(savedSettings.toolSizes);
+			if (savedSettings.toolSizes)
+				setToolSizes((prev) => ({ ...prev, ...savedSettings.toolSizes }));
 			if (savedSettings.toolColors) setToolColors(savedSettings.toolColors);
 			if (savedSettings.selectedNote) setSelectedNote(savedSettings.selectedNote);
 			if (savedSettings.selectedAccidental !== undefined)
@@ -170,9 +172,9 @@ export const PhotoEditor: React.FC = () => {
 		toolSizes,
 	]);
 
-	const currentSize = toolSizes[currentMode];
-	const currentMainColor = toolColors[currentMode === 'eraser' ? 'pencil' : currentMode].main;
-	const currentStrokeColor = toolColors[currentMode === 'eraser' ? 'pencil' : currentMode].stroke;
+	const currentSize = toolSizes[currentMode] ?? 24;
+	const currentMainColor = toolColors[currentMode === 'stamp' ? 'stamp' : 'pencil'].main;
+	const currentStrokeColor = toolColors[currentMode === 'stamp' ? 'stamp' : 'pencil'].stroke;
 
 	const getStampKey = useCallback(
 		(note: string, acc: string, customText?: string) => customText || `${note}${acc}`,
@@ -437,10 +439,11 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleChangeMainColor = useCallback(
 		(color: string) => {
+			const modeKey = currentMode === 'stamp' ? 'stamp' : 'pencil';
 			setToolColors((prev) => ({
 				...prev,
-				[currentMode === 'eraser' ? 'pencil' : currentMode]: {
-					...prev[currentMode === 'eraser' ? 'pencil' : currentMode],
+				[modeKey]: {
+					...prev[modeKey],
 					main: color,
 				},
 			}));
