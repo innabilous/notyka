@@ -12,17 +12,21 @@ import {
 	MIN_SCALE,
 	SMOOTH,
 } from '@/constants/editor';
-import { HistoryItem, Point, StampItem, ToolMode } from '@/types/editor';
+import { HistoryItem, Point, RulerItem, StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
 	calculateStampBox,
+	drawRulers,
 	drawStamp,
+	findRulerNearPoint,
+	getClosestRulerY,
 	getDeleteCoords,
 	getHandleCoords,
 	getResizeHandleCoords,
 	isPointInDelete,
 	isPointInHandle,
 	isPointInResizeHandle,
+	isPointInRulerDelete,
 	isPointInStamp,
 } from '@/utils/canvas-renderer';
 
@@ -98,6 +102,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const stampsListRef = useRef<StampItem[]>([]);
 	const activeStampRef = useRef<StampItem | null>(null);
 	const activeOrigRef = useRef<string>('');
+	const rulersListRef = useRef<RulerItem[]>([]);
+	const activeRulerIdRef = useRef<string | null>(null);
+	const isDraggingRulerRef = useRef<boolean>(false);
 	const cursorPosRef = useRef<Point | null>(null);
 
 	const currentProjectIdRef = useRef<string>('');
@@ -203,6 +210,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			drawStamp(activeStampRef.current, true, ctx, uRef.current, deleteBtnOn, resizeHandlesOn);
 		}
 
+		drawRulers(
+			rulersListRef.current,
+			activeRulerIdRef.current,
+			currentMode === 'ruler',
+			ctx,
+			uRef.current,
+			canvas.width,
+		);
+
 		if (cursorPosRef.current && currentMode === 'eraser') {
 			const r = currentSize * 0.75 * uRef.current;
 			const lw = (1.5 * uRef.current) / scaleRef.current;
@@ -237,6 +253,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		currentStack.push({
 			imageData: bctx.getImageData(0, 0, baseCanvas.width, baseCanvas.height),
 			stamps: JSON.parse(JSON.stringify(stampsListRef.current)),
+			rulers: JSON.parse(JSON.stringify(rulersListRef.current)),
 		});
 
 		const maxH = Math.max(
@@ -304,7 +321,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 		currentImageRef.current = null;
 		stampsListRef.current = [];
+		rulersListRef.current = [];
 		activeStampRef.current = null;
+		activeRulerIdRef.current = null;
 		activeOrigRef.current = '';
 		resetTransform();
 
@@ -354,7 +373,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 					currentImageRef.current = img;
 					stampsListRef.current = [];
+					rulersListRef.current = [];
 					activeStampRef.current = null;
+					activeRulerIdRef.current = null;
 					activeOrigRef.current = '';
 					resetTransform();
 
@@ -418,6 +439,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		activeStampRef.current = null;
 		activeOrigRef.current = '';
 		stampsListRef.current = [];
+		rulersListRef.current = [];
+		activeRulerIdRef.current = null;
 
 		if (currentImageRef.current) {
 			const base = baseCanvasRef.current;
@@ -457,7 +480,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				bctx.putImageData(item.imageData, 0, 0);
 			}
 			stampsListRef.current = JSON.parse(JSON.stringify(item.stamps));
+			rulersListRef.current = item.rulers ? JSON.parse(JSON.stringify(item.rulers)) : [];
 			activeStampRef.current = null;
+			activeRulerIdRef.current = null;
 			activeOrigRef.current = '';
 			render();
 			updateUndoRedo();
@@ -572,10 +597,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 			// 4. Create new stamp at clicked position
 			commitActiveStamp();
+			const snapY = getClosestRulerY(pt.y, rulersListRef.current, 16 * uRef.current);
+			const finalY = snapY !== null ? snapY : pt.y;
 			const newStamp: StampItem = {
 				id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
 				x: pt.x,
-				y: pt.y,
+				y: finalY,
 				size: currentSize,
 				text: activeStampText || selectedNote + selectedAccidental,
 				mainColor,
@@ -742,13 +769,23 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				if (ctx) {
 					const bx = calculateStampBox(active, uRef.current, ctx);
 					active.x = pt.x - dragOffsetRef.current.x;
-					active.y =
+					let targetY =
 						pt.y - dragOffsetRef.current.y - 24 * uRef.current - (bx.y + bx.h - active.y);
+					const snapY = getClosestRulerY(targetY, rulersListRef.current, 16 * uRef.current);
+					if (snapY !== null) {
+						targetY = snapY;
+					}
+					active.y = targetY;
 					render();
 				}
 			} else if (isDraggingStampRef.current) {
 				active.x = pt.x - dragOffsetRef.current.x;
-				active.y = pt.y - dragOffsetRef.current.y;
+				let targetY = pt.y - dragOffsetRef.current.y;
+				const snapY = getClosestRulerY(targetY, rulersListRef.current, 16 * uRef.current);
+				if (snapY !== null) {
+					targetY = snapY;
+				}
+				active.y = targetY;
 				render();
 			}
 		},
@@ -757,6 +794,49 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 	const pointerDown = useCallback(
 		(pt: Point) => {
+			if (currentMode === 'ruler') {
+				// 0. Trash button click on active ruler
+				if (activeRulerIdRef.current) {
+					const activeRuler = rulersListRef.current.find(
+						(r) => r.id === activeRulerIdRef.current,
+					);
+					if (activeRuler && isPointInRulerDelete(pt, activeRuler, uRef.current)) {
+						rulersListRef.current = rulersListRef.current.filter(
+							(r) => r.id !== activeRuler.id,
+						);
+						activeRulerIdRef.current = null;
+						isDraggingRulerRef.current = false;
+						saveHistory();
+						scheduleRender();
+						onNotify('Лінійку видалено');
+						return;
+					}
+				}
+
+				// 1. Click near existing ruler to activate and drag it
+				const nearRuler = findRulerNearPoint(pt, rulersListRef.current, uRef.current);
+				if (nearRuler) {
+					activeRulerIdRef.current = nearRuler.id;
+					isDraggingRulerRef.current = true;
+					dragOffsetRef.current = { x: 0, y: pt.y - nearRuler.y };
+					scheduleRender();
+					return;
+				}
+
+				// 2. Click empty canvas -> create new ruler
+				const newRuler: RulerItem = {
+					id: `ruler_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+					y: pt.y,
+				};
+				rulersListRef.current.push(newRuler);
+				activeRulerIdRef.current = newRuler.id;
+				isDraggingRulerRef.current = true;
+				dragOffsetRef.current = { x: 0, y: 0 };
+				scheduleRender();
+				onNotify('Лінійку створено');
+				return;
+			}
+
 			if (currentMode === 'stamp') {
 				placeStamp(pt);
 				return;
@@ -766,38 +846,76 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			isDrawingRef.current = true;
 			lastCoordsRef.current = pt;
 
+			const snapY = getClosestRulerY(pt.y, rulersListRef.current, 14 * uRef.current);
+			const finalPt = snapY !== null ? { x: pt.x, y: snapY } : pt;
+
 			if (currentMode === 'eraser') {
-				cursorPosRef.current = pt;
+				cursorPosRef.current = finalPt;
 			}
 			if (currentMode === 'pencil') {
-				smoothPosRef.current = { ...pt };
-				lastMidRef.current = { ...pt };
+				smoothPosRef.current = { ...finalPt };
+				lastMidRef.current = { ...finalPt };
 			}
-			drawPencilStroke(pt.x, pt.y, pt.x, pt.y);
+			drawPencilStroke(finalPt.x, finalPt.y, finalPt.x, finalPt.y);
 		},
-		[commitActiveStamp, currentMode, drawPencilStroke, placeStamp],
+		[
+			commitActiveStamp,
+			currentMode,
+			drawPencilStroke,
+			onNotify,
+			placeStamp,
+			saveHistory,
+			scheduleRender,
+		],
 	);
 
 	const pointerMove = useCallback(
 		(pt: Point) => {
+			if (currentMode === 'ruler') {
+				if (isDraggingRulerRef.current && activeRulerIdRef.current) {
+					const canvas = canvasRef.current;
+					if (!canvas) return;
+					const ruler = rulersListRef.current.find((r) => r.id === activeRulerIdRef.current);
+					if (ruler) {
+						ruler.y = Math.max(0, Math.min(canvas.height, pt.y - dragOffsetRef.current.y));
+						scheduleRender();
+					}
+				}
+				return;
+			}
+
 			if (isDrawingRef.current) {
+				const snapY = getClosestRulerY(pt.y, rulersListRef.current, 14 * uRef.current);
+				const finalPt = snapY !== null ? { x: pt.x, y: snapY } : pt;
+
 				if (currentMode === 'eraser') {
-					cursorPosRef.current = pt;
+					cursorPosRef.current = finalPt;
 				}
 				if (currentMode === 'pencil' && smoothPosRef.current) {
-					strokeSmooth(pt);
+					strokeSmooth(finalPt);
 				} else if (lastCoordsRef.current) {
-					drawPencilStroke(lastCoordsRef.current.x, lastCoordsRef.current.y, pt.x, pt.y);
+					drawPencilStroke(
+						lastCoordsRef.current.x,
+						lastCoordsRef.current.y,
+						finalPt.x,
+						finalPt.y,
+					);
 				}
-				lastCoordsRef.current = pt;
+				lastCoordsRef.current = finalPt;
 			} else if (currentMode === 'stamp') {
 				moveActive(pt);
 			}
 		},
-		[currentMode, drawPencilStroke, moveActive, strokeSmooth],
+		[currentMode, drawPencilStroke, moveActive, scheduleRender, strokeSmooth],
 	);
 
 	const pointerUp = useCallback(() => {
+		if (isDraggingRulerRef.current) {
+			isDraggingRulerRef.current = false;
+			saveHistory();
+			return;
+		}
+
 		if (isDrawingRef.current) {
 			if (
 				currentMode === 'pencil' &&
@@ -905,6 +1023,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				bgDataUrl,
 				baseDataUrl,
 				stamps: currentStamps,
+				rulers: JSON.parse(JSON.stringify(rulersListRef.current)),
 				width: canvas.width,
 				height: canvas.height,
 				cssW: parseFloat(canvas.style.width) || canvas.width,
@@ -967,7 +1086,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			}
 
 			stampsListRef.current = JSON.parse(JSON.stringify(project.stamps || []));
+			rulersListRef.current = project.rulers ? JSON.parse(JSON.stringify(project.rulers)) : [];
 			activeStampRef.current = null;
+			activeRulerIdRef.current = null;
 			activeOrigRef.current = '';
 
 			resetTransform();
@@ -1029,6 +1150,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		render();
 	}, [render]);
 
+	useEffect(() => {
+		if (currentMode !== 'ruler' && activeRulerIdRef.current) {
+			activeRulerIdRef.current = null;
+			scheduleRender();
+		}
+	}, [currentMode, scheduleRender]);
+
 	// Native gesture listeners on container
 	useEffect(() => {
 		const container = containerRef.current;
@@ -1064,6 +1192,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				isDrawingRef.current = false;
 				isDraggingStampRef.current = false;
 				isDraggingHandleRef.current = false;
+				isDraggingResizeRef.current = null;
+				isDraggingRulerRef.current = false;
 
 				const a = e.touches[0];
 				const b = e.touches[1];
@@ -1232,7 +1362,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				isDrawingRef.current ||
 				isDraggingStampRef.current ||
 				isDraggingHandleRef.current ||
-				isDraggingResizeRef.current
+				isDraggingResizeRef.current ||
+				isDraggingRulerRef.current
 			) {
 				pointerMove(pt);
 			} else if (currentMode === 'eraser' && container.contains(e.target as Node)) {
