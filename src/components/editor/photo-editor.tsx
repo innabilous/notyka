@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppPreloader } from '@/components/common/app-preloader';
 import { ColorPaletteModal } from '@/components/modals/color-palette-modal';
+import { CustomStampModal } from '@/components/modals/custom-stamp-modal';
 import { ImageCropModal } from '@/components/modals/image-crop-modal';
 import { ImageMenuModal } from '@/components/modals/image-menu-modal';
 import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal';
@@ -55,7 +56,8 @@ export const PhotoEditor: React.FC = () => {
 	const [selectedAccidental, setSelectedAccidental] = useState<string>('');
 	const [activeStampText, setActiveStampText] = useState<string>('до');
 	const [stampCategory, setStampCategory] = useState<StampCategory>('notes');
-	const [customStamps, setCustomStamps] = useState<string[]>(['1 і', '2 і', 'тримати', 'дихання']);
+	const [customStamps, setCustomStamps] = useState<string[]>([]);
+	const [customStampModalOpen, setCustomStampModalOpen] = useState<boolean>(false);
 	const [sizeLocked, setSizeLocked] = useState<boolean>(true);
 	const [noteSizes, setNoteSizes] = useState<Record<string, number>>({});
 
@@ -353,13 +355,32 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
-	const handleAddCustomStamp = useCallback((text: string) => {
-		setCustomStamps((prev) => [text, ...prev.filter((item) => item !== text)].slice(0, 20));
-	}, []);
+	const handleAddCustomStamp = useCallback(
+		(text: string) => {
+			setCustomStamps((prev) => [text, ...prev.filter((item) => item !== text)].slice(0, 30));
+			handleSelectStampText(text);
+			showToast(`Додано штамп «${text}»`);
+		},
+		[handleSelectStampText, showToast],
+	);
 
-	const handleDeleteCustomStamp = useCallback((text: string) => {
-		setCustomStamps((prev) => prev.filter((item) => item !== text));
-	}, []);
+	const handleDeleteCustomStamp = useCallback(
+		(text: string) => {
+			setCustomStamps((prev) => {
+				const next = prev.filter((item) => item !== text);
+				if (activeStampText === text) {
+					if (next.length > 0) {
+						handleSelectStampText(next[0]);
+					} else {
+						handleSelectStampText('до');
+					}
+				}
+				return next;
+			});
+			showToast(`Видалено штамп «${text}»`);
+		},
+		[activeStampText, handleSelectStampText, showToast],
+	);
 
 	const handleChangeSize = useCallback(
 		(sz: number) => {
@@ -782,6 +803,12 @@ export const PhotoEditor: React.FC = () => {
 				onChangeStrokeColor={handleChangeStrokeColor}
 			/>
 
+			<CustomStampModal
+				opened={customStampModalOpen}
+				onClose={() => setCustomStampModalOpen(false)}
+				onAddStamp={handleAddCustomStamp}
+			/>
+
 			{isLoading ? (
 				<ToolbarSkeleton />
 			) : (
@@ -792,10 +819,13 @@ export const PhotoEditor: React.FC = () => {
 							selectedAccidental={selectedAccidental}
 							activeStampText={activeStampText}
 							category={stampCategory}
+							customStamps={customStamps}
 							onChangeCategory={setStampCategory}
 							onSelectNote={handleSelectNote}
 							onSelectAccidental={handleSelectAccidental}
 							onSelectStampText={handleSelectStampText}
+							onOpenAddCustomModal={() => setCustomStampModalOpen(true)}
+							onDeleteCustomStamp={handleDeleteCustomStamp}
 						/>
 					)}
 
