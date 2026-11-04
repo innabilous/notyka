@@ -13,6 +13,8 @@ export interface EditorSettings {
 	noteSizes: Record<string, number>;
 	deleteBtnOn: boolean;
 	resizeHandlesOn?: boolean;
+	rulersVisible?: boolean;
+	rulersAttachContent?: boolean;
 }
 
 export interface ProjectItem {

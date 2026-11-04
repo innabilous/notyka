@@ -64,6 +64,8 @@ export const PhotoEditor: React.FC = () => {
 
 	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(false);
 	const [resizeHandlesOn, setResizeHandlesOn] = useState<boolean>(true);
+	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
+	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(false);
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
@@ -139,6 +141,10 @@ export const PhotoEditor: React.FC = () => {
 			if (savedSettings.deleteBtnOn !== undefined) setDeleteBtnOn(savedSettings.deleteBtnOn);
 			if (savedSettings.resizeHandlesOn !== undefined)
 				setResizeHandlesOn(savedSettings.resizeHandlesOn);
+			if (savedSettings.rulersVisible !== undefined)
+				setRulersVisible(savedSettings.rulersVisible);
+			if (savedSettings.rulersAttachContent !== undefined)
+				setRulersAttachContent(savedSettings.rulersAttachContent);
 		}
 
 		loadCurrentSession()
@@ -173,6 +179,8 @@ export const PhotoEditor: React.FC = () => {
 			noteSizes,
 			deleteBtnOn,
 			resizeHandlesOn,
+			rulersVisible,
+			rulersAttachContent,
 		});
 	}, [
 		activeStampText,
@@ -181,6 +189,8 @@ export const PhotoEditor: React.FC = () => {
 		deleteBtnOn,
 		noteSizes,
 		resizeHandlesOn,
+		rulersAttachContent,
+		rulersVisible,
 		selectedAccidental,
 		selectedNote,
 		sizeLocked,
@@ -518,6 +528,26 @@ export const PhotoEditor: React.FC = () => {
 		[activeStampText, currentMainColor, currentSize, selectedAccidental, selectedNote, showToast],
 	);
 
+	const handleToggleRulersVisible = useCallback(() => {
+		setRulersVisible((prev) => {
+			const next = !prev;
+			showToast(next ? 'Лінійки відображено' : 'Лінійки приховано');
+			return next;
+		});
+	}, [showToast]);
+
+	const handleToggleRulersAttachContent = useCallback(() => {
+		setRulersAttachContent((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Увімкнено спільний рух нот з лінійкою'
+					: 'Вимкнено спільний рух (рухається тільки лінійка)',
+			);
+			return next;
+		});
+	}, [showToast]);
+
 	const handleSelectStampFromCanvas = useCallback((stamp: StampItem) => {
 		setToolSizes((prev) => ({
 			...prev,
@@ -743,12 +773,16 @@ export const PhotoEditor: React.FC = () => {
 				sizeLocked={sizeLocked}
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
+				rulersVisible={rulersVisible}
+				rulersAttachContent={rulersAttachContent}
 				onUndo={() => stageRef.current?.undo()}
 				onRedo={() => stageRef.current?.redo()}
 				onToggleMenu={handleToggleMenu}
 				onChangeSize={handleChangeSize}
 				onToggleLock={handleToggleLock}
 				onTogglePalette={handleTogglePalette}
+				onToggleRulersVisible={handleToggleRulersVisible}
+				onToggleRulersAttachContent={handleToggleRulersAttachContent}
 			/>
 
 			<CanvasStage
@@ -761,6 +795,8 @@ export const PhotoEditor: React.FC = () => {
 				activeStampText={activeStampText}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
+				rulersVisible={rulersVisible}
+				rulersAttachContent={rulersAttachContent}
 				hasCanvas={hasCanvas}
 				onSelectStamp={handleSelectStampFromCanvas}
 				onChangeSize={handleChangeSize}

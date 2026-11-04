@@ -465,6 +465,63 @@ footer {
 	font-size: 0.75rem;
 }
 
+#ruler-settings {
+	pointer-events: auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+}
+
+.ruler-setting-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	height: 1.85rem;
+	padding: 0 0.65rem;
+	border-radius: 9999px;
+	border: 1px solid var(--line-strong);
+	background: rgba(255, 255, 255, 0.05);
+	color: var(--muted);
+	font-size: 0.75rem;
+	font-weight: 500;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: all 0.15s ease;
+}
+
+.ruler-setting-btn:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: var(--text);
+}
+
+.ruler-setting-btn:active {
+	transform: scale(0.95);
+}
+
+.ruler-setting-btn.active {
+	background: var(--accent-gradient);
+	border-color: transparent;
+	color: #ffffff;
+	box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+.ruler-setting-btn .icon {
+	width: 0.85rem;
+	height: 0.85rem;
+}
+
+@media (max-width: 440px) {
+	.ruler-setting-btn span {
+		display: none;
+	}
+	.ruler-setting-btn {
+		padding: 0;
+		width: 1.85rem;
+		justify-content: center;
+	}
+}
+
 .size-stepper-group {
 	display: flex;
 	align-items: center;

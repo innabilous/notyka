@@ -3,6 +3,7 @@
 import React from 'react';
 import { Menu, Redo2, Undo2 } from 'lucide-react';
 import { BrushSettings } from '@/components/settings/brush-settings';
+import { RulerSettings } from '@/components/settings/ruler-settings';
 import { ToolMode } from '@/types/editor';
 
 interface TopToolbarProps {
@@ -13,12 +14,16 @@ interface TopToolbarProps {
 	sizeLocked: boolean;
 	mainColor: string;
 	strokeColor: string;
+	rulersVisible?: boolean;
+	rulersAttachContent?: boolean;
 	onUndo: () => void;
 	onRedo: () => void;
 	onToggleMenu: (e: React.MouseEvent) => void;
 	onChangeSize: (size: number) => void;
 	onToggleLock: (e: React.MouseEvent) => void;
 	onTogglePalette: (e: React.MouseEvent) => void;
+	onToggleRulersVisible?: () => void;
+	onToggleRulersAttachContent?: () => void;
 }
 
 export const TopToolbar: React.FC<TopToolbarProps> = ({
@@ -29,12 +34,16 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	sizeLocked,
 	mainColor,
 	strokeColor,
+	rulersVisible = true,
+	rulersAttachContent = false,
 	onUndo,
 	onRedo,
 	onToggleMenu,
 	onChangeSize,
 	onToggleLock,
 	onTogglePalette,
+	onToggleRulersVisible,
+	onToggleRulersAttachContent,
 }) => {
 	return (
 		<header id="top-bar">
@@ -64,18 +73,27 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 				</button>
 			</div>
 
-			{/* Центр: Панель розміру, повзунка, -+ та палітри */}
+			{/* Центр: Панель налаштувань інструменту */}
 			<div className="top-center-settings">
-				<BrushSettings
-					currentMode={currentMode}
-					brushSize={brushSize}
-					sizeLocked={sizeLocked}
-					mainColor={mainColor}
-					strokeColor={strokeColor}
-					onChangeSize={onChangeSize}
-					onToggleLock={onToggleLock}
-					onTogglePalette={onTogglePalette}
-				/>
+				{currentMode === 'ruler' ? (
+					<RulerSettings
+						visible={rulersVisible}
+						attachContent={rulersAttachContent}
+						onToggleVisible={() => onToggleRulersVisible?.()}
+						onToggleAttachContent={() => onToggleRulersAttachContent?.()}
+					/>
+				) : (
+					<BrushSettings
+						currentMode={currentMode}
+						brushSize={brushSize}
+						sizeLocked={sizeLocked}
+						mainColor={mainColor}
+						strokeColor={strokeColor}
+						onChangeSize={onChangeSize}
+						onToggleLock={onToggleLock}
+						onTogglePalette={onTogglePalette}
+					/>
+				)}
 			</div>
 
 			{/* Правий кут: Кнопка Меню */}
