@@ -15,6 +15,7 @@ interface TopToolbarProps {
 	mainColor: string;
 	strokeColor: string;
 	rulersVisible?: boolean;
+	rulersSnap?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
@@ -26,10 +27,13 @@ interface TopToolbarProps {
 	onToggleLock: (e: React.MouseEvent) => void;
 	onTogglePalette: (e: React.MouseEvent) => void;
 	onToggleRulersVisible?: () => void;
+	onToggleRulersSnap?: () => void;
 	onToggleRulersAttachContent?: () => void;
+	onToggleShowDistance?: () => void;
 	onToggleRulersShowDistance?: () => void;
 	onToggleRulersLockEqualDistance?: () => void;
 	onClearRulers?: () => void;
+	onSyncCategorySizes?: () => void;
 }
 
 export const TopToolbar: React.FC<TopToolbarProps> = ({
@@ -41,6 +45,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	mainColor,
 	strokeColor,
 	rulersVisible = true,
+	rulersSnap = true,
 	rulersAttachContent = false,
 	rulersShowDistance = false,
 	rulersLockEqualDistance = false,
@@ -51,7 +56,9 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	onChangeSize,
 	onToggleLock,
 	onTogglePalette,
+	onSyncCategorySizes,
 	onToggleRulersVisible,
+	onToggleRulersSnap,
 	onToggleRulersAttachContent,
 	onToggleRulersShowDistance,
 	onToggleRulersLockEqualDistance,
@@ -90,11 +97,13 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 				{currentMode === 'ruler' ? (
 					<RulerSettings
 						visible={rulersVisible}
+						snap={rulersSnap}
 						attachContent={rulersAttachContent}
 						showDistance={rulersShowDistance}
 						lockEqualDistance={rulersLockEqualDistance}
 						rulersCount={rulersCount}
 						onToggleVisible={() => onToggleRulersVisible?.()}
+						onToggleSnap={() => onToggleRulersSnap?.()}
 						onToggleAttachContent={() => onToggleRulersAttachContent?.()}
 						onToggleShowDistance={() => onToggleRulersShowDistance?.()}
 						onToggleLockEqualDistance={() => onToggleRulersLockEqualDistance?.()}
@@ -110,6 +119,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 						onChangeSize={onChangeSize}
 						onToggleLock={onToggleLock}
 						onTogglePalette={onTogglePalette}
+						onSyncCategorySizes={onSyncCategorySizes}
 					/>
 				)}
 			</div>

@@ -66,6 +66,21 @@ export function calculateStampBox(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): BoundingBox {
+	//! Якщо це намальований штамп — рахуємо габарити з його збережених контурів
+	if (stamp.isDrawing && stamp.rawBounds) {
+		const scale = stamp.size / (stamp.initialSize || 24);
+		const sw = (stamp.strokeWidth || 4) * U;
+		const pad = 10 * U;
+		const halfW = (stamp.rawBounds.width * scale) / 2 + sw / 2;
+		const halfH = (stamp.rawBounds.height * scale) / 2 + sw / 2;
+		return {
+			x: stamp.x - halfW - pad,
+			y: stamp.y - halfH - pad,
+			w: (halfW + pad) * 2,
+			h: (halfH + pad) * 2,
+		};
+	}
+
 	const lines = getStampLines(stamp, U, ctx);
 	ctx.save();
 	ctx.font = getStampFont(stamp.size, U);
@@ -313,36 +328,88 @@ export function drawStamp(
 	ctx.lineJoin = 'round';
 	ctx.lineCap = 'round';
 
-	const lines = getStampLines(stamp, U, ctx);
-	const lineH = fontSize * 1.25;
-	const startY = stamp.y - ((lines.length - 1) * lineH) / 2;
+	if (stamp.isDrawing && stamp.paths) {
+		const scale = stamp.size / (stamp.initialSize || 24);
+		const sw = (stamp.strokeWidth || 4) * U * scale;
+		ctx.save();
+		ctx.translate(stamp.x, stamp.y);
+		ctx.scale(scale, scale);
+		ctx.lineCap = 'round';
+		ctx.lineJoin = 'round';
 
-	if (stamp.strokeColor !== 'transparent') {
-		if (stamp.badgeMode) {
-			//! Малюємо кольорову суцільну плашку під текстом
-			const bx = calculateStampBox(stamp, U, ctx);
-			ctx.fillStyle = stamp.strokeColor;
-			ctx.beginPath();
-			const radius = Math.min(6 * U, bx.h / 3);
-			if (typeof ctx.roundRect === 'function') {
-				ctx.roundRect(bx.x, bx.y, bx.w, bx.h, radius);
-			} else {
-				ctx.rect(bx.x, bx.y, bx.w, bx.h);
-			}
-			ctx.fill();
-		} else {
+		//! Обведення якщо воно задане
+		if (stamp.strokeColor && stamp.strokeColor !== 'transparent') {
 			ctx.strokeStyle = stamp.strokeColor;
-			ctx.lineWidth = Math.max(2, fontSize / 10);
-			lines.forEach((line, i) => {
-				ctx.strokeText(line, stamp.x, startY + i * lineH);
+			ctx.lineWidth = sw / scale + 4 * U;
+			stamp.paths.forEach((path) => {
+				if (path.points.length === 0) return;
+				ctx.beginPath();
+				if (path.points.length === 1) {
+					ctx.arc(path.points[0].x, path.points[0].y, sw / scale / 2, 0, Math.PI * 2);
+					ctx.fillStyle = stamp.strokeColor;
+					ctx.fill();
+				} else {
+					ctx.moveTo(path.points[0].x, path.points[0].y);
+					for (let i = 1; i < path.points.length; i++) {
+						ctx.lineTo(path.points[i].x, path.points[i].y);
+					}
+					ctx.stroke();
+				}
 			});
 		}
-	}
 
-	ctx.fillStyle = stamp.mainColor;
-	lines.forEach((line, i) => {
-		ctx.fillText(line, stamp.x, startY + i * lineH);
-	});
+		//! Основний колір штрихів
+		ctx.strokeStyle = stamp.mainColor;
+		ctx.lineWidth = sw / scale;
+		stamp.paths.forEach((path) => {
+			if (path.points.length === 0) return;
+			ctx.beginPath();
+			if (path.points.length === 1) {
+				ctx.arc(path.points[0].x, path.points[0].y, sw / scale / 2, 0, Math.PI * 2);
+				ctx.fillStyle = stamp.mainColor;
+				ctx.fill();
+			} else {
+				ctx.moveTo(path.points[0].x, path.points[0].y);
+				for (let i = 1; i < path.points.length; i++) {
+					ctx.lineTo(path.points[i].x, path.points[i].y);
+				}
+				ctx.stroke();
+			}
+		});
+
+		ctx.restore();
+	} else {
+		const lines = getStampLines(stamp, U, ctx);
+		const lineH = fontSize * 1.25;
+		const startY = stamp.y - ((lines.length - 1) * lineH) / 2;
+
+		if (stamp.strokeColor !== 'transparent') {
+			if (stamp.badgeMode) {
+				//! Малюємо кольорову суцільну плашку під текстом
+				const bx = calculateStampBox(stamp, U, ctx);
+				ctx.fillStyle = stamp.strokeColor;
+				ctx.beginPath();
+				const radius = Math.min(6 * U, bx.h / 3);
+				if (typeof ctx.roundRect === 'function') {
+					ctx.roundRect(bx.x, bx.y, bx.w, bx.h, radius);
+				} else {
+					ctx.rect(bx.x, bx.y, bx.w, bx.h);
+				}
+				ctx.fill();
+			} else {
+				ctx.strokeStyle = stamp.strokeColor;
+				ctx.lineWidth = Math.max(2, fontSize / 10);
+				lines.forEach((line, i) => {
+					ctx.strokeText(line, stamp.x, startY + i * lineH);
+				});
+			}
+		}
+
+		ctx.fillStyle = stamp.mainColor;
+		lines.forEach((line, i) => {
+			ctx.fillText(line, stamp.x, startY + i * lineH);
+		});
+	}
 
 	if (isActive) {
 		const bx = calculateStampBox(stamp, U, ctx);

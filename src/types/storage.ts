@@ -4,6 +4,7 @@ export interface EditorSettings {
 	currentMode: ToolMode;
 	toolSizes: Record<ToolMode, number>;
 	toolColors: Record<'pencil' | 'stamp', { main: string; stroke: string }>;
+	categoryColors?: Record<string, { main: string; stroke: string }>;
 	selectedNote: string;
 	selectedAccidental: string;
 	selectedChordRoot?: string;
@@ -21,6 +22,7 @@ export interface EditorSettings {
 	deleteBtnOn: boolean;
 	resizeHandlesOn?: boolean;
 	rulersVisible?: boolean;
+	rulersSnap?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;

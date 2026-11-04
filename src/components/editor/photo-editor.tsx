@@ -12,7 +12,7 @@ import { StampCategory, StampSettings } from '@/components/settings/stamp-settin
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
 import { ToolbarSkeleton } from '@/components/toolbar/toolbar-skeleton';
 import { TopToolbar } from '@/components/toolbar/top-toolbar';
-import { COUNT_ITEMS } from '@/constants/editor';
+import { ACCIDENTALS, COUNT_ITEMS, NOTES } from '@/constants/editor';
 import { StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
@@ -46,6 +46,18 @@ export const PhotoEditor: React.FC = () => {
 		stamp: { main: '#ed1c24', stroke: 'transparent' },
 	});
 
+	// Independent color memory per stamp category
+	const [categoryColors, setCategoryColors] = useState<
+		Record<StampCategory, { main: string; stroke: string }>
+	>({
+		notes: { main: '#ed1c24', stroke: 'transparent' },
+		chords: { main: '#ed1c24', stroke: 'transparent' },
+		count: { main: '#ed1c24', stroke: 'transparent' },
+		custom: { main: '#ed1c24', stroke: 'transparent' },
+		text: { main: '#ed1c24', stroke: 'transparent' },
+		draw: { main: '#ed1c24', stroke: 'transparent' },
+	});
+
 	// Independent tool sizes
 	const [toolSizes, setToolSizes] = useState<Record<ToolMode, number>>({
 		pencil: 2,
@@ -74,6 +86,7 @@ export const PhotoEditor: React.FC = () => {
 	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(true);
 	const [resizeHandlesOn, setResizeHandlesOn] = useState<boolean>(true);
 	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
+	const [rulersSnap, setRulersSnap] = useState<boolean>(true);
 	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(false);
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
 	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
@@ -149,6 +162,8 @@ export const PhotoEditor: React.FC = () => {
 			if (savedSettings.toolSizes)
 				setToolSizes((prev) => ({ ...prev, ...savedSettings.toolSizes }));
 			if (savedSettings.toolColors) setToolColors(savedSettings.toolColors);
+			if (savedSettings.categoryColors)
+				setCategoryColors((prev) => ({ ...prev, ...savedSettings.categoryColors }));
 			if (savedSettings.selectedNote) setSelectedNote(savedSettings.selectedNote);
 			if (savedSettings.selectedAccidental !== undefined)
 				setSelectedAccidental(savedSettings.selectedAccidental);
@@ -177,6 +192,8 @@ export const PhotoEditor: React.FC = () => {
 				setResizeHandlesOn(savedSettings.resizeHandlesOn);
 			if (savedSettings.rulersVisible !== undefined)
 				setRulersVisible(savedSettings.rulersVisible);
+			if (savedSettings.rulersSnap !== undefined)
+				setRulersSnap(savedSettings.rulersSnap);
 			if (savedSettings.rulersAttachContent !== undefined)
 				setRulersAttachContent(savedSettings.rulersAttachContent);
 			if (savedSettings.rulersShowDistance !== undefined)
@@ -209,6 +226,7 @@ export const PhotoEditor: React.FC = () => {
 			currentMode,
 			toolSizes,
 			toolColors,
+			categoryColors,
 			selectedNote,
 			selectedAccidental,
 			selectedChordRoot,
@@ -226,6 +244,7 @@ export const PhotoEditor: React.FC = () => {
 			deleteBtnOn,
 			resizeHandlesOn,
 			rulersVisible,
+			rulersSnap,
 			rulersAttachContent,
 			rulersShowDistance,
 			rulersLockEqualDistance,
@@ -233,6 +252,7 @@ export const PhotoEditor: React.FC = () => {
 		});
 	}, [
 		activeStampText,
+		categoryColors,
 		currentMode,
 		customStamps,
 		customText,
@@ -242,6 +262,7 @@ export const PhotoEditor: React.FC = () => {
 		rulersAttachContent,
 		rulersLockEqualDistance,
 		rulersShowDistance,
+		rulersSnap,
 		rulersVisible,
 		selectedAccidental,
 		selectedChordAccidental,
@@ -259,8 +280,14 @@ export const PhotoEditor: React.FC = () => {
 	]);
 
 	const currentSize = toolSizes[currentMode] ?? 24;
-	const currentMainColor = toolColors[currentMode === 'stamp' ? 'stamp' : 'pencil'].main;
-	const currentStrokeColor = toolColors[currentMode === 'stamp' ? 'stamp' : 'pencil'].stroke;
+	const currentMainColor =
+		currentMode === 'stamp'
+			? (categoryColors[stampCategory]?.main ?? '#ed1c24')
+			: toolColors.pencil.main;
+	const currentStrokeColor =
+		currentMode === 'stamp'
+			? (categoryColors[stampCategory]?.stroke ?? 'transparent')
+			: toolColors.pencil.stroke;
 
 	const getStampKey = useCallback(
 		(note: string, acc: string, customText?: string) => customText || `${note}${acc}`,
@@ -834,6 +861,9 @@ export const PhotoEditor: React.FC = () => {
 	const handleChangeStampCategory = useCallback(
 		(cat: StampCategory) => {
 			setStampCategory(cat);
+			if (cat === 'draw') {
+				showToast("Малюйте на полотні. Штрихи об'єднаються у штамп через 1 с");
+			}
 			let nextText = activeStampText;
 			if (cat === 'notes') {
 				nextText = `${selectedNote}${selectedAccidental}`;
@@ -856,18 +886,19 @@ export const PhotoEditor: React.FC = () => {
 				nextText = customText || 'Текст';
 			}
 			setActiveStampText(nextText);
+			const catMain = categoryColors[cat]?.main ?? '#ed1c24';
+			const catStroke = categoryColors[cat]?.stroke ?? 'transparent';
 			stageRef.current?.updateActiveStampProps(
 				toolSizes.stamp,
 				nextText,
-				currentMainColor,
-				currentStrokeColor,
+				catMain,
+				catStroke,
 			);
 		},
 		[
 			activeStampText,
 			buildChordText,
-			currentMainColor,
-			currentStrokeColor,
+			categoryColors,
 			customStamps,
 			customText,
 			selectedAccidental,
@@ -878,6 +909,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedChordRoot,
 			selectedChordSlash,
 			selectedNote,
+			showToast,
 			toolSizes.stamp,
 		],
 	);
@@ -981,22 +1013,28 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleChangeMainColor = useCallback(
 		(color: string) => {
-			const modeKey = currentMode === 'stamp' ? 'stamp' : 'pencil';
-			setToolColors((prev) => ({
-				...prev,
-				[modeKey]: {
-					...prev[modeKey],
-					main: color,
-				},
-			}));
-
 			if (currentMode === 'stamp') {
+				setCategoryColors((prev) => ({
+					...prev,
+					[stampCategory]: {
+						...prev[stampCategory],
+						main: color,
+					},
+				}));
 				stageRef.current?.updateActiveStampProps(
 					currentSize,
 					activeStampText || `${selectedNote}${selectedAccidental}`,
 					color,
 					currentStrokeColor,
 				);
+			} else {
+				setToolColors((prev) => ({
+					...prev,
+					pencil: {
+						...prev.pencil,
+						main: color,
+					},
+				}));
 			}
 		},
 		[
@@ -1006,39 +1044,52 @@ export const PhotoEditor: React.FC = () => {
 			currentStrokeColor,
 			selectedAccidental,
 			selectedNote,
+			stampCategory,
 		],
 	);
 
 	const handleChangeStrokeColor = useCallback(
 		(color: string) => {
-			setToolColors((prev) => ({
-				...prev,
-				stamp: {
-					...prev.stamp,
-					stroke: color,
-				},
-			}));
+			if (currentMode === 'stamp') {
+				setCategoryColors((prev) => ({
+					...prev,
+					[stampCategory]: {
+						...prev[stampCategory],
+						stroke: color,
+					},
+				}));
 
-			if (color === 'transparent') {
-				showToast('Обводку вимкнено');
+				if (color === 'transparent') {
+					showToast('Обводку вимкнено');
+				}
+
+				stageRef.current?.updateActiveStampProps(
+					currentSize,
+					activeStampText || `${selectedNote}${selectedAccidental}`,
+					currentMainColor,
+					color,
+					stampBadgeMode,
+				);
+			} else {
+				setToolColors((prev) => ({
+					...prev,
+					pencil: {
+						...prev.pencil,
+						stroke: color,
+					},
+				}));
 			}
-
-			stageRef.current?.updateActiveStampProps(
-				currentSize,
-				activeStampText || `${selectedNote}${selectedAccidental}`,
-				currentMainColor,
-				color,
-				stampBadgeMode,
-			);
 		},
 		[
 			activeStampText,
 			currentMainColor,
+			currentMode,
 			currentSize,
 			selectedAccidental,
 			selectedNote,
 			showToast,
 			stampBadgeMode,
+			stampCategory,
 		],
 	);
 
@@ -1086,6 +1137,23 @@ export const PhotoEditor: React.FC = () => {
 		});
 	}, [showToast]);
 
+	//! Синхронізація розмірів усіх штампів вибраного розділу
+	const handleSyncCategorySizes = useCallback(() => {
+		if (currentMode !== 'stamp') return;
+		stageRef.current?.syncCategorySizes(stampCategory, currentSize);
+
+		if (stampCategory === 'notes') {
+			const updated: Record<string, number> = { ...noteSizes };
+			NOTES.forEach((note) => {
+				ACCIDENTALS.forEach((acc) => {
+					updated[`${note}${acc}`] = currentSize;
+				});
+				updated[note] = currentSize;
+			});
+			setNoteSizes(updated);
+		}
+	}, [currentMode, currentSize, noteSizes, stampCategory]);
+
 	const handleSelectStampFromCanvas = useCallback((stamp: StampItem) => {
 		setToolSizes((prev) => ({
 			...prev,
@@ -1094,6 +1162,11 @@ export const PhotoEditor: React.FC = () => {
 		setToolColors((prev) => ({
 			...prev,
 			stamp: { main: stamp.mainColor, stroke: stamp.strokeColor },
+		}));
+		const cat = (stamp.category as StampCategory) || 'custom';
+		setCategoryColors((prev) => ({
+			...prev,
+			[cat]: { main: stamp.mainColor, stroke: stamp.strokeColor },
 		}));
 
 		setActiveStampText(stamp.text);
@@ -1312,6 +1385,7 @@ export const PhotoEditor: React.FC = () => {
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
 				rulersVisible={rulersVisible}
+				rulersSnap={rulersSnap}
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}
@@ -1322,7 +1396,9 @@ export const PhotoEditor: React.FC = () => {
 				onChangeSize={handleChangeSize}
 				onToggleLock={handleToggleLock}
 				onTogglePalette={handleTogglePalette}
+				onSyncCategorySizes={handleSyncCategorySizes}
 				onToggleRulersVisible={handleToggleRulersVisible}
+				onToggleRulersSnap={() => setRulersSnap((prev) => !prev)}
 				onToggleRulersAttachContent={handleToggleRulersAttachContent}
 				onToggleRulersShowDistance={() => setRulersShowDistance((prev) => !prev)}
 				onToggleRulersLockEqualDistance={() => setRulersLockEqualDistance((prev) => !prev)}
@@ -1338,9 +1414,11 @@ export const PhotoEditor: React.FC = () => {
 				selectedAccidental={selectedAccidental}
 				activeStampText={activeStampText}
 				stampBadgeMode={stampBadgeMode}
+				stampCategory={stampCategory}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
 				rulersVisible={rulersVisible}
+				rulersSnap={rulersSnap}
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}
