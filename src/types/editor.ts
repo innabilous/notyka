@@ -13,12 +13,21 @@ export interface StampItem {
 	text: string;
 	mainColor: string;
 	strokeColor: string;
+	badgeMode?: boolean;
+}
+
+export interface CanvasLayerItem {
+	type: 'stroke' | 'stamp';
+	id: string;
+	imageData?: ImageData;
+	stamp?: StampItem;
 }
 
 export interface HistoryItem {
-	imageData: ImageData;
+	imageData?: ImageData;
 	stamps: StampItem[];
 	rulers?: RulerItem[];
+	layers?: CanvasLayerItem[];
 }
 
 export interface Point {

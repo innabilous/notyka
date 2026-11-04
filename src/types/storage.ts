@@ -6,6 +6,13 @@ export interface EditorSettings {
 	toolColors: Record<'pencil' | 'stamp', { main: string; stroke: string }>;
 	selectedNote: string;
 	selectedAccidental: string;
+	selectedChordRoot?: string;
+	selectedChordAccidental?: string;
+	selectedChordModifier?: string;
+	selectedChordSlash?: boolean;
+	selectedChordBassRoot?: string;
+	selectedChordBassAccidental?: string;
+	stampBadgeMode?: boolean;
 	activeStampText?: string;
 	stampCategory?: string;
 	customStamps?: string[];
@@ -15,6 +22,9 @@ export interface EditorSettings {
 	resizeHandlesOn?: boolean;
 	rulersVisible?: boolean;
 	rulersAttachContent?: boolean;
+	rulersShowDistance?: boolean;
+	rulersLockEqualDistance?: boolean;
+	customText?: string;
 }
 
 export interface ProjectItem {

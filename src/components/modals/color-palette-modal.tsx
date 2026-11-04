@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { SegmentedControl } from '@mantine/core';
 import { Pipette } from 'lucide-react';
 import { PALETTE_COLORS } from '@/constants/editor';
 import { ToolMode } from '@/types/editor';
@@ -10,8 +11,10 @@ interface ColorPaletteModalProps {
 	currentMode: ToolMode;
 	mainColor: string;
 	strokeColor: string;
+	stampBadgeMode?: boolean;
 	onChangeMainColor: (color: string) => void;
 	onChangeStrokeColor: (color: string) => void;
+	onToggleBadgeMode?: (isBadge: boolean) => void;
 }
 
 export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
@@ -19,8 +22,10 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 	currentMode,
 	mainColor,
 	strokeColor,
+	stampBadgeMode = false,
 	onChangeMainColor,
 	onChangeStrokeColor,
+	onToggleBadgeMode,
 }) => {
 	if (!opened) return null;
 
@@ -62,7 +67,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 			{isStamp && (
 				<div className="pal-block">
 					<div className="pal-head">
-						<span>Колір обводки:</span>
+						<span>{stampBadgeMode ? 'Колір плашки:' : 'Колір обводки:'}</span>
 						<label>
 							<Pipette className="icon" />
 							Свій
@@ -74,6 +79,28 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 							/>
 						</label>
 					</div>
+
+					{/* Перемикач стилю: обводка або суцільна плашка */}
+					<div className="pal-badge-mode-toggle" style={{ marginBottom: '0.45rem' }}>
+						<SegmentedControl
+							fullWidth
+							size="xs"
+							radius="xl"
+							withItemsBorders={false}
+							value={stampBadgeMode ? 'badge' : 'stroke'}
+							onChange={(val) => onToggleBadgeMode?.(val === 'badge')}
+							data={[
+								{ label: 'Обводка', value: 'stroke' },
+								{ label: 'Плашка', value: 'badge' },
+							]}
+							classNames={{
+								root: 'stamp-segmented-root',
+								indicator: 'stamp-segmented-indicator',
+								label: 'stamp-segmented-label',
+							}}
+						/>
+					</div>
+
 					<div id="palette-row-stroke" className="palette-row">
 						{PALETTE_COLORS.map((color) => {
 							const isSelected = strokeColor.toLowerCase() === color.toLowerCase();

@@ -1,53 +1,111 @@
 'use client';
 
 import React from 'react';
-import { Eye, EyeOff, Link, Unlink } from 'lucide-react';
+import {
+	AlignVerticalDistributeCenter,
+	Eye,
+	EyeOff,
+	Link,
+	MoveVertical,
+	Trash2,
+	Unlink,
+} from 'lucide-react';
 
 interface RulerSettingsProps {
 	visible: boolean;
 	attachContent: boolean;
+	showDistance: boolean;
+	lockEqualDistance: boolean;
+	rulersCount: number;
 	onToggleVisible: () => void;
 	onToggleAttachContent: () => void;
+	onToggleShowDistance: () => void;
+	onToggleLockEqualDistance: () => void;
+	onClearRulers: () => void;
 }
 
 export const RulerSettings: React.FC<RulerSettingsProps> = ({
 	visible,
 	attachContent,
+	showDistance,
+	lockEqualDistance,
+	rulersCount,
 	onToggleVisible,
 	onToggleAttachContent,
+	onToggleShowDistance,
+	onToggleLockEqualDistance,
+	onClearRulers,
 }) => {
+	const canDistribute = rulersCount > 2;
+
 	return (
 		<div id="ruler-settings">
 			<button
 				type="button"
 				className={`ruler-setting-btn ${visible ? 'active' : ''}`}
 				onClick={onToggleVisible}
-				title={visible ? 'Приховати лінійки' : 'Показати лінійки'}
-				aria-label={visible ? 'Приховати лінійки' : 'Показати лінійки'}
+				title="Показати"
+				aria-label="Показати"
 			>
 				{visible ? <Eye className="icon" /> : <EyeOff className="icon" />}
-				<span>{visible ? 'Показати' : 'Приховано'}</span>
+				<span>Показати</span>
 			</button>
 
 			<button
 				type="button"
 				className={`ruler-setting-btn ${attachContent ? 'active' : ''}`}
 				onClick={onToggleAttachContent}
-				title={
-					attachContent
-						? 'Рухати контент разом з лінійкою (Увімкнено)'
-						: 'Рухати тільки лінійку (Вимкнено)'
-				}
-				aria-label={
-					attachContent
-						? 'Рухати контент разом з лінійкою (Увімкнено)'
-						: 'Рухати тільки лінійку (Вимкнено)'
-				}
+				title="Рухати з контентом"
+				aria-label="Рухати з контентом"
 			>
 				{attachContent ? <Link className="icon" /> : <Unlink className="icon" />}
-				<span>{attachContent ? 'Рухати з контентом' : 'Тільки лінійка'}</span>
+				<span>Рухати з контентом</span>
+			</button>
+
+			<button
+				type="button"
+				className={`ruler-setting-btn ${showDistance ? 'active' : ''}`}
+				onClick={onToggleShowDistance}
+				title="Відстань між лінійками"
+				aria-label="Відстань між лінійками"
+			>
+				<MoveVertical className="icon" />
+				<span>Відстань</span>
+			</button>
+
+			<button
+				type="button"
+				className={`ruler-setting-btn ${lockEqualDistance ? 'active' : ''}`}
+				onClick={onToggleLockEqualDistance}
+				title={
+					lockEqualDistance
+						? 'Зафіксовано рівновіддаленість лінійок'
+						: 'Зафіксувати рівну відстань між лінійками'
+				}
+				aria-label="Зафіксувати рівну відстань між лінійками"
+				style={{
+					opacity: canDistribute || lockEqualDistance ? 1 : 0.65,
+					cursor: 'pointer',
+				}}
+			>
+				<AlignVerticalDistributeCenter className="icon" />
+				<span>Рівновіддаленість</span>
+			</button>
+
+			<button
+				type="button"
+				className="ruler-setting-btn"
+				onClick={onClearRulers}
+				title="Очистити всі лінійки"
+				aria-label="Очистити всі лінійки"
+				style={{
+					opacity: rulersCount > 0 ? 1 : 0.5,
+					cursor: rulersCount > 0 ? 'pointer' : 'default',
+				}}
+			>
+				<Trash2 className="icon" />
+				<span>Очистити</span>
 			</button>
 		</div>
 	);
 };
-

@@ -19,41 +19,149 @@ export function getStampFont(size: number, U: number): string {
 	return `bold ${size * 2 * U}px system-ui, -apple-system, sans-serif`;
 }
 
+//! Розбиваємо текст на рядки з автоматичним переносом по словах, якщо рядок ширший за полотно
+export function getStampLines(
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): string[] {
+	ctx.save();
+	ctx.font = getStampFont(stamp.size, U);
+
+	const maxLineWidth = Math.max(
+		100 * U,
+		ctx.canvas && ctx.canvas.width > 0 ? ctx.canvas.width - 48 * U : 600 * U,
+	);
+
+	const rawLines = String(stamp.text).split('\n');
+	const lines: string[] = [];
+
+	for (const rawLine of rawLines) {
+		const words = rawLine.split(' ');
+		if (words.length <= 1) {
+			lines.push(rawLine);
+			continue;
+		}
+
+		let currentLine = words[0];
+		for (let i = 1; i < words.length; i++) {
+			const word = words[i];
+			const testLine = `${currentLine} ${word}`;
+			if (ctx.measureText(testLine).width <= maxLineWidth) {
+				currentLine = testLine;
+			} else {
+				lines.push(currentLine);
+				currentLine = word;
+			}
+		}
+		lines.push(currentLine);
+	}
+
+	ctx.restore();
+	return lines;
+}
+
 export function calculateStampBox(
 	stamp: StampItem,
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): BoundingBox {
+	const lines = getStampLines(stamp, U, ctx);
 	ctx.save();
 	ctx.font = getStampFont(stamp.size, U);
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
-	const m = ctx.measureText(stamp.text);
+
+	let maxW = 0;
+	lines.forEach((line) => {
+		const m = ctx.measureText(line);
+		const l = m.actualBoundingBoxLeft ?? m.width / 2;
+		const r = m.actualBoundingBoxRight ?? m.width / 2;
+		const w = Math.max(m.width, l + r);
+		if (w > maxW) maxW = w;
+	});
 	ctx.restore();
 
 	const fs = stamp.size * 2 * U;
+	const lineH = fs * 1.25;
+	const totalH = fs + (lines.length - 1) * lineH;
 	const pad = fs * 0.22;
 	const outline = stamp.strokeColor !== 'transparent' ? Math.max(2, fs / 10) / 2 : 0;
-	const l = m.actualBoundingBoxLeft ?? m.width / 2;
-	const r = m.actualBoundingBoxRight ?? m.width / 2;
-	const asc = m.actualBoundingBoxAscent ?? fs * 0.4;
-	const desc = m.actualBoundingBoxDescent ?? fs * 0.4;
 
-	const x0 = stamp.x - l - outline - pad;
-	const x1 = stamp.x + r + outline + pad;
-	const y0 = stamp.y - asc - outline - pad;
-	const y1 = stamp.y + desc + outline + pad;
+	const halfW = maxW / 2;
+	const halfH = totalH / 2;
+
+	const x0 = stamp.x - halfW - outline - pad;
+	const x1 = stamp.x + halfW + outline + pad;
+	const y0 = stamp.y - halfH - outline - pad;
+	const y1 = stamp.y + halfH + outline + pad;
 
 	return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+export function getStampBoxOffsets(
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): { left: number; right: number; top: number; bottom: number } {
+	const bx = calculateStampBox(stamp, U, ctx);
+	return {
+		left: stamp.x - bx.x,
+		right: bx.x + bx.w - stamp.x,
+		top: stamp.y - bx.y,
+		bottom: bx.y + bx.h - stamp.y,
+	};
+}
+
+//! Зупиняє штамп на межі канвасу, не дозволяючи жодному елементу вийти за межі
+export function clampStampPosition(
+	x: number,
+	y: number,
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): { x: number; y: number } {
+	const offsets = getStampBoxOffsets(stamp, U, ctx);
+	const canvasW = ctx.canvas?.width ?? 10000;
+	const canvasH = ctx.canvas?.height ?? 10000;
+
+	// Враховуємо бічні напівкружечки зміни розміру (6*U)
+	const sideMargin = 7 * U;
+	const topBottomMargin = 2 * U;
+
+	const minX = offsets.left + sideMargin;
+	const maxX = Math.max(minX, canvasW - offsets.right - sideMargin);
+	const minY = offsets.top + topBottomMargin;
+	const maxY = Math.max(minY, canvasH - offsets.bottom - topBottomMargin);
+
+	const clampedX = Math.max(minX, Math.min(maxX, x));
+	const clampedY = Math.max(minY, Math.min(maxY, y));
+
+	return { x: clampedX, y: clampedY };
 }
 
 export function getHandleCoords(
 	stamp: StampItem,
 	U: number,
 	ctx: CanvasRenderingContext2D,
-): { x: number; y: number; radius: number } {
+): { x: number; y: number; radius: number; isFlipped: boolean } {
 	const bx = calculateStampBox(stamp, U, ctx);
-	return { x: stamp.x, y: bx.y + bx.h + 24 * U, radius: 15 * U };
+	const canvasH = ctx.canvas?.height ?? 10000;
+	const canvasW = ctx.canvas?.width ?? 10000;
+	const radius = 14 * U;
+
+	const spaceBelow = canvasH - (bx.y + bx.h);
+	const spaceAbove = bx.y;
+	const neededSpace = 24 * U + radius + 4 * U;
+
+	//! Якщо знизу місця недостатньо, а зверху вистачає — переносимо хендлер нагору
+	const isFlipped = spaceBelow < neededSpace && spaceAbove >= neededSpace;
+	const rawY = isFlipped ? bx.y - 24 * U : bx.y + bx.h + 24 * U;
+
+	const y = Math.max(radius + 4 * U, Math.min(canvasH - radius - 4 * U, rawY));
+	const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
+
+	return { x, y, radius, isFlipped };
 }
 
 export function getDeleteCoords(
@@ -62,7 +170,48 @@ export function getDeleteCoords(
 	ctx: CanvasRenderingContext2D,
 ): { x: number; y: number; radius: number } {
 	const bx = calculateStampBox(stamp, U, ctx);
-	return { x: stamp.x, y: Math.max(bx.y - 15 * U, 11 * U), radius: 9 * U };
+	const canvasH = ctx.canvas?.height ?? 10000;
+	const canvasW = ctx.canvas?.width ?? 10000;
+	const radius = 9 * U;
+
+	const handle = getHandleCoords(stamp, U, ctx);
+	const spaceAbove = bx.y;
+	const spaceBelow = canvasH - (bx.y + bx.h);
+	const neededSpace = 15 * U + radius + 4 * U;
+
+	//! Якщо хендлер вгорі (бо знизу мало місця):
+	if (handle.isFlipped) {
+		// Якщо знизу є місце для кошика — розміщуємо його знизу
+		if (spaceBelow >= neededSpace) {
+			const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
+			const y = Math.min(canvasH - radius - 2 * U, bx.y + bx.h + 15 * U);
+			return { x, y, radius };
+		}
+		// Інакше ділимо верхній простір з хендлером: праворуч, або ліворуч якщо справа нема місця
+		const offset = 26 * U;
+		const preferRight = handle.x + offset + radius <= canvasW - 4 * U;
+		const rawX = preferRight ? handle.x + offset : handle.x - offset;
+		const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, rawX));
+		const y = handle.y;
+		return { x, y, radius };
+	}
+
+	//! Хендлер переміщення знизу:
+	// Чи є вільне місце зверху для кошика?
+	if (spaceAbove >= neededSpace) {
+		const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
+		const y = Math.max(radius + 2 * U, bx.y - 15 * U);
+		return { x, y, radius };
+	}
+
+	//! Якщо зверху місця немає (нота впритик до верхнього краю) — переміщуємо кошик вниз до хендлера!
+	// Якщо нота в правому кутку — кошик розміщується ліворуч від хендлера
+	const offset = 26 * U;
+	const preferRight = handle.x + offset + radius <= canvasW - 4 * U;
+	const rawX = preferRight ? handle.x + offset : handle.x - offset;
+	const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, rawX));
+	const y = handle.y;
+	return { x, y, radius };
 }
 
 export function getResizeHandleCoords(
@@ -76,7 +225,7 @@ export function getResizeHandleCoords(
 	const bx = calculateStampBox(stamp, U, ctx);
 	const cy = bx.y + bx.h / 2;
 	const radius = 6 * U;
-	const hitRadius = Math.max(16 * U, 14);
+	const hitRadius = Math.max(12 * U, 12);
 	return {
 		left: { x: bx.x, y: cy, radius, hitRadius },
 		right: { x: bx.x + bx.w, y: cy, radius, hitRadius },
@@ -89,17 +238,28 @@ export function isPointInResizeHandle(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): 'left' | 'right' | null {
+	const bx = calculateStampBox(stamp, U, ctx);
 	const handles = getResizeHandleCoords(stamp, U, ctx);
-	const dlx = p.x - handles.left.x;
-	const dly = p.y - handles.left.y;
-	if (dlx * dlx + dly * dly <= handles.left.hitRadius * handles.left.hitRadius) {
-		return 'left';
+
+	//! Обмежуємо зону всередині рамки (макс 15% ширини або 4*U), щоб клік по тексту штампа тягнув штамп, а не масштабував
+	const maxInward = Math.min(bx.w * 0.15, 4 * U);
+
+	if (p.x <= bx.x + maxInward) {
+		const dlx = p.x - handles.left.x;
+		const dly = p.y - handles.left.y;
+		if (dlx * dlx + dly * dly <= handles.left.hitRadius * handles.left.hitRadius) {
+			return 'left';
+		}
 	}
-	const drx = p.x - handles.right.x;
-	const dry = p.y - handles.right.y;
-	if (drx * drx + dry * dry <= handles.right.hitRadius * handles.right.hitRadius) {
-		return 'right';
+
+	if (p.x >= bx.x + bx.w - maxInward) {
+		const drx = p.x - handles.right.x;
+		const dry = p.y - handles.right.y;
+		if (drx * drx + dry * dry <= handles.right.hitRadius * handles.right.hitRadius) {
+			return 'right';
+		}
 	}
+
 	return null;
 }
 
@@ -153,14 +313,36 @@ export function drawStamp(
 	ctx.lineJoin = 'round';
 	ctx.lineCap = 'round';
 
+	const lines = getStampLines(stamp, U, ctx);
+	const lineH = fontSize * 1.25;
+	const startY = stamp.y - ((lines.length - 1) * lineH) / 2;
+
 	if (stamp.strokeColor !== 'transparent') {
-		ctx.strokeStyle = stamp.strokeColor;
-		ctx.lineWidth = Math.max(2, fontSize / 10);
-		ctx.strokeText(stamp.text, stamp.x, stamp.y);
+		if (stamp.badgeMode) {
+			//! Малюємо кольорову суцільну плашку під текстом
+			const bx = calculateStampBox(stamp, U, ctx);
+			ctx.fillStyle = stamp.strokeColor;
+			ctx.beginPath();
+			const radius = Math.min(6 * U, bx.h / 3);
+			if (typeof ctx.roundRect === 'function') {
+				ctx.roundRect(bx.x, bx.y, bx.w, bx.h, radius);
+			} else {
+				ctx.rect(bx.x, bx.y, bx.w, bx.h);
+			}
+			ctx.fill();
+		} else {
+			ctx.strokeStyle = stamp.strokeColor;
+			ctx.lineWidth = Math.max(2, fontSize / 10);
+			lines.forEach((line, i) => {
+				ctx.strokeText(line, stamp.x, startY + i * lineH);
+			});
+		}
 	}
 
 	ctx.fillStyle = stamp.mainColor;
-	ctx.fillText(stamp.text, stamp.x, stamp.y);
+	lines.forEach((line, i) => {
+		ctx.fillText(line, stamp.x, startY + i * lineH);
+	});
 
 	if (isActive) {
 		const bx = calculateStampBox(stamp, U, ctx);
@@ -175,11 +357,13 @@ export function drawStamp(
 		}
 		ctx.stroke();
 
-		const hx = stamp.x;
-		const hy = bx.y + bx.h + 24 * U;
+		const handle = getHandleCoords(stamp, U, ctx);
+		const hx = handle.x;
+		const hy = handle.y;
 		ctx.setLineDash([]);
 		ctx.beginPath();
-		ctx.moveTo(hx, bx.y + bx.h);
+		const stemStartY = handle.isFlipped ? bx.y : bx.y + bx.h;
+		ctx.moveTo(hx, stemStartY);
 		ctx.lineTo(hx, hy);
 		ctx.stroke();
 
@@ -319,6 +503,7 @@ export function drawRulers(
 	ctx: CanvasRenderingContext2D,
 	U: number,
 	canvasWidth: number,
+	showDistance: boolean = false,
 ): void {
 	if (rulers.length === 0) return;
 
@@ -368,5 +553,57 @@ export function drawRulers(
 		}
 
 		ctx.restore();
+	}
+
+	//! Відображення дистанції між сусідніми лінійками в пікселях
+	if (showDistance && rulers.length >= 2) {
+		const sorted = [...rulers].sort((a, b) => a.y - b.y);
+		const dimX = canvasWidth - 55 * U;
+
+		for (let i = 0; i < sorted.length - 1; i++) {
+			const r1 = sorted[i];
+			const r2 = sorted[i + 1];
+			const distPx = Math.round(r2.y - r1.y);
+			if (distPx <= 2) continue;
+			const midY = (r1.y + r2.y) / 2;
+
+			ctx.save();
+			ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+			ctx.lineWidth = 1 * U;
+			ctx.setLineDash([3 * U, 3 * U]);
+			ctx.beginPath();
+			ctx.moveTo(dimX, r1.y);
+			ctx.lineTo(dimX, r2.y);
+			ctx.stroke();
+
+			const text = `${distPx} px`;
+			const fontSize = Math.max(9, Math.round(10 * U));
+			ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
+			const tw = ctx.measureText(text).width;
+			const bw = tw + 8 * U;
+			const bh = Math.max(14 * U, fontSize + 4 * U);
+			const bx = dimX - bw / 2;
+			const by = midY - bh / 2;
+
+			// Фон бейджа в кольорі лінійок замість чорного
+			ctx.fillStyle = '#4f46e5';
+			ctx.setLineDash([]);
+			ctx.beginPath();
+			if (typeof ctx.roundRect === 'function') {
+				ctx.roundRect(bx, by, bw, bh, 4 * U);
+			} else {
+				ctx.rect(bx, by, bw, bh);
+			}
+			ctx.fill();
+			ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+			ctx.lineWidth = 1 * U;
+			ctx.stroke();
+
+			ctx.fillStyle = '#ffffff';
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillText(text, dimX, midY);
+			ctx.restore();
+		}
 	}
 }

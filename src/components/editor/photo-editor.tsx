@@ -12,6 +12,7 @@ import { StampCategory, StampSettings } from '@/components/settings/stamp-settin
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
 import { ToolbarSkeleton } from '@/components/toolbar/toolbar-skeleton';
 import { TopToolbar } from '@/components/toolbar/top-toolbar';
+import { COUNT_ITEMS } from '@/constants/editor';
 import { StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
@@ -41,31 +42,42 @@ export const PhotoEditor: React.FC = () => {
 	const [toolColors, setToolColors] = useState<
 		Record<'pencil' | 'stamp', { main: string; stroke: string }>
 	>({
-		pencil: { main: '#ff0055', stroke: '#000000' },
-		stamp: { main: '#ff0055', stroke: '#000000' },
+		pencil: { main: '#ed1c24', stroke: '#000000' },
+		stamp: { main: '#ed1c24', stroke: 'transparent' },
 	});
 
 	// Independent tool sizes
 	const [toolSizes, setToolSizes] = useState<Record<ToolMode, number>>({
-		pencil: 24,
-		stamp: 24,
+		pencil: 2,
+		stamp: 8,
 		eraser: 24,
 		ruler: 24,
 	});
 
-	const [selectedNote, setSelectedNote] = useState<string>('до');
+	const [selectedNote, setSelectedNote] = useState<string>('До');
 	const [selectedAccidental, setSelectedAccidental] = useState<string>('');
-	const [activeStampText, setActiveStampText] = useState<string>('до');
+	const [selectedChordRoot, setSelectedChordRoot] = useState<string>('C');
+	const [selectedChordAccidental, setSelectedChordAccidental] = useState<string>('');
+	const [selectedChordModifier, setSelectedChordModifier] = useState<string>('');
+	const [selectedChordSlash, setSelectedChordSlash] = useState<boolean>(false);
+	const [selectedChordBassRoot, setSelectedChordBassRoot] = useState<string>('');
+	const [selectedChordBassAccidental, setSelectedChordBassAccidental] = useState<string>('');
+	const [stampBadgeMode, setStampBadgeMode] = useState<boolean>(false);
+	const [activeStampText, setActiveStampText] = useState<string>('До');
 	const [stampCategory, setStampCategory] = useState<StampCategory>('notes');
 	const [customStamps, setCustomStamps] = useState<string[]>([]);
+	const [customText, setCustomText] = useState<string>('Текст');
 	const [customStampModalOpen, setCustomStampModalOpen] = useState<boolean>(false);
 	const [sizeLocked, setSizeLocked] = useState<boolean>(true);
 	const [noteSizes, setNoteSizes] = useState<Record<string, number>>({});
 
-	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(false);
+	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(true);
 	const [resizeHandlesOn, setResizeHandlesOn] = useState<boolean>(true);
 	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
 	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(false);
+	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
+	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
+	const [rulersCount, setRulersCount] = useState<number>(0);
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
@@ -91,12 +103,20 @@ export const PhotoEditor: React.FC = () => {
 	// Outside click listener for popups
 	useEffect(() => {
 		const handleDocClick = (e: MouseEvent) => {
-			const target = e.target as HTMLElement | null;
-			if (!target) return;
-			if (!target.closest('#image-menu') && !target.closest('#btn-toggle-menu')) {
+			const path = e.composedPath();
+			const isInsideMenu = path.some((el) => {
+				const htmlEl = el as HTMLElement;
+				return htmlEl?.id === 'image-menu' || htmlEl?.id === 'btn-toggle-menu';
+			});
+			if (!isInsideMenu) {
 				setIsMenuOpen(false);
 			}
-			if (!target.closest('#color-palette-popup') && !target.closest('#btn-toggle-palette')) {
+
+			const isInsidePalette = path.some((el) => {
+				const htmlEl = el as HTMLElement;
+				return htmlEl?.id === 'color-palette-popup' || htmlEl?.id === 'btn-toggle-palette';
+			});
+			if (!isInsidePalette) {
 				setIsPaletteOpen(false);
 			}
 		};
@@ -132,6 +152,20 @@ export const PhotoEditor: React.FC = () => {
 			if (savedSettings.selectedNote) setSelectedNote(savedSettings.selectedNote);
 			if (savedSettings.selectedAccidental !== undefined)
 				setSelectedAccidental(savedSettings.selectedAccidental);
+			if (savedSettings.selectedChordRoot)
+				setSelectedChordRoot(savedSettings.selectedChordRoot);
+			if (savedSettings.selectedChordAccidental !== undefined)
+				setSelectedChordAccidental(savedSettings.selectedChordAccidental);
+			if (savedSettings.selectedChordModifier !== undefined)
+				setSelectedChordModifier(savedSettings.selectedChordModifier);
+			if (savedSettings.selectedChordSlash !== undefined)
+				setSelectedChordSlash(savedSettings.selectedChordSlash);
+			if (savedSettings.selectedChordBassRoot !== undefined)
+				setSelectedChordBassRoot(savedSettings.selectedChordBassRoot);
+			if (savedSettings.selectedChordBassAccidental !== undefined)
+				setSelectedChordBassAccidental(savedSettings.selectedChordBassAccidental);
+			if (savedSettings.stampBadgeMode !== undefined)
+				setStampBadgeMode(savedSettings.stampBadgeMode);
 			if (savedSettings.activeStampText) setActiveStampText(savedSettings.activeStampText);
 			if (savedSettings.stampCategory)
 				setStampCategory(savedSettings.stampCategory as StampCategory);
@@ -145,6 +179,11 @@ export const PhotoEditor: React.FC = () => {
 				setRulersVisible(savedSettings.rulersVisible);
 			if (savedSettings.rulersAttachContent !== undefined)
 				setRulersAttachContent(savedSettings.rulersAttachContent);
+			if (savedSettings.rulersShowDistance !== undefined)
+				setRulersShowDistance(savedSettings.rulersShowDistance);
+			if (savedSettings.rulersLockEqualDistance !== undefined)
+				setRulersLockEqualDistance(savedSettings.rulersLockEqualDistance);
+			if (savedSettings.customText) setCustomText(savedSettings.customText);
 		}
 
 		loadCurrentSession()
@@ -172,6 +211,13 @@ export const PhotoEditor: React.FC = () => {
 			toolColors,
 			selectedNote,
 			selectedAccidental,
+			selectedChordRoot,
+			selectedChordAccidental,
+			selectedChordModifier,
+			selectedChordSlash,
+			selectedChordBassRoot,
+			selectedChordBassAccidental,
+			stampBadgeMode,
 			activeStampText,
 			stampCategory,
 			customStamps,
@@ -181,19 +227,32 @@ export const PhotoEditor: React.FC = () => {
 			resizeHandlesOn,
 			rulersVisible,
 			rulersAttachContent,
+			rulersShowDistance,
+			rulersLockEqualDistance,
+			customText,
 		});
 	}, [
 		activeStampText,
 		currentMode,
 		customStamps,
+		customText,
 		deleteBtnOn,
 		noteSizes,
 		resizeHandlesOn,
 		rulersAttachContent,
+		rulersLockEqualDistance,
+		rulersShowDistance,
 		rulersVisible,
 		selectedAccidental,
+		selectedChordAccidental,
+		selectedChordBassAccidental,
+		selectedChordBassRoot,
+		selectedChordModifier,
+		selectedChordRoot,
+		selectedChordSlash,
 		selectedNote,
 		sizeLocked,
+		stampBadgeMode,
 		stampCategory,
 		toolColors,
 		toolSizes,
@@ -394,6 +453,452 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
+	//! Побудова тексту акорду з опційним слеш-басом (наприклад, G/B, Dm/F#)
+	const buildChordText = useCallback(
+		(
+			root: string,
+			acc: string,
+			mod: string,
+			hasSlash: boolean,
+			bassRoot: string,
+			bassAcc: string,
+		): string => {
+			const main = `${root}${acc}${mod}` || root || 'C';
+			if (hasSlash && bassRoot) {
+				return `${main}/${bassRoot}${bassAcc}`;
+			}
+			if (hasSlash && !bassRoot) {
+				return `${main}/`;
+			}
+			return main;
+		},
+		[],
+	);
+
+	//! Вибір тоніки акорду (A B C D E F G)
+	const handleSelectChordRoot = useCallback(
+		(root: string) => {
+			if (!sizeLocked && currentMode === 'stamp') {
+				setNoteSizes((prev) => ({
+					...prev,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
+				}));
+			}
+
+			const nextRoot = selectedChordRoot === root && selectedChordModifier !== '' ? '' : root;
+			setSelectedChordRoot(nextRoot);
+
+			const fullChord = buildChordText(
+				nextRoot,
+				selectedChordAccidental,
+				selectedChordModifier,
+				selectedChordSlash,
+				selectedChordBassRoot,
+				selectedChordBassAccidental,
+			);
+			setActiveStampText(fullChord);
+
+			const key = fullChord;
+			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
+			if (!sizeLocked && noteSizes[key] != null) {
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: newSize,
+				}));
+			}
+
+			stageRef.current?.updateActiveStampProps(
+				newSize,
+				fullChord,
+				currentMainColor,
+				currentStrokeColor,
+			);
+		},
+		[
+			activeStampText,
+			buildChordText,
+			currentMainColor,
+			currentMode,
+			currentStrokeColor,
+			getStampKey,
+			noteSizes,
+			selectedAccidental,
+			selectedChordAccidental,
+			selectedChordBassAccidental,
+			selectedChordBassRoot,
+			selectedChordModifier,
+			selectedChordRoot,
+			selectedChordSlash,
+			selectedNote,
+			sizeLocked,
+			toolSizes.stamp,
+		],
+	);
+
+	//! Вибір знаку альтерації акорду (#, b)
+	const handleSelectChordAccidental = useCallback(
+		(acc: string) => {
+			if (!sizeLocked && currentMode === 'stamp') {
+				setNoteSizes((prev) => ({
+					...prev,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
+				}));
+			}
+
+			const nextAcc = selectedChordAccidental === acc ? '' : acc;
+			setSelectedChordAccidental(nextAcc);
+
+			const fullChord = buildChordText(
+				selectedChordRoot,
+				nextAcc,
+				selectedChordModifier,
+				selectedChordSlash,
+				selectedChordBassRoot,
+				selectedChordBassAccidental,
+			);
+			setActiveStampText(fullChord);
+
+			const key = fullChord;
+			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
+			if (!sizeLocked && noteSizes[key] != null) {
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: newSize,
+				}));
+			}
+
+			stageRef.current?.updateActiveStampProps(
+				newSize,
+				fullChord,
+				currentMainColor,
+				currentStrokeColor,
+			);
+		},
+		[
+			activeStampText,
+			buildChordText,
+			currentMainColor,
+			currentMode,
+			currentStrokeColor,
+			getStampKey,
+			noteSizes,
+			selectedAccidental,
+			selectedChordAccidental,
+			selectedChordBassAccidental,
+			selectedChordBassRoot,
+			selectedChordModifier,
+			selectedChordRoot,
+			selectedChordSlash,
+			selectedNote,
+			sizeLocked,
+			toolSizes.stamp,
+		],
+	);
+
+	//! Вибір позначення/розширення акорду (m, 7, maj7, sus4 тощо)
+	const handleSelectChordModifier = useCallback(
+		(modifier: string) => {
+			if (!sizeLocked && currentMode === 'stamp') {
+				setNoteSizes((prev) => ({
+					...prev,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
+				}));
+			}
+
+			const nextMod = selectedChordModifier === modifier ? '' : modifier;
+			setSelectedChordModifier(nextMod);
+
+			const fullChord = buildChordText(
+				selectedChordRoot,
+				selectedChordAccidental,
+				nextMod,
+				selectedChordSlash,
+				selectedChordBassRoot,
+				selectedChordBassAccidental,
+			);
+			setActiveStampText(fullChord);
+
+			const key = fullChord;
+			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
+			if (!sizeLocked && noteSizes[key] != null) {
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: newSize,
+				}));
+			}
+
+			stageRef.current?.updateActiveStampProps(
+				newSize,
+				fullChord,
+				currentMainColor,
+				currentStrokeColor,
+			);
+		},
+		[
+			activeStampText,
+			buildChordText,
+			currentMainColor,
+			currentMode,
+			currentStrokeColor,
+			getStampKey,
+			noteSizes,
+			selectedAccidental,
+			selectedChordAccidental,
+			selectedChordBassAccidental,
+			selectedChordBassRoot,
+			selectedChordModifier,
+			selectedChordRoot,
+			selectedChordSlash,
+			selectedNote,
+			sizeLocked,
+			toolSizes.stamp,
+		],
+	);
+
+	//! Перемикання режиму слеш-акорду (басова нота)
+	const handleToggleChordSlash = useCallback(() => {
+		if (!sizeLocked && currentMode === 'stamp') {
+			setNoteSizes((prev) => ({
+				...prev,
+				[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
+			}));
+		}
+
+		const nextSlash = !selectedChordSlash;
+		setSelectedChordSlash(nextSlash);
+
+		const fullChord = buildChordText(
+			selectedChordRoot,
+			selectedChordAccidental,
+			selectedChordModifier,
+			nextSlash,
+			selectedChordBassRoot,
+			selectedChordBassAccidental,
+		);
+		setActiveStampText(fullChord);
+
+		const key = fullChord;
+		const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
+		if (!sizeLocked && noteSizes[key] != null) {
+			setToolSizes((prev) => ({
+				...prev,
+				stamp: newSize,
+			}));
+		}
+
+		stageRef.current?.updateActiveStampProps(
+			newSize,
+			fullChord,
+			currentMainColor,
+			currentStrokeColor,
+		);
+	}, [
+		activeStampText,
+		buildChordText,
+		currentMainColor,
+		currentMode,
+		currentStrokeColor,
+		getStampKey,
+		noteSizes,
+		selectedAccidental,
+		selectedChordAccidental,
+		selectedChordBassAccidental,
+		selectedChordBassRoot,
+		selectedChordModifier,
+		selectedChordRoot,
+		selectedChordSlash,
+		selectedNote,
+		sizeLocked,
+		toolSizes.stamp,
+	]);
+
+	//! Вибір тоніки басу для слеш-акорду (/B, /F тощо)
+	const handleSelectChordBassRoot = useCallback(
+		(root: string) => {
+			if (!sizeLocked && currentMode === 'stamp') {
+				setNoteSizes((prev) => ({
+					...prev,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
+				}));
+			}
+
+			const nextBassRoot = selectedChordBassRoot === root ? '' : root;
+			setSelectedChordBassRoot(nextBassRoot);
+
+			const fullChord = buildChordText(
+				selectedChordRoot,
+				selectedChordAccidental,
+				selectedChordModifier,
+				true,
+				nextBassRoot,
+				selectedChordBassAccidental,
+			);
+			setActiveStampText(fullChord);
+
+			const key = fullChord;
+			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
+			if (!sizeLocked && noteSizes[key] != null) {
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: newSize,
+				}));
+			}
+
+			stageRef.current?.updateActiveStampProps(
+				newSize,
+				fullChord,
+				currentMainColor,
+				currentStrokeColor,
+			);
+		},
+		[
+			activeStampText,
+			buildChordText,
+			currentMainColor,
+			currentMode,
+			currentStrokeColor,
+			getStampKey,
+			noteSizes,
+			selectedAccidental,
+			selectedChordAccidental,
+			selectedChordBassAccidental,
+			selectedChordBassRoot,
+			selectedChordModifier,
+			selectedChordRoot,
+			selectedNote,
+			sizeLocked,
+			toolSizes.stamp,
+		],
+	);
+
+	//! Вибір знаку альтерації басу (#, b)
+	const handleSelectChordBassAccidental = useCallback(
+		(acc: string) => {
+			if (!sizeLocked && currentMode === 'stamp') {
+				setNoteSizes((prev) => ({
+					...prev,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
+				}));
+			}
+
+			const nextBassAcc = selectedChordBassAccidental === acc ? '' : acc;
+			setSelectedChordBassAccidental(nextBassAcc);
+
+			const fullChord = buildChordText(
+				selectedChordRoot,
+				selectedChordAccidental,
+				selectedChordModifier,
+				true,
+				selectedChordBassRoot,
+				nextBassAcc,
+			);
+			setActiveStampText(fullChord);
+
+			const key = fullChord;
+			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
+			if (!sizeLocked && noteSizes[key] != null) {
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: newSize,
+				}));
+			}
+
+			stageRef.current?.updateActiveStampProps(
+				newSize,
+				fullChord,
+				currentMainColor,
+				currentStrokeColor,
+			);
+		},
+		[
+			activeStampText,
+			buildChordText,
+			currentMainColor,
+			currentMode,
+			currentStrokeColor,
+			getStampKey,
+			noteSizes,
+			selectedAccidental,
+			selectedChordAccidental,
+			selectedChordBassAccidental,
+			selectedChordBassRoot,
+			selectedChordModifier,
+			selectedChordRoot,
+			selectedNote,
+			sizeLocked,
+			toolSizes.stamp,
+		],
+	);
+
+	//! Перемикання категорії штампів
+	const handleChangeStampCategory = useCallback(
+		(cat: StampCategory) => {
+			setStampCategory(cat);
+			let nextText = activeStampText;
+			if (cat === 'notes') {
+				nextText = `${selectedNote}${selectedAccidental}`;
+			} else if (cat === 'chords') {
+				nextText = buildChordText(
+					selectedChordRoot,
+					selectedChordAccidental,
+					selectedChordModifier,
+					selectedChordSlash,
+					selectedChordBassRoot,
+					selectedChordBassAccidental,
+				);
+			} else if (cat === 'count') {
+				nextText = COUNT_ITEMS[0];
+			} else if (cat === 'custom') {
+				if (customStamps.length > 0) {
+					nextText = customStamps[0];
+				}
+			} else if (cat === 'text') {
+				nextText = customText || 'Текст';
+			}
+			setActiveStampText(nextText);
+			stageRef.current?.updateActiveStampProps(
+				toolSizes.stamp,
+				nextText,
+				currentMainColor,
+				currentStrokeColor,
+			);
+		},
+		[
+			activeStampText,
+			buildChordText,
+			currentMainColor,
+			currentStrokeColor,
+			customStamps,
+			customText,
+			selectedAccidental,
+			selectedChordAccidental,
+			selectedChordBassAccidental,
+			selectedChordBassRoot,
+			selectedChordModifier,
+			selectedChordRoot,
+			selectedChordSlash,
+			selectedNote,
+			toolSizes.stamp,
+		],
+	);
+
+	//! Зміна користувацького тексту штампа
+	const handleChangeCustomText = useCallback(
+		(text: string) => {
+			setCustomText(text);
+			const effectiveText = text || 'Текст';
+			setActiveStampText(effectiveText);
+			stageRef.current?.updateActiveStampProps(
+				toolSizes.stamp,
+				effectiveText,
+				currentMainColor,
+				currentStrokeColor,
+				stampBadgeMode,
+			);
+		},
+		[currentMainColor, currentStrokeColor, stampBadgeMode, toolSizes.stamp],
+	);
+
 	const handleAddCustomStamp = useCallback(
 		(text: string) => {
 			setCustomStamps((prev) => [text, ...prev.filter((item) => item !== text)].slice(0, 30));
@@ -523,9 +1028,42 @@ export const PhotoEditor: React.FC = () => {
 				activeStampText || `${selectedNote}${selectedAccidental}`,
 				currentMainColor,
 				color,
+				stampBadgeMode,
 			);
 		},
-		[activeStampText, currentMainColor, currentSize, selectedAccidental, selectedNote, showToast],
+		[
+			activeStampText,
+			currentMainColor,
+			currentSize,
+			selectedAccidental,
+			selectedNote,
+			showToast,
+			stampBadgeMode,
+		],
+	);
+
+	//! Перемикання стилю обводки / плашки штампа
+	const handleToggleBadgeMode = useCallback(
+		(isBadge: boolean) => {
+			setStampBadgeMode(isBadge);
+			stageRef.current?.updateActiveStampProps(
+				currentSize,
+				activeStampText || `${selectedNote}${selectedAccidental}`,
+				currentMainColor,
+				currentStrokeColor,
+				isBadge,
+			);
+			showToast(isBadge ? 'Увімкнено суцільну плашку' : 'Увімкнено контурну обводку');
+		},
+		[
+			activeStampText,
+			currentMainColor,
+			currentSize,
+			currentStrokeColor,
+			selectedAccidental,
+			selectedNote,
+			showToast,
+		],
 	);
 
 	const handleToggleRulersVisible = useCallback(() => {
@@ -775,6 +1313,9 @@ export const PhotoEditor: React.FC = () => {
 				strokeColor={currentStrokeColor}
 				rulersVisible={rulersVisible}
 				rulersAttachContent={rulersAttachContent}
+				rulersShowDistance={rulersShowDistance}
+				rulersLockEqualDistance={rulersLockEqualDistance}
+				rulersCount={rulersCount}
 				onUndo={() => stageRef.current?.undo()}
 				onRedo={() => stageRef.current?.redo()}
 				onToggleMenu={handleToggleMenu}
@@ -783,6 +1324,9 @@ export const PhotoEditor: React.FC = () => {
 				onTogglePalette={handleTogglePalette}
 				onToggleRulersVisible={handleToggleRulersVisible}
 				onToggleRulersAttachContent={handleToggleRulersAttachContent}
+				onToggleRulersShowDistance={() => setRulersShowDistance((prev) => !prev)}
+				onToggleRulersLockEqualDistance={() => setRulersLockEqualDistance((prev) => !prev)}
+				onClearRulers={() => stageRef.current?.clearRulers()}
 			/>
 
 			<CanvasStage
@@ -793,10 +1337,13 @@ export const PhotoEditor: React.FC = () => {
 				selectedNote={selectedNote}
 				selectedAccidental={selectedAccidental}
 				activeStampText={activeStampText}
+				stampBadgeMode={stampBadgeMode}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
 				rulersVisible={rulersVisible}
 				rulersAttachContent={rulersAttachContent}
+				rulersShowDistance={rulersShowDistance}
+				rulersLockEqualDistance={rulersLockEqualDistance}
 				hasCanvas={hasCanvas}
 				onSelectStamp={handleSelectStampFromCanvas}
 				onChangeSize={handleChangeSize}
@@ -804,6 +1351,7 @@ export const PhotoEditor: React.FC = () => {
 					setCanUndo(undo);
 					setCanRedo(redo);
 				}}
+				onRulersCountChange={setRulersCount}
 				onNotify={showToast}
 				onInitBlank={() => setHasCanvas(true)}
 				onResetCanvas={() => setHasCanvas(false)}
@@ -824,6 +1372,7 @@ export const PhotoEditor: React.FC = () => {
 				opened={isMenuOpen}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
+				onClose={() => setIsMenuOpen(false)}
 				onUploadClick={() => {
 					setIsMenuOpen(false);
 					fileInputRef.current?.click();
@@ -865,8 +1414,10 @@ export const PhotoEditor: React.FC = () => {
 				currentMode={currentMode}
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
+				stampBadgeMode={stampBadgeMode}
 				onChangeMainColor={handleChangeMainColor}
 				onChangeStrokeColor={handleChangeStrokeColor}
+				onToggleBadgeMode={handleToggleBadgeMode}
 			/>
 
 			<CustomStampModal
@@ -883,15 +1434,29 @@ export const PhotoEditor: React.FC = () => {
 						<StampSettings
 							selectedNote={selectedNote}
 							selectedAccidental={selectedAccidental}
+							selectedChordRoot={selectedChordRoot}
+							selectedChordAccidental={selectedChordAccidental}
+							selectedChordModifier={selectedChordModifier}
+							selectedChordSlash={selectedChordSlash}
+							selectedChordBassRoot={selectedChordBassRoot}
+							selectedChordBassAccidental={selectedChordBassAccidental}
 							activeStampText={activeStampText}
 							category={stampCategory}
 							customStamps={customStamps}
-							onChangeCategory={setStampCategory}
+							customText={customText}
+							onChangeCategory={handleChangeStampCategory}
 							onSelectNote={handleSelectNote}
 							onSelectAccidental={handleSelectAccidental}
+							onSelectChordRoot={handleSelectChordRoot}
+							onSelectChordAccidental={handleSelectChordAccidental}
+							onSelectChordModifier={handleSelectChordModifier}
+							onToggleChordSlash={handleToggleChordSlash}
+							onSelectChordBassRoot={handleSelectChordBassRoot}
+							onSelectChordBassAccidental={handleSelectChordBassAccidental}
 							onSelectStampText={handleSelectStampText}
 							onOpenAddCustomModal={() => setCustomStampModalOpen(true)}
 							onDeleteCustomStamp={handleDeleteCustomStamp}
+							onChangeCustomText={handleChangeCustomText}
 						/>
 					)}
 

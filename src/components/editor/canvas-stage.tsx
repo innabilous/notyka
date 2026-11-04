@@ -12,10 +12,11 @@ import {
 	MIN_SCALE,
 	SMOOTH,
 } from '@/constants/editor';
-import { HistoryItem, Point, RulerItem, StampItem, ToolMode } from '@/types/editor';
+import { CanvasLayerItem, HistoryItem, Point, RulerItem, StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
 	calculateStampBox,
+	clampStampPosition,
 	drawRulers,
 	drawStamp,
 	findRulerNearPoint,
@@ -38,14 +39,18 @@ interface CanvasStageProps {
 	selectedNote: string;
 	selectedAccidental: string;
 	activeStampText?: string;
+	stampBadgeMode?: boolean;
 	deleteBtnOn: boolean;
 	resizeHandlesOn?: boolean;
 	rulersVisible?: boolean;
 	rulersAttachContent?: boolean;
+	rulersShowDistance?: boolean;
+	rulersLockEqualDistance?: boolean;
 	hasCanvas: boolean;
 	onSelectStamp: (stamp: StampItem) => void;
 	onChangeSize?: (newSize: number) => void;
 	onHistoryChange: (canUndo: boolean, canRedo: boolean) => void;
+	onRulersCountChange?: (count: number) => void;
 	onNotify: (message: string) => void;
 	onInitBlank: () => void;
 	onResetCanvas: () => void;
@@ -57,8 +62,11 @@ export interface CanvasStageHandle {
 	createBlank: () => void;
 	loadImage: (fileOrSrc: File | string, title?: string) => void;
 	clear: () => void;
+	clearRulers: () => void;
 	undo: () => void;
 	redo: () => void;
+	distributeRulers: () => void;
+	getRulersCount: () => number;
 	commitActiveStamp: () => void;
 	prepareExport: () => void;
 	getExportBlob: () => Promise<Blob | null>;
@@ -69,6 +77,7 @@ export interface CanvasStageHandle {
 		text: string,
 		mainColor: string,
 		strokeColor: string,
+		badgeMode?: boolean,
 	) => void;
 }
 
@@ -80,14 +89,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	selectedNote,
 	selectedAccidental,
 	activeStampText,
+	stampBadgeMode = false,
 	deleteBtnOn,
 	resizeHandlesOn = true,
 	rulersVisible = true,
 	rulersAttachContent = false,
+	rulersShowDistance = false,
+	rulersLockEqualDistance = false,
 	hasCanvas,
 	onSelectStamp,
 	onChangeSize,
 	onHistoryChange,
+	onRulersCountChange,
 	onNotify,
 	onInitBlank,
 	onResetCanvas,
@@ -100,6 +113,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	// Offscreen canvas layers
 	const baseCanvasRef = useRef<HTMLCanvasElement | null>(null);
 	const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
+	const layersRef = useRef<
+		Array<
+			| { type: 'stroke'; id: string; canvas: HTMLCanvasElement }
+			| { type: 'stamp'; id: string; stamp: StampItem }
+		>
+	>([]);
+	const activeStrokeCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
 	// Editor state refs
 	const currentImageRef = useRef<HTMLImageElement | null>(null);
@@ -205,14 +225,36 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		if (currentImageRef.current) {
 			ctx.drawImage(bgCanvas, 0, 0);
 		}
-		ctx.drawImage(baseCanvas, 0, 0);
 
-		stampsListRef.current.forEach((st) => {
-			drawStamp(st, false, ctx, uRef.current, deleteBtnOn, resizeHandlesOn);
-		});
+		//! Малюємо всі шари (штрихи та штампи) в порядку їх фактичного нанесення
+		if (layersRef.current.length === 0 && baseCanvas) {
+			ctx.drawImage(baseCanvas, 0, 0);
+		} else {
+			layersRef.current.forEach((layer) => {
+				if (layer.type === 'stroke') {
+					ctx.drawImage(layer.canvas, 0, 0);
+				} else {
+					const isCurrentActive = activeStampRef.current?.id === layer.stamp.id;
+					drawStamp(layer.stamp, isCurrentActive, ctx, uRef.current, deleteBtnOn, resizeHandlesOn);
+				}
+			});
+		}
 
-		if (activeStampRef.current) {
-			drawStamp(activeStampRef.current, true, ctx, uRef.current, deleteBtnOn, resizeHandlesOn);
+		//! Якщо активний новий штамп ще не закомічений у шари — малюємо його зверху
+		if (
+			activeStampRef.current &&
+			!layersRef.current.some(
+				(l) => l.type === 'stamp' && l.id === activeStampRef.current?.id,
+			)
+		) {
+			drawStamp(
+				activeStampRef.current,
+				true,
+				ctx,
+				uRef.current,
+				deleteBtnOn,
+				resizeHandlesOn,
+			);
 		}
 
 		if (rulersVisible) {
@@ -223,6 +265,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				ctx,
 				uRef.current,
 				canvas.width,
+				rulersShowDistance,
 			);
 		}
 
@@ -240,7 +283,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			ctx.stroke();
 			ctx.restore();
 		}
-	}, [currentMode, currentSize, deleteBtnOn, resizeHandlesOn, rulersVisible]);
+	}, [currentMode, currentSize, deleteBtnOn, resizeHandlesOn, rulersVisible, rulersShowDistance]);
 
 	const scheduleRender = useCallback(() => {
 		if (rafIdRef.current) return;
@@ -257,10 +300,31 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		if (!bctx) return;
 
 		const currentStack = historyStackRef.current.slice(0, historyStepRef.current + 1);
+
+		//! Зберігаємо снепшот шарів із порядком штрихів та штампів
+		const layerSnapshots: CanvasLayerItem[] = layersRef.current.map((layer) => {
+			if (layer.type === 'stroke') {
+				const ctx = layer.canvas.getContext('2d');
+				return {
+					type: 'stroke',
+					id: layer.id,
+					imageData: ctx
+						? ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height)
+						: undefined,
+				};
+			}
+			return {
+				type: 'stamp',
+				id: layer.id,
+				stamp: JSON.parse(JSON.stringify(layer.stamp)),
+			};
+		});
+
 		currentStack.push({
 			imageData: bctx.getImageData(0, 0, baseCanvas.width, baseCanvas.height),
 			stamps: JSON.parse(JSON.stringify(stampsListRef.current)),
 			rulers: JSON.parse(JSON.stringify(rulersListRef.current)),
+			layers: layerSnapshots,
 		});
 
 		const maxH = Math.max(
@@ -282,7 +346,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		if (!active) return;
 
 		const changed = JSON.stringify(active) !== activeOrigRef.current;
-		stampsListRef.current.push(active);
+		const existingIdx = layersRef.current.findIndex(
+			(l) => l.type === 'stamp' && l.id === active.id,
+		);
+		if (existingIdx !== -1) {
+			layersRef.current[existingIdx] = { type: 'stamp', id: active.id, stamp: active };
+		} else {
+			layersRef.current.push({ type: 'stamp', id: active.id, stamp: active });
+		}
+
+		stampsListRef.current = layersRef.current
+			.filter((l): l is { type: 'stamp'; id: string; stamp: StampItem } => l.type === 'stamp')
+			.map((l) => l.stamp);
+
 		activeStampRef.current = null;
 		activeOrigRef.current = '';
 		render();
@@ -306,6 +382,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		canvas.style.width = `${cssW}px`;
 		canvas.style.height = `${cssH}px`;
 		uRef.current = w / cssW;
+
+		layersRef.current = [{ type: 'stroke', id: 'base', canvas: base }];
+		activeStrokeCanvasRef.current = base;
 
 		const bctx = base.getContext('2d');
 		if (bctx) {
@@ -416,6 +495,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 					onInitBlank();
 					render();
+					onRulersCountChange?.(rulersListRef.current.length);
+
+					const base = baseCanvasRef.current;
+					if (base) {
+						layersRef.current = [{ type: 'stroke', id: 'base', canvas: base }];
+						activeStrokeCanvasRef.current = base;
+					}
+					stampsListRef.current = [];
+					activeStampRef.current = null;
 
 					historyStackRef.current = [];
 					historyStepRef.current = -1;
@@ -439,7 +527,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				reader.readAsDataURL(fileOrSrc);
 			}
 		},
-		[initCanvas, onInitBlank, onNotify, render, resetTransform, saveHistory],
+		[initCanvas, onInitBlank, onNotify, onRulersCountChange, render, resetTransform, saveHistory],
 	);
 
 	const clearCanvas = useCallback(() => {
@@ -448,13 +536,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		stampsListRef.current = [];
 		rulersListRef.current = [];
 		activeRulerIdRef.current = null;
+		onRulersCountChange?.(0);
+
+		const base = baseCanvasRef.current;
+		if (base) {
+			const bctx = base.getContext('2d');
+			if (bctx) bctx.clearRect(0, 0, base.width, base.height);
+			layersRef.current = [{ type: 'stroke', id: 'base', canvas: base }];
+			activeStrokeCanvasRef.current = base;
+		}
 
 		if (currentImageRef.current) {
-			const base = baseCanvasRef.current;
-			if (base) {
-				const bctx = base.getContext('2d');
-				if (bctx) bctx.clearRect(0, 0, base.width, base.height);
-			}
 			render();
 			saveHistory();
 		} else {
@@ -470,6 +562,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		onContentChange,
 		onNotify,
 		onResetCanvas,
+		onRulersCountChange,
 		render,
 		resetTransform,
 		saveHistory,
@@ -482,11 +575,62 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const base = baseCanvasRef.current;
 			if (!item || !base) return;
 
-			const bctx = base.getContext('2d');
-			if (bctx) {
-				bctx.putImageData(item.imageData, 0, 0);
+			if (item.layers && item.layers.length > 0) {
+				layersRef.current = item.layers.map((l) => {
+					if (l.type === 'stroke') {
+						const sc = document.createElement('canvas');
+						sc.width = base.width;
+						sc.height = base.height;
+						if (l.imageData) {
+							sc.getContext('2d')?.putImageData(l.imageData, 0, 0);
+						}
+						return {
+							type: 'stroke',
+							id: l.id,
+							canvas: sc,
+						};
+					}
+					return {
+						type: 'stamp',
+						id: l.id,
+						stamp: JSON.parse(JSON.stringify(l.stamp!)),
+					};
+				});
+
+				const firstStroke = layersRef.current.find(
+					(l): l is { type: 'stroke'; id: string; canvas: HTMLCanvasElement } =>
+						l.type === 'stroke',
+				);
+				if (firstStroke) {
+					baseCanvasRef.current = firstStroke.canvas;
+				}
+				activeStrokeCanvasRef.current =
+					layersRef.current[layersRef.current.length - 1]?.type === 'stroke'
+						? (layersRef.current[layersRef.current.length - 1] as { type: 'stroke'; id: string; canvas: HTMLCanvasElement }).canvas
+						: (firstStroke ? firstStroke.canvas : base);
+			} else {
+				const bctx = base.getContext('2d');
+				if (bctx && item.imageData) {
+					bctx.putImageData(item.imageData, 0, 0);
+				}
+				layersRef.current = [{ type: 'stroke', id: 'base', canvas: base }];
+				(item.stamps || []).forEach((st) => {
+					layersRef.current.push({
+						type: 'stamp',
+						id: st.id,
+						stamp: JSON.parse(JSON.stringify(st)),
+					});
+				});
+				activeStrokeCanvasRef.current = base;
 			}
-			stampsListRef.current = JSON.parse(JSON.stringify(item.stamps));
+
+			stampsListRef.current = layersRef.current
+				.filter(
+					(l): l is { type: 'stamp'; id: string; stamp: StampItem } =>
+						l.type === 'stamp',
+				)
+				.map((l) => l.stamp);
+
 			rulersListRef.current = item.rulers ? JSON.parse(JSON.stringify(item.rulers)) : [];
 			activeStampRef.current = null;
 			activeRulerIdRef.current = null;
@@ -494,8 +638,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			render();
 			updateUndoRedo();
 			onContentChange?.();
+			onRulersCountChange?.(rulersListRef.current.length);
 		},
-		[onContentChange, render, updateUndoRedo],
+		[onContentChange, onRulersCountChange, render, updateUndoRedo],
 	);
 
 	const handleUndo = useCallback(() => {
@@ -527,7 +672,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	}, []);
 
 	const deleteActiveStamp = useCallback(() => {
+		const active = activeStampRef.current;
 		const wasNew = activeOrigRef.current === '';
+		if (active) {
+			layersRef.current = layersRef.current.filter((l) => !(l.type === 'stamp' && l.id === active.id));
+			stampsListRef.current = stampsListRef.current.filter((s) => s.id !== active.id);
+		}
 		activeStampRef.current = null;
 		activeOrigRef.current = '';
 		isDraggingStampRef.current = false;
@@ -583,12 +733,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			}
 
 			// 3. Selection of existing stamps from top to bottom
-			const list = stampsListRef.current;
-			for (let i = list.length - 1; i >= 0; i--) {
-				const s = list[i];
-				if (isPointInStamp(pt, s, uRef.current, ctx)) {
+			for (let i = layersRef.current.length - 1; i >= 0; i--) {
+				const l = layersRef.current[i];
+				if (l.type === 'stamp' && isPointInStamp(pt, l.stamp, uRef.current, ctx)) {
 					commitActiveStamp();
-					const selected = list.splice(i, 1)[0];
+					const selected = l.stamp;
 					activeStampRef.current = selected;
 					activeOrigRef.current = JSON.stringify(selected);
 
@@ -616,9 +765,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				text: activeStampText || selectedNote + selectedAccidental,
 				mainColor,
 				strokeColor,
+				badgeMode: stampBadgeMode,
 			};
+			//! Гарантуємо, що новостворений штамп не виходить за межі полотна
+			const clamped = clampStampPosition(newStamp.x, newStamp.y, newStamp, uRef.current, ctx);
+			newStamp.x = clamped.x;
+			newStamp.y = clamped.y;
 			activeStampRef.current = newStamp;
 			activeOrigRef.current = '';
+			layersRef.current.push({
+				type: 'stamp',
+				id: newStamp.id,
+				stamp: newStamp,
+			});
+			stampsListRef.current.push(newStamp);
 			isDraggingStampRef.current = true;
 			dragOffsetRef.current = { x: 0, y: 0 };
 			render();
@@ -643,9 +803,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 	const drawPencilStroke = useCallback(
 		(fx: number, fy: number, tx: number, ty: number) => {
-			const base = baseCanvasRef.current;
-			if (!base) return;
-			const bctx = base.getContext('2d');
+			const targetCanvas = activeStrokeCanvasRef.current || baseCanvasRef.current;
+			if (!targetCanvas) return;
+			const bctx = targetCanvas.getContext('2d');
 			if (!bctx) return;
 
 			bctx.save();
@@ -657,18 +817,42 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const w = (isEraser ? currentSize * 1.5 : currentSize) * uRef.current;
 
 			if (isEraser) {
-				bctx.globalCompositeOperation = 'destination-out';
+				layersRef.current.forEach((layer) => {
+					if (layer.type === 'stroke') {
+						const lctx = layer.canvas.getContext('2d');
+						if (lctx) {
+							lctx.save();
+							lctx.lineCap = 'round';
+							lctx.lineJoin = 'round';
+							lctx.globalCompositeOperation = 'destination-out';
+							lctx.beginPath();
+							if (isDot) {
+								lctx.arc(tx, ty, w / 2, 0, Math.PI * 2);
+								lctx.fill();
+							} else {
+								lctx.lineWidth = w;
+								lctx.moveTo(fx, fy);
+								lctx.lineTo(tx, ty);
+								lctx.stroke();
+							}
+							lctx.restore();
+						}
+					}
+				});
+
 				const canvas = canvasRef.current;
 				const ctx = canvas?.getContext('2d');
 				if (ctx) {
 					for (let i = stampsListRef.current.length - 1; i >= 0; i--) {
-						if (
-							isPointInStamp({ x: tx, y: ty }, stampsListRef.current[i], uRef.current, ctx)
-						) {
+						const st = stampsListRef.current[i];
+						if (isPointInStamp({ x: tx, y: ty }, st, uRef.current, ctx)) {
 							stampsListRef.current.splice(i, 1);
+							layersRef.current = layersRef.current.filter((l) => !(l.type === 'stamp' && l.id === st.id));
 						}
 					}
 				}
+				scheduleRender();
+				return;
 			}
 
 			bctx.beginPath();
@@ -691,9 +875,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 	const quadSegment = useCallback(
 		(a: Point, ctrl: Point, b: Point) => {
-			const base = baseCanvasRef.current;
-			if (!base) return;
-			const bctx = base.getContext('2d');
+			const targetCanvas = activeStrokeCanvasRef.current || baseCanvasRef.current;
+			if (!targetCanvas) return;
+			const bctx = targetCanvas.getContext('2d');
 			if (!bctx) return;
 
 			bctx.save();
@@ -747,6 +931,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				);
 				if (newCalculatedSize !== active.size) {
 					active.size = newCalculatedSize;
+					const canvas = canvasRef.current;
+					const ctx = canvas?.getContext('2d');
+					if (ctx) {
+						const clamped = clampStampPosition(active.x, active.y, active, uRef.current, ctx);
+						active.x = clamped.x;
+						active.y = clamped.y;
+					}
+					const layer = layersRef.current.find(l => l.type === 'stamp' && l.id === active.id);
+					if (layer && layer.type === 'stamp') {
+						layer.stamp = active;
+					}
 					onChangeSize?.(newCalculatedSize);
 					render();
 				}
@@ -777,30 +972,48 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				const canvas = canvasRef.current;
 				const ctx = canvas?.getContext('2d');
 				if (ctx) {
-					const bx = calculateStampBox(active, uRef.current, ctx);
-					active.x = pt.x - dragOffsetRef.current.x;
-					let targetY =
-						pt.y - dragOffsetRef.current.y - 24 * uRef.current - (bx.y + bx.h - active.y);
+					//! Зрушуємо штамп на дельту переміщення хендлера та зупиняємо на межі полотна
+					const h = getHandleCoords(active, uRef.current, ctx);
+					const dx = pt.x - dragOffsetRef.current.x - h.x;
+					const dy = pt.y - dragOffsetRef.current.y - h.y;
+					let targetX = active.x + dx;
+					let targetY = active.y + dy;
 					const snapY = rulersVisible
 						? getClosestRulerY(targetY, rulersListRef.current, 16 * uRef.current)
 						: null;
 					if (snapY !== null) {
 						targetY = snapY;
 					}
-					active.y = targetY;
+					const clamped = clampStampPosition(targetX, targetY, active, uRef.current, ctx);
+					active.x = clamped.x;
+					active.y = clamped.y;
+					const layer = layersRef.current.find(l => l.type === 'stamp' && l.id === active.id);
+					if (layer && layer.type === 'stamp') {
+						layer.stamp = active;
+					}
 					render();
 				}
 			} else if (isDraggingStampRef.current) {
-				active.x = pt.x - dragOffsetRef.current.x;
-				let targetY = pt.y - dragOffsetRef.current.y;
-				const snapY = rulersVisible
-					? getClosestRulerY(targetY, rulersListRef.current, 16 * uRef.current)
-					: null;
-				if (snapY !== null) {
-					targetY = snapY;
+				const canvas = canvasRef.current;
+				const ctx = canvas?.getContext('2d');
+				if (ctx) {
+					let targetX = pt.x - dragOffsetRef.current.x;
+					let targetY = pt.y - dragOffsetRef.current.y;
+					const snapY = rulersVisible
+						? getClosestRulerY(targetY, rulersListRef.current, 16 * uRef.current)
+						: null;
+					if (snapY !== null) {
+						targetY = snapY;
+					}
+					const clamped = clampStampPosition(targetX, targetY, active, uRef.current, ctx);
+					active.x = clamped.x;
+					active.y = clamped.y;
+					const layer = layersRef.current.find(l => l.type === 'stamp' && l.id === active.id);
+					if (layer && layer.type === 'stamp') {
+						layer.stamp = active;
+					}
+					render();
 				}
-				active.y = targetY;
-				render();
 			}
 		},
 		[onChangeSize, render, rulersVisible],
@@ -809,6 +1022,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const pointerDown = useCallback(
 		(pt: Point) => {
 			if (currentMode === 'ruler') {
+				//! Якщо відображення лінійок вимкнено — блокуємо створення та редагування
+				if (!rulersVisible) {
+					onNotify('Увімкніть відображення лінійок для їх редагування');
+					return;
+				}
+
 				// 0. Trash button click on active ruler
 				if (activeRulerIdRef.current) {
 					const activeRuler = rulersListRef.current.find(
@@ -822,6 +1041,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 						isDraggingRulerRef.current = false;
 						saveHistory();
 						scheduleRender();
+						onRulersCountChange?.(rulersListRef.current.length);
 						onNotify('Лінійку видалено');
 						return;
 					}
@@ -856,6 +1076,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				dragMovedRef.current = false;
 				dragOffsetRef.current = { x: 0, y: 0 };
 				draggedStampIdsRef.current = [];
+
+				if (rulersLockEqualDistance && rulersListRef.current.length >= 3) {
+					//! При активній фіксації відстані автоматично перераховуємо відстані для всіх ліній
+					const sorted = [...rulersListRef.current].sort((a, b) => a.y - b.y);
+					const top = sorted[0].y;
+					const bottom = sorted[sorted.length - 1].y;
+					const totalDist = bottom - top;
+					if (totalDist > 0) {
+						const step = totalDist / (sorted.length - 1);
+						sorted.forEach((r, idx) => {
+							r.y = Math.round(top + idx * step);
+						});
+					}
+				}
+
+				onRulersCountChange?.(rulersListRef.current.length);
 				saveHistory();
 				scheduleRender();
 				onNotify('Лінійку створено');
@@ -870,6 +1106,27 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			commitActiveStamp();
 			isDrawingRef.current = true;
 			lastCoordsRef.current = pt;
+
+			//! Забезпечуємо шар для штрихів поверх попередніх штампів
+			const lastLayer = layersRef.current[layersRef.current.length - 1];
+			let currentStrokeCanvas: HTMLCanvasElement;
+			if (lastLayer && lastLayer.type === 'stroke') {
+				currentStrokeCanvas = lastLayer.canvas;
+			} else {
+				const canvas = canvasRef.current;
+				const newCanvas = document.createElement('canvas');
+				if (canvas) {
+					newCanvas.width = canvas.width;
+					newCanvas.height = canvas.height;
+				}
+				currentStrokeCanvas = newCanvas;
+				layersRef.current.push({
+					type: 'stroke',
+					id: `stroke_${Date.now()}`,
+					canvas: newCanvas,
+				});
+			}
+			activeStrokeCanvasRef.current = currentStrokeCanvas;
 
 			const snapY = rulersVisible
 				? getClosestRulerY(pt.y, rulersListRef.current, 14 * uRef.current)
@@ -892,6 +1149,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			onNotify,
 			placeStamp,
 			rulersAttachContent,
+			rulersLockEqualDistance,
 			rulersVisible,
 			saveHistory,
 			scheduleRender,
@@ -911,18 +1169,110 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 						const dy = newY - prevY;
 						if (dy !== 0) {
 							dragMovedRef.current = true;
-							ruler.y = newY;
-							if (rulersAttachContent && draggedStampIdsRef.current.length > 0) {
-								for (const st of stampsListRef.current) {
-									if (draggedStampIdsRef.current.includes(st.id)) {
-										st.y += dy;
+
+							if (rulersLockEqualDistance && rulersListRef.current.length >= 3) {
+								const sorted = [...rulersListRef.current].sort((a, b) => a.y - b.y);
+								const isTop = ruler.id === sorted[0].id;
+								const isBottom = ruler.id === sorted[sorted.length - 1].id;
+
+								if (isTop || isBottom) {
+									//! Переміщення крайньої лінійки: проміжні лінії автопідлаштовуються для однакової відстані
+									ruler.y = newY;
+									const currentSorted = [...rulersListRef.current].sort((a, b) => a.y - b.y);
+									const topY = currentSorted[0].y;
+									const bottomY = currentSorted[currentSorted.length - 1].y;
+									const totalDist = bottomY - topY;
+									const step = totalDist / (currentSorted.length - 1);
+									const threshold = 16 * uRef.current;
+
+									currentSorted.forEach((r, idx) => {
+										if (idx === 0 || idx === currentSorted.length - 1) return;
+										const targetY = Math.round(topY + idx * step);
+										const deltaY = targetY - r.y;
+										if (rulersAttachContent && deltaY !== 0) {
+											stampsListRef.current.forEach((st) => {
+												if (Math.abs(st.y - r.y) <= threshold) {
+													st.y += deltaY;
+												}
+											});
+											if (activeStampRef.current && Math.abs(activeStampRef.current.y - r.y) <= threshold) {
+												activeStampRef.current.y += deltaY;
+											}
+										}
+										r.y = targetY;
+									});
+								} else {
+									//! Переміщення внутрішньої лінійки: всі лінійки переміщуються разом із зафіксованою відстанню
+									rulersListRef.current.forEach((r) => {
+										if (r.id === ruler.id) {
+											r.y = newY;
+										} else {
+											r.y = Math.max(0, Math.min(canvas.height, r.y + dy));
+										}
+									});
+									if (rulersAttachContent && draggedStampIdsRef.current.length > 0) {
+										const ctx = canvas.getContext('2d');
+										for (const st of stampsListRef.current) {
+											if (draggedStampIdsRef.current.includes(st.id)) {
+												st.y += dy;
+												if (ctx) {
+													const clamped = clampStampPosition(st.x, st.y, st, uRef.current, ctx);
+													st.x = clamped.x;
+													st.y = clamped.y;
+												}
+											}
+										}
+										if (
+											activeStampRef.current &&
+											draggedStampIdsRef.current.includes(activeStampRef.current.id)
+										) {
+											activeStampRef.current.y += dy;
+											if (ctx) {
+												const clamped = clampStampPosition(
+													activeStampRef.current.x,
+													activeStampRef.current.y,
+													activeStampRef.current,
+													uRef.current,
+													ctx,
+												);
+												activeStampRef.current.x = clamped.x;
+												activeStampRef.current.y = clamped.y;
+											}
+										}
 									}
 								}
-								if (
-									activeStampRef.current &&
-									draggedStampIdsRef.current.includes(activeStampRef.current.id)
-								) {
-									activeStampRef.current.y += dy;
+							} else {
+								//! Звичайний вільний режим переміщення окремої лінійки
+								ruler.y = newY;
+								if (rulersAttachContent && draggedStampIdsRef.current.length > 0) {
+									const ctx = canvas.getContext('2d');
+									for (const st of stampsListRef.current) {
+										if (draggedStampIdsRef.current.includes(st.id)) {
+											st.y += dy;
+											if (ctx) {
+												const clamped = clampStampPosition(st.x, st.y, st, uRef.current, ctx);
+												st.x = clamped.x;
+												st.y = clamped.y;
+											}
+										}
+									}
+									if (
+										activeStampRef.current &&
+										draggedStampIdsRef.current.includes(activeStampRef.current.id)
+									) {
+										activeStampRef.current.y += dy;
+										if (ctx) {
+											const clamped = clampStampPosition(
+												activeStampRef.current.x,
+												activeStampRef.current.y,
+												activeStampRef.current,
+												uRef.current,
+												ctx,
+											);
+											activeStampRef.current.x = clamped.x;
+											activeStampRef.current.y = clamped.y;
+										}
+									}
 								}
 							}
 							scheduleRender();
@@ -961,6 +1311,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			drawPencilStroke,
 			moveActive,
 			rulersAttachContent,
+			rulersLockEqualDistance,
 			rulersVisible,
 			scheduleRender,
 			strokeSmooth,
@@ -1015,12 +1366,25 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		if (currentImageRef.current) {
 			expCtx.drawImage(bg, 0, 0);
 		}
-		expCtx.drawImage(base, 0, 0);
 
-		stampsListRef.current.forEach((st) => {
-			drawStamp(st, false, expCtx, uRef.current, false);
-		});
-		if (activeStampRef.current) {
+		if (layersRef.current.length === 0) {
+			expCtx.drawImage(base, 0, 0);
+		} else {
+			layersRef.current.forEach((layer) => {
+				if (layer.type === 'stroke') {
+					expCtx.drawImage(layer.canvas, 0, 0);
+				} else {
+					drawStamp(layer.stamp, false, expCtx, uRef.current, false);
+				}
+			});
+		}
+
+		if (
+			activeStampRef.current &&
+			!layersRef.current.some(
+				(l) => l.type === 'stamp' && l.id === activeStampRef.current?.id,
+			)
+		) {
 			drawStamp(activeStampRef.current, false, expCtx, uRef.current, false);
 		}
 
@@ -1071,7 +1435,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 
-			const baseDataUrl = base.toDataURL('image/png');
+			const compBase = document.createElement('canvas');
+			compBase.width = canvas.width;
+			compBase.height = canvas.height;
+			const bctx = compBase.getContext('2d');
+			if (bctx) {
+				layersRef.current.forEach((layer) => {
+					if (layer.type === 'stroke') {
+						bctx.drawImage(layer.canvas, 0, 0);
+					}
+				});
+			}
+			const baseDataUrl = compBase.toDataURL('image/png');
 			const bgDataUrl = currentImageRef.current ? bg.toDataURL('image/png') : null;
 
 			const project: ProjectItem = {
@@ -1150,7 +1525,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				});
 			}
 
-			stampsListRef.current = JSON.parse(JSON.stringify(project.stamps || []));
+			layersRef.current = [{ type: 'stroke', id: 'base', canvas: base }];
+			(project.stamps || []).forEach((st) => {
+				layersRef.current.push({
+					type: 'stamp',
+					id: st.id,
+					stamp: JSON.parse(JSON.stringify(st)),
+				});
+			});
+			stampsListRef.current = layersRef.current
+				.filter((l): l is { type: 'stamp'; id: string; stamp: StampItem } => l.type === 'stamp')
+				.map((l) => l.stamp);
+
+			activeStrokeCanvasRef.current = base;
 			rulersListRef.current = project.rulers ? JSON.parse(JSON.stringify(project.rulers)) : [];
 			activeStampRef.current = null;
 			activeRulerIdRef.current = null;
@@ -1159,13 +1546,85 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			resetTransform();
 			onInitBlank();
 			render();
+			onRulersCountChange?.(rulersListRef.current.length);
 
 			historyStackRef.current = [];
 			historyStepRef.current = -1;
 			saveHistory();
 		},
-		[initCanvas, onInitBlank, render, resetTransform, saveHistory],
+		[initCanvas, onInitBlank, onRulersCountChange, render, resetTransform, saveHistory],
 	);
+
+	const distributeRulers = useCallback(
+		(notify: boolean = true) => {
+			const rulers = rulersListRef.current;
+			if (rulers.length < 3) {
+				if (notify) {
+					onNotify('Потрібно щонайменше 3 лінійки для вирівнювання');
+				}
+				return;
+			}
+
+			const sorted = [...rulers].sort((a, b) => a.y - b.y);
+			const top = sorted[0];
+			const bottom = sorted[sorted.length - 1];
+			const totalDist = bottom.y - top.y;
+			if (totalDist <= 0) return;
+
+			const step = totalDist / (sorted.length - 1);
+			const u = uRef.current;
+			const threshold = 16 * u;
+
+			sorted.forEach((ruler, index) => {
+				if (index === 0 || index === sorted.length - 1) return;
+				const newY = Math.round(top.y + index * step);
+				const deltaY = newY - ruler.y;
+
+				if (rulersAttachContent && deltaY !== 0) {
+					stampsListRef.current.forEach((st) => {
+						if (Math.abs(st.y - ruler.y) <= threshold) {
+							st.y += deltaY;
+						}
+					});
+					if (activeStampRef.current && Math.abs(activeStampRef.current.y - ruler.y) <= threshold) {
+						activeStampRef.current.y += deltaY;
+					}
+				}
+
+				ruler.y = newY;
+			});
+
+			saveHistory();
+			render();
+			scheduleRender();
+			onContentChange?.();
+			onRulersCountChange?.(rulersListRef.current.length);
+			if (notify) {
+				onNotify('Лінійки вирівняно рівновіддалено');
+			}
+		},
+		[onContentChange, onNotify, onRulersCountChange, render, rulersAttachContent, saveHistory, scheduleRender],
+	);
+
+	const clearRulers = useCallback(() => {
+		if (rulersListRef.current.length === 0) return;
+		rulersListRef.current = [];
+		activeRulerIdRef.current = null;
+		isDraggingRulerRef.current = false;
+		draggedStampIdsRef.current = [];
+		saveHistory();
+		render();
+		scheduleRender();
+		onContentChange?.();
+		onRulersCountChange?.(0);
+		onNotify('Всі лінійки очищено');
+	}, [onContentChange, onNotify, onRulersCountChange, render, saveHistory, scheduleRender]);
+
+	useEffect(() => {
+		if (rulersLockEqualDistance && rulersListRef.current.length >= 3) {
+			distributeRulers(false);
+		}
+	}, [distributeRulers, rulersLockEqualDistance]);
 
 	// Attach stageRef imperative handle
 	useEffect(() => {
@@ -1173,8 +1632,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			createBlank,
 			loadImage,
 			clear: clearCanvas,
+			clearRulers,
 			undo: handleUndo,
 			redo: handleRedo,
+			distributeRulers: () => distributeRulers(true),
+			getRulersCount: () => rulersListRef.current.length,
 			commitActiveStamp,
 			prepareExport,
 			getExportBlob: async () => {
@@ -1185,27 +1647,40 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			},
 			serializeProject,
 			loadProject,
-			updateActiveStampProps: (sz, txt, mClr, sClr) => {
+			updateActiveStampProps: (sz, txt, mClr, sClr, bMode) => {
 				const active = activeStampRef.current;
 				if (!active) return;
 				active.size = sz;
 				active.text = txt;
 				active.mainColor = mClr;
 				active.strokeColor = sClr;
+				if (bMode !== undefined) {
+					active.badgeMode = bMode;
+				}
+				const l = layersRef.current.find((layer) => layer.type === 'stamp' && layer.id === active.id);
+				if (l && l.type === 'stamp') {
+					l.stamp = active;
+				}
 				render();
 			},
 		};
 	}, [
 		buildExportCanvas,
 		clearCanvas,
+		clearRulers,
 		commitActiveStamp,
 		createBlank,
+		distributeRulers,
 		handleRedo,
 		handleUndo,
 		loadImage,
 		loadProject,
+		onContentChange,
+		onNotify,
 		prepareExport,
 		render,
+		rulersAttachContent,
+		saveHistory,
 		serializeProject,
 		stageRef,
 	]);
@@ -1216,11 +1691,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	}, [render]);
 
 	useEffect(() => {
-		if (currentMode !== 'ruler' && activeRulerIdRef.current) {
+		if (currentMode === 'ruler') {
+			onRulersCountChange?.(rulersListRef.current.length);
+		} else if (activeRulerIdRef.current) {
 			activeRulerIdRef.current = null;
 			scheduleRender();
 		}
-	}, [currentMode, scheduleRender]);
+	}, [currentMode, onRulersCountChange, scheduleRender]);
 
 	// Native gesture listeners on container
 	useEffect(() => {
