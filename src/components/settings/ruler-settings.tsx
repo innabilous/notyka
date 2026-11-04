@@ -22,30 +22,22 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 				type="button"
 				className={`ruler-setting-btn ${visible ? 'active' : ''}`}
 				onClick={onToggleVisible}
-				title={visible ? 'Приховати лінійки' : 'Показати лінійки'}
-				aria-label={visible ? 'Приховати лінійки' : 'Показати лінійки'}
+				title="Показати"
+				aria-label="Показати"
 			>
 				{visible ? <Eye className="icon" /> : <EyeOff className="icon" />}
-				<span>{visible ? 'Показати' : 'Приховано'}</span>
+				<span>Показати</span>
 			</button>
 
 			<button
 				type="button"
 				className={`ruler-setting-btn ${attachContent ? 'active' : ''}`}
 				onClick={onToggleAttachContent}
-				title={
-					attachContent
-						? 'Рухати контент разом з лінійкою (Увімкнено)'
-						: 'Рухати тільки лінійку (Вимкнено)'
-				}
-				aria-label={
-					attachContent
-						? 'Рухати контент разом з лінійкою (Увімкнено)'
-						: 'Рухати тільки лінійку (Вимкнено)'
-				}
+				title="Рухати з контентом"
+				aria-label="Рухати з контентом"
 			>
 				{attachContent ? <Link className="icon" /> : <Unlink className="icon" />}
-				<span>{attachContent ? 'Рухати з контентом' : 'Тільки лінійка'}</span>
+				<span>Рухати з контентом</span>
 			</button>
 		</div>
 	);

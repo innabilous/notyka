@@ -42,14 +42,14 @@ export const PhotoEditor: React.FC = () => {
 	const [toolColors, setToolColors] = useState<
 		Record<'pencil' | 'stamp', { main: string; stroke: string }>
 	>({
-		pencil: { main: '#ff0055', stroke: '#000000' },
-		stamp: { main: '#ff0055', stroke: '#000000' },
+		pencil: { main: '#ed1c24', stroke: '#000000' },
+		stamp: { main: '#ed1c24', stroke: 'transparent' },
 	});
 
 	// Independent tool sizes
 	const [toolSizes, setToolSizes] = useState<Record<ToolMode, number>>({
-		pencil: 24,
-		stamp: 24,
+		pencil: 2,
+		stamp: 8,
 		eraser: 24,
 		ruler: 24,
 	});

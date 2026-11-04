@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Slider } from '@mantine/core';
 import { Lock, Minus, Plus, Unlock } from 'lucide-react';
 import { ToolMode } from '@/types/editor';
 
@@ -25,6 +26,27 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	onToggleLock,
 	onTogglePalette,
 }) => {
+	//! Відображення лейблу з розміром під слайдером у момент зміни розміру
+	const [isChanging, setIsChanging] = useState<boolean>(false);
+	const timerRef = useRef<NodeJS.Timeout | null>(null);
+	const isMountedRef = useRef<boolean>(false);
+
+	useEffect(() => {
+		if (!isMountedRef.current) {
+			isMountedRef.current = true;
+			return;
+		}
+		setIsChanging(true);
+		if (timerRef.current) clearTimeout(timerRef.current);
+		timerRef.current = setTimeout(() => {
+			setIsChanging(false);
+		}, 1200);
+
+		return () => {
+			if (timerRef.current) clearTimeout(timerRef.current);
+		};
+	}, [brushSize]);
+
 	if (currentMode === 'ruler') {
 		return null;
 	}
@@ -69,14 +91,25 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				<Minus className="icon" />
 			</button>
 
-			<input
-				type="range"
-				id="brush-size"
-				min="1"
-				max="100"
-				value={brushSize}
-				onChange={(e) => onChangeSize(parseInt(e.target.value, 10))}
-			/>
+			<div className="brush-slider-wrap">
+				<Slider
+					size="xs"
+					color="indigo"
+					min={1}
+					max={100}
+					value={brushSize}
+					onChange={onChangeSize}
+					label={(val) => `${val} px`}
+					labelAlwaysOn={isChanging}
+					classNames={{
+						root: 'brush-slider-root',
+						track: 'brush-slider-track',
+						bar: 'brush-slider-bar',
+						thumb: 'brush-slider-thumb',
+						label: 'brush-slider-label',
+					}}
+				/>
+			</div>
 
 			<button
 				type="button"
