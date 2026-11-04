@@ -1210,41 +1210,82 @@ footer {
 }
 
 /* Notyka Brand Logo Animated Border Glow */
-.notyka-border-glow-track {
-	animation: notyka-border-spin 2.8s linear infinite;
+.notyka-border-glow-head {
+	animation: notyka-head-spin 2.4s linear infinite;
 	will-change: transform;
 }
 
-@keyframes notyka-border-spin {
+.notyka-border-glow-tail {
+	animation: notyka-tail-spin 2.4s linear infinite;
+	will-change: transform;
+}
+
+@keyframes notyka-head-spin {
 	0% {
 		transform: rotate(0deg);
 	}
 	10% {
-		transform: rotate(27deg);
+		transform: rotate(20deg);
 	}
 	20% {
-		transform: rotate(57deg);
+		transform: rotate(45deg);
 	}
 	30% {
-		transform: rotate(93deg);
+		transform: rotate(81deg);
 	}
 	40% {
-		transform: rotate(135deg);
+		transform: rotate(128deg);
 	}
 	50% {
 		transform: rotate(180deg);
 	}
 	60% {
-		transform: rotate(225deg);
+		transform: rotate(233deg);
 	}
 	70% {
-		transform: rotate(267deg);
+		transform: rotate(279deg);
 	}
 	80% {
-		transform: rotate(303deg);
+		transform: rotate(315deg);
 	}
 	90% {
-		transform: rotate(333deg);
+		transform: rotate(341deg);
+	}
+	100% {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes notyka-tail-spin {
+	0% {
+		transform: rotate(0deg);
+	}
+	10% {
+		transform: rotate(30deg);
+	}
+	20% {
+		transform: rotate(63deg);
+	}
+	30% {
+		transform: rotate(98deg);
+	}
+	40% {
+		transform: rotate(138deg);
+	}
+	50% {
+		transform: rotate(180deg);
+	}
+	60% {
+		transform: rotate(222deg);
+	}
+	70% {
+		transform: rotate(262deg);
+	}
+	80% {
+		transform: rotate(298deg);
+	}
+	90% {
+		transform: rotate(330deg);
 	}
 	100% {
 		transform: rotate(360deg);

@@ -57,6 +57,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 							padding: `${borderWidth}px`,
 							boxSizing: 'border-box',
 							overflow: 'hidden',
+							background: 'rgba(255, 255, 255, 0.22)',
 							display: 'inline-flex',
 							alignItems: 'center',
 							justifyContent: 'center',
@@ -66,9 +67,9 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 						}}
 						aria-label="Notyka Logo"
 					>
-						{/* Обертовий градієнт бордера: 100% периметру видимий, світло плавно рухається по колу */}
+						{/* Шлейф (хвіст) променя: м'який індиго-ціановий шлейф позаду голови */}
 						<div
-							className="notyka-border-glow-track"
+							className="notyka-border-glow-tail"
 							style={{
 								position: 'absolute',
 								top: '-60%',
@@ -76,16 +77,33 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 								width: '220%',
 								height: '220%',
 								background:
-									'conic-gradient(from 0deg, rgba(255, 255, 255, 0.22) 0deg, rgba(255, 255, 255, 0.22) 200deg, rgba(56, 189, 248, 0.5) 240deg, #38bdf8 280deg, #ffffff 320deg, #6366f1 345deg, rgba(255, 255, 255, 0.22) 360deg)',
+									'conic-gradient(from 0deg, transparent 0deg, transparent 230deg, rgba(99, 102, 241, 0.25) 260deg, #6366f1 295deg, #38bdf8 320deg, rgba(56, 189, 248, 0.3) 335deg, transparent 345deg)',
 								borderRadius: '50%',
 								pointerEvents: 'none',
+								zIndex: 1,
 							}}
 						/>
-						{/* Внутрішній фон бейджа */}
+						{/* Сяюча голова променя: плавне біле ядро з м'якими краями */}
+						<div
+							className="notyka-border-glow-head"
+							style={{
+								position: 'absolute',
+								top: '-60%',
+								left: '-60%',
+								width: '220%',
+								height: '220%',
+								background:
+									'conic-gradient(from 0deg, transparent 0deg, transparent 300deg, rgba(255, 255, 255, 0.25) 320deg, #ffffff 342deg, rgba(255, 255, 255, 0.5) 352deg, transparent 360deg)',
+								borderRadius: '50%',
+								pointerEvents: 'none',
+								zIndex: 2,
+							}}
+						/>
+						{/* Внутрішній фон бейджа: гарантовано поверх градієнтів, щоб промінь не вилазив на логотип */}
 						<div
 							style={{
 								position: 'relative',
-								zIndex: 1,
+								zIndex: 10,
 								width: '100%',
 								height: '100%',
 								borderRadius: innerBorderRadius,
