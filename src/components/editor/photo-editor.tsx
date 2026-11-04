@@ -80,6 +80,7 @@ export const PhotoEditor: React.FC = () => {
 	const [customStamps, setCustomStamps] = useState<string[]>([]);
 	const [customText, setCustomText] = useState<string>('Текст');
 	const [customStampModalOpen, setCustomStampModalOpen] = useState<boolean>(false);
+	const [drawDuplicateMode, setDrawDuplicateMode] = useState<boolean>(false);
 	const [sizeLocked, setSizeLocked] = useState<boolean>(true);
 	const [noteSizes, setNoteSizes] = useState<Record<string, number>>({});
 
@@ -861,9 +862,6 @@ export const PhotoEditor: React.FC = () => {
 	const handleChangeStampCategory = useCallback(
 		(cat: StampCategory) => {
 			setStampCategory(cat);
-			if (cat === 'draw') {
-				showToast("Малюйте на полотні. Штрихи об'єднаються у штамп через 1 с");
-			}
 			let nextText = activeStampText;
 			if (cat === 'notes') {
 				nextText = `${selectedNote}${selectedAccidental}`;
@@ -1163,7 +1161,8 @@ export const PhotoEditor: React.FC = () => {
 			...prev,
 			stamp: { main: stamp.mainColor, stroke: stamp.strokeColor },
 		}));
-		const cat = (stamp.category as StampCategory) || 'custom';
+		const cat = (stamp.category as StampCategory) || (stamp.isDrawing ? 'draw' : 'custom');
+		setStampCategory(cat);
 		setCategoryColors((prev) => ({
 			...prev,
 			[cat]: { main: stamp.mainColor, stroke: stamp.strokeColor },
@@ -1415,6 +1414,7 @@ export const PhotoEditor: React.FC = () => {
 				activeStampText={activeStampText}
 				stampBadgeMode={stampBadgeMode}
 				stampCategory={stampCategory}
+				drawDuplicateMode={drawDuplicateMode}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
 				rulersVisible={rulersVisible}
@@ -1535,6 +1535,8 @@ export const PhotoEditor: React.FC = () => {
 							onOpenAddCustomModal={() => setCustomStampModalOpen(true)}
 							onDeleteCustomStamp={handleDeleteCustomStamp}
 							onChangeCustomText={handleChangeCustomText}
+							isDrawDuplicateMode={drawDuplicateMode}
+							onToggleDrawDuplicateMode={() => setDrawDuplicateMode((prev) => !prev)}
 						/>
 					)}
 

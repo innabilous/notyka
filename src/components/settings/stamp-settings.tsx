@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { SegmentedControl, Textarea } from '@mantine/core';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Copy, Plus, Trash2, X } from 'lucide-react';
 import {
 	ACCIDENTALS,
 	CHORD_ACCIDENTALS,
@@ -41,6 +41,8 @@ interface StampSettingsProps {
 	onOpenAddCustomModal: () => void;
 	onDeleteCustomStamp: (text: string) => void;
 	onChangeCustomText?: (text: string) => void;
+	isDrawDuplicateMode?: boolean;
+	onToggleDrawDuplicateMode?: () => void;
 }
 
 export const StampSettings: React.FC<StampSettingsProps> = ({
@@ -69,6 +71,8 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 	onOpenAddCustomModal,
 	onDeleteCustomStamp,
 	onChangeCustomText,
+	isDrawDuplicateMode = false,
+	onToggleDrawDuplicateMode,
 }) => {
 	const [isDeleteMode, setIsDeleteMode] = useState<boolean>(false);
 
@@ -371,8 +375,52 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 
 				{/* 6. Режим довільного малювання */}
 				{category === 'draw' && (
-					<div className="stamp-draw-info">
-						<span>Малюйте на полотні. Штрихи об&apos;єднаються у штамп через 1 с</span>
+					<div
+						className="stamp-draw-actions"
+						style={{
+							display: 'flex',
+							flexDirection: 'row',
+							alignItems: 'center',
+							justifyContent: 'space-between',
+							gap: '0.75rem',
+							width: '100%',
+							padding: '0.15rem 0.25rem',
+						}}
+					>
+						<span
+							title="Малюйте, штрихи об'єднаються у штамп через 1 с"
+							style={{
+								fontSize: '0.8rem',
+								color: 'var(--mantine-color-dimmed)',
+								whiteSpace: 'nowrap',
+								overflow: 'hidden',
+								textOverflow: 'ellipsis',
+							}}
+						>
+							Малюйте, штрихи об&apos;єднаються через 1 с
+						</span>
+						{onToggleDrawDuplicateMode && (
+							<button
+								type="button"
+								className={`chip custom-chip ${isDrawDuplicateMode ? 'active' : ''}`}
+								onClick={onToggleDrawDuplicateMode}
+								title={
+									isDrawDuplicateMode
+										? 'Дублювання: увімкнено (клік по полотну клонує малюнок)'
+										: 'Дублювання: вимкнено (клік починає новий малюнок)'
+								}
+								style={{
+									display: 'inline-flex',
+									alignItems: 'center',
+									justifyContent: 'center',
+									gap: '0.35rem',
+									flexShrink: 0,
+								}}
+							>
+								<Copy className="icon" style={{ width: '0.9rem', height: '0.9rem' }} />
+								<span>Дублювати</span>
+							</button>
+						)}
 					</div>
 				)}
 			</div>

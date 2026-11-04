@@ -145,12 +145,12 @@ export function clampStampPosition(
 	const topBottomMargin = 2 * U;
 
 	const minX = offsets.left + sideMargin;
-	const maxX = Math.max(minX, canvasW - offsets.right - sideMargin);
+	const rawMaxX = canvasW - offsets.right - sideMargin;
 	const minY = offsets.top + topBottomMargin;
-	const maxY = Math.max(minY, canvasH - offsets.bottom - topBottomMargin);
+	const rawMaxY = canvasH - offsets.bottom - topBottomMargin;
 
-	const clampedX = Math.max(minX, Math.min(maxX, x));
-	const clampedY = Math.max(minY, Math.min(maxY, y));
+	const clampedX = rawMaxX >= minX ? Math.max(minX, Math.min(rawMaxX, x)) : canvasW / 2;
+	const clampedY = rawMaxY >= minY ? Math.max(minY, Math.min(rawMaxY, y)) : canvasH / 2;
 
 	return { x: clampedX, y: clampedY };
 }

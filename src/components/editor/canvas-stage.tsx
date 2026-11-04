@@ -62,6 +62,7 @@ interface CanvasStageProps {
 	activeStampText?: string;
 	stampBadgeMode?: boolean;
 	stampCategory?: string;
+	drawDuplicateMode?: boolean;
 	deleteBtnOn: boolean;
 	resizeHandlesOn?: boolean;
 	rulersVisible?: boolean;
@@ -91,6 +92,7 @@ export interface CanvasStageHandle {
 	distributeRulers: () => void;
 	getRulersCount: () => number;
 	commitActiveStamp: () => void;
+	duplicateActiveStamp: () => void;
 	syncCategorySizes: (category: string, size: number) => void;
 	prepareExport: () => void;
 	getExportBlob: () => Promise<Blob | null>;
@@ -115,6 +117,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	activeStampText,
 	stampBadgeMode = false,
 	stampCategory = 'notes',
+	drawDuplicateMode = false,
 	deleteBtnOn,
 	resizeHandlesOn = true,
 	rulersVisible = true,
@@ -934,6 +937,51 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		onNotify('Штамп видалено');
 	}, [onNotify, render, saveHistory]);
 
+	const duplicateActiveStamp = useCallback(() => {
+		const active = activeStampRef.current;
+		if (!active) return;
+
+		const canvas = canvasRef.current;
+		const ctx = canvas?.getContext('2d');
+		const offset = 24 * uRef.current;
+
+		const clonedPaths = active.paths
+			? active.paths.map((p) => ({
+					points: p.points.map((pt) => ({ ...pt })),
+				}))
+			: undefined;
+
+		const cloned: StampItem = {
+			...active,
+			id: `${active.isDrawing ? 'draw' : 'stamp'}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+			x: active.x + offset,
+			y: active.y + offset,
+			paths: clonedPaths,
+			rawBounds: active.rawBounds ? { ...active.rawBounds } : undefined,
+		};
+
+		if (ctx) {
+			const clamped = clampStampPosition(cloned.x, cloned.y, cloned, uRef.current, ctx);
+			cloned.x = clamped.x;
+			cloned.y = clamped.y;
+		}
+
+		layersRef.current.push({
+			type: 'stamp',
+			id: cloned.id,
+			stamp: cloned,
+		});
+		stampsListRef.current.push(cloned);
+
+		activeStampRef.current = cloned;
+		activeOrigRef.current = JSON.stringify(cloned);
+
+		saveHistory();
+		render();
+		onSelectStamp(cloned);
+		onNotify('Елемент продубльовано');
+	}, [onNotify, onSelectStamp, render, saveHistory]);
+
 	const placeStamp = useCallback(
 		(pt: Point) => {
 			dragStartPtRef.current = pt;
@@ -997,8 +1045,53 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 
-			//! 4. Якщо категорія "draw" — починаємо малювання контуру для нового штампа
-			if (stampCategory === 'draw') {
+			//! 4. Якщо категорія "draw" або активний штамп — це малюнок
+			if (stampCategory === 'draw' || active?.isDrawing) {
+				if (drawDuplicateMode && active && active.isDrawing) {
+					commitActiveStamp();
+					const snapY = rulersSnap
+						? getClosestRulerY(pt.y, rulersListRef.current, 16 * uRef.current)
+						: null;
+					const finalY = snapY !== null ? snapY : pt.y;
+
+					const clonedPaths = active.paths
+						? active.paths.map((p) => ({
+								points: p.points.map((pth) => ({ ...pth })),
+							}))
+						: undefined;
+
+					const cloned: StampItem = {
+						...active,
+						id: `draw_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+						x: pt.x,
+						y: finalY,
+						paths: clonedPaths,
+						rawBounds: active.rawBounds ? { ...active.rawBounds } : undefined,
+					};
+
+					const clamped = clampStampPosition(cloned.x, cloned.y, cloned, uRef.current, ctx);
+					cloned.x = clamped.x;
+					cloned.y = clamped.y;
+
+					layersRef.current.push({
+						type: 'stamp',
+						id: cloned.id,
+						stamp: cloned,
+					});
+					stampsListRef.current.push(cloned);
+
+					activeStampRef.current = cloned;
+					activeOrigRef.current = JSON.stringify(cloned);
+					isDraggingStampRef.current = true;
+					dragOffsetRef.current = { x: 0, y: 0 };
+
+					saveHistory();
+					render();
+					onSelectStamp(cloned);
+					onNotify('Елемент продубльовано');
+					return;
+				}
+
 				commitActiveStamp();
 				if (drawDebounceTimerRef.current) {
 					clearTimeout(drawDebounceTimerRef.current);
@@ -1050,6 +1143,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			currentSize,
 			deleteActiveStamp,
 			deleteBtnOn,
+			drawDuplicateMode,
+			duplicateActiveStamp,
 			mainColor,
 			onNotify,
 			onSelectStamp,
@@ -1194,7 +1289,40 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					1,
 					Math.min(100, Math.round(resizeStartSizeRef.current * ratio)),
 				);
-				if (newCalculatedSize !== active.size) {
+
+				const canvas = canvasRef.current;
+				const ctx = canvas?.getContext('2d');
+				let finalSize = newCalculatedSize;
+
+				if (ctx && canvas) {
+					const canvasW = canvas.width;
+					const canvasH = canvas.height;
+
+					//! Перевіряємо чи рамка штампа/малюнка вміщується у межі канвасу
+					const doesFit = (s: number) => {
+						const testStamp: StampItem = { ...active, size: s };
+						const box = calculateStampBox(testStamp, uRef.current, ctx);
+						return box.x >= 0 && box.x + box.w <= canvasW && box.y >= 0 && box.y + box.h <= canvasH;
+					};
+
+					if (finalSize > active.size && !doesFit(finalSize)) {
+						let low = active.size;
+						let high = finalSize;
+						let best = active.size;
+						while (low <= high) {
+							const mid = Math.floor((low + high) / 2);
+							if (doesFit(mid)) {
+								best = mid;
+								low = mid + 1;
+							} else {
+								high = mid - 1;
+							}
+						}
+						finalSize = best;
+					}
+				}
+
+				if (finalSize !== active.size) {
 					dragMovedRef.current = true;
 					//! Переносимо змінений штамп на найвищий рівень серед усіх шарів
 					const idx = layersRef.current.findIndex((l) => l.type === 'stamp' && l.id === active.id);
@@ -1950,6 +2078,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			distributeRulers: () => distributeRulers(true),
 			getRulersCount: () => rulersListRef.current.length,
 			commitActiveStamp,
+			duplicateActiveStamp,
 			syncCategorySizes,
 			prepareExport,
 			getExportBlob: async () => {
@@ -1984,6 +2113,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		commitActiveStamp,
 		createBlank,
 		distributeRulers,
+		duplicateActiveStamp,
 		handleRedo,
 		handleUndo,
 		loadImage,
@@ -2216,6 +2346,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const pt = getCanvasCoords(e.clientX, e.clientY);
 			if (
 				isDrawingRef.current ||
+				isDrawingStampRef.current ||
 				isDraggingStampRef.current ||
 				isDraggingHandleRef.current ||
 				isDraggingResizeRef.current ||
