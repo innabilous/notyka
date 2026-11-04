@@ -81,7 +81,7 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 				className="c-indigo"
 				onClick={onToggleDeleteBtn}
 			>
-				<Trash2 className="icon" style={{ color: deleteBtnOn ? '#ef4444' : 'var(--muted)' }} />
+				<Trash2 className="icon" />
 				<span style={{ color: 'var(--text)', flex: 1 }}>Кошик на штампі</span>
 				<span id="sw-delete" className={`sw ${deleteBtnOn ? 'on' : ''}`} />
 			</button>
@@ -92,10 +92,7 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 				className="c-indigo"
 				onClick={onToggleResizeHandles}
 			>
-				<Maximize2
-					className="icon"
-					style={{ color: resizeHandlesOn ? '#0ea5e9' : 'var(--muted)' }}
-				/>
+				<Maximize2 className="icon" />
 				<span style={{ color: 'var(--text)', flex: 1 }}>Хендли розміру на рамці</span>
 				<span id="sw-resize" className={`sw ${resizeHandlesOn ? 'on' : ''}`} />
 			</button>

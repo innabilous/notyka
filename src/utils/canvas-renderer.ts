@@ -62,7 +62,7 @@ export function getDeleteCoords(
 	ctx: CanvasRenderingContext2D,
 ): { x: number; y: number; radius: number } {
 	const bx = calculateStampBox(stamp, U, ctx);
-	return { x: stamp.x, y: Math.max(bx.y - 20 * U, 14 * U), radius: 13 * U };
+	return { x: stamp.x, y: Math.max(bx.y - 15 * U, 11 * U), radius: 9 * U };
 }
 
 export function getResizeHandleCoords(
@@ -70,15 +70,16 @@ export function getResizeHandleCoords(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): {
-	left: { x: number; y: number; radius: number };
-	right: { x: number; y: number; radius: number };
+	left: { x: number; y: number; radius: number; hitRadius: number };
+	right: { x: number; y: number; radius: number; hitRadius: number };
 } {
 	const bx = calculateStampBox(stamp, U, ctx);
 	const cy = bx.y + bx.h / 2;
-	const radius = 7 * U;
+	const radius = 6 * U;
+	const hitRadius = Math.max(16 * U, 14);
 	return {
-		left: { x: bx.x, y: cy, radius },
-		right: { x: bx.x + bx.w, y: cy, radius },
+		left: { x: bx.x, y: cy, radius, hitRadius },
+		right: { x: bx.x + bx.w, y: cy, radius, hitRadius },
 	};
 }
 
@@ -91,12 +92,12 @@ export function isPointInResizeHandle(
 	const handles = getResizeHandleCoords(stamp, U, ctx);
 	const dlx = p.x - handles.left.x;
 	const dly = p.y - handles.left.y;
-	if (dlx * dlx + dly * dly <= handles.left.radius * handles.left.radius) {
+	if (dlx * dlx + dly * dly <= handles.left.hitRadius * handles.left.hitRadius) {
 		return 'left';
 	}
 	const drx = p.x - handles.right.x;
 	const dry = p.y - handles.right.y;
-	if (drx * drx + dry * dry <= handles.right.radius * handles.right.radius) {
+	if (drx * drx + dry * dry <= handles.right.hitRadius * handles.right.hitRadius) {
 		return 'right';
 	}
 	return null;
@@ -218,21 +219,21 @@ export function drawStamp(
 		if (deleteBtnOn) {
 			const d = getDeleteCoords(stamp, U, ctx);
 			ctx.beginPath();
-			ctx.arc(d.x, d.y, 11 * U, 0, Math.PI * 2);
+			ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
 			ctx.fillStyle = '#ef4444';
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
-			ctx.lineWidth = 2 * U;
+			ctx.lineWidth = 1.5 * U;
 			ctx.stroke();
 
 			const paths = getTrashPaths();
 			if (paths.length > 0) {
 				ctx.save();
-				const k = (12 * U) / 24;
+				const k = (9 * U) / 24;
 				ctx.translate(d.x - 12 * k, d.y - 12 * k);
 				ctx.scale(k, k);
 				ctx.strokeStyle = '#ffffff';
-				ctx.lineWidth = 2.4;
+				ctx.lineWidth = 2.2;
 				ctx.lineCap = 'round';
 				ctx.lineJoin = 'round';
 				paths.forEach((pth) => ctx.stroke(pth));
@@ -242,15 +243,27 @@ export function drawStamp(
 
 		if (resizeHandlesOn) {
 			const resizes = getResizeHandleCoords(stamp, U, ctx);
-			[resizes.left, resizes.right].forEach((h) => {
-				ctx.beginPath();
-				ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
-				ctx.fillStyle = '#0ea5e9';
-				ctx.fill();
-				ctx.strokeStyle = '#ffffff';
-				ctx.lineWidth = 1.5 * U;
-				ctx.stroke();
-			});
+			ctx.fillStyle = '#6366f1';
+			ctx.strokeStyle = '#6366f1';
+			ctx.lineWidth = 1 * U;
+
+			// Лівий напівкружечок: випинається назовні вліво (від PI/2 до 3*PI/2)
+			ctx.beginPath();
+			ctx.arc(
+				resizes.left.x,
+				resizes.left.y,
+				resizes.left.radius,
+				Math.PI / 2,
+				(3 * Math.PI) / 2,
+			);
+			ctx.closePath();
+			ctx.fill();
+
+			// Правий напівкружечок: випинається назовні вправо (від -PI/2 до PI/2)
+			ctx.beginPath();
+			ctx.arc(resizes.right.x, resizes.right.y, resizes.right.radius, -Math.PI / 2, Math.PI / 2);
+			ctx.closePath();
+			ctx.fill();
 		}
 	}
 

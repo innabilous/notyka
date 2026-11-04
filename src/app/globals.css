@@ -609,7 +609,7 @@ footer {
 	display: flex;
 	flex-direction: column;
 	gap: 0.35rem;
-	width: min(440px, calc(100vw - 1.25rem));
+	width: min(470px, calc(100vw - 1rem));
 	padding: 0.35rem 0.5rem;
 	background: rgba(22, 23, 27, 0.94);
 	backdrop-filter: blur(20px);

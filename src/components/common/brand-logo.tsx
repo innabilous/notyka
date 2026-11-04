@@ -77,32 +77,38 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 				<div
 					style={{
 						display: 'inline-flex',
+						flexDirection: 'column',
 						alignItems: 'center',
-						gap: '0.4rem',
+						justifyContent: 'center',
+						gap: `${Math.max(1, Math.round(numericSize * 0.04))}px`,
 						fontFamily: 'system-ui, -apple-system, sans-serif',
-						fontWeight: 700,
-						letterSpacing: '0.04em',
-						fontSize: `${Math.round(numericSize * 0.3)}px`,
-						color: '#ffffff',
 						lineHeight: 1,
 					}}
 				>
-					<span>NOTYKA</span>
 					<span
 						style={{
-							background: 'linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)',
+							fontVariant: 'small-caps',
+							textTransform: 'lowercase',
+							fontWeight: 700,
+							letterSpacing: '0.08em',
+							fontSize: `${Math.round(numericSize * 0.32)}px`,
 							color: '#ffffff',
-							fontSize: `${Math.round(numericSize * 0.18)}px`,
-							fontWeight: 800,
-							letterSpacing: '0.06em',
-							padding: '0.15rem 0.45rem',
-							borderRadius: '9999px',
-							border: '1px solid rgba(255, 255, 255, 0.3)',
-							boxShadow: '0 2px 8px rgba(56, 189, 248, 0.4)',
-							textTransform: 'uppercase',
 						}}
 					>
-						PRO
+						Notyka
+					</span>
+					<span
+						style={{
+							fontFamily: 'system-ui, -apple-system, sans-serif',
+							fontSize: `${Math.max(10, Math.round(numericSize * 0.18))}px`,
+							fontWeight: 300,
+							letterSpacing: '0.22em',
+							color: 'var(--text-secondary, rgba(255, 255, 255, 0.7))',
+							textTransform: 'lowercase',
+							paddingLeft: '0.22em',
+						}}
+					>
+						pro
 					</span>
 				</div>
 			)}

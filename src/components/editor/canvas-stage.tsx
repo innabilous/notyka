@@ -308,8 +308,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		activeOrigRef.current = '';
 		resetTransform();
 
-		const cssW = Math.max(300, container.clientWidth - 20);
-		const cssH = Math.max(300, container.clientHeight - 130);
+		const availableW = Math.max(300, container.clientWidth - 20);
+		const availableH = Math.max(300, container.clientHeight - 130);
+
+		// Пропорція стандартного аркуша A4: 1 : √2 (210 / 297 ≈ 0.707)
+		const A4_ASPECT = 210 / 297;
+
+		let cssW = availableW;
+		let cssH = Math.round(cssW / A4_ASPECT);
+
+		// Якщо розрахована висота перевищує доступну висоту екрана, підганяємо по висоті
+		if (cssH > availableH) {
+			cssH = availableH;
+			cssW = Math.round(cssH * A4_ASPECT);
+		}
+
 		const k = Math.min(
 			Math.max(2, window.devicePixelRatio || 1),
 			Math.sqrt(MAX_PIXELS / (cssW * cssH)),
@@ -517,7 +530,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				if (resizeSide) {
 					isDraggingResizeRef.current = resizeSide;
 					resizeStartSizeRef.current = active.size;
-					resizeStartDistRef.current = Math.abs(pt.x - active.x);
+					resizeStartDistRef.current = Math.max(10 * uRef.current, Math.abs(pt.x - active.x));
 					return;
 				}
 			}
@@ -689,7 +702,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 			if (isDraggingResizeRef.current) {
 				const currentDist = Math.abs(pt.x - active.x);
-				const startDist = Math.max(10 * uRef.current, resizeStartDistRef.current);
+				const startDist = resizeStartDistRef.current;
 				const ratio = currentDist / startDist;
 				const newCalculatedSize = Math.max(
 					1,
@@ -1141,9 +1154,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 		// Pointer events for robust middle-click drag across browsers
 		const onPointerDown = (e: PointerEvent) => {
-			if (e.button === 1) {
-				// Middle click pan
+			if (e.button === 1 || e.buttons === 4) {
 				e.preventDefault();
+				e.stopPropagation();
 				isPanningRef.current = true;
 				panStartRef.current = {
 					clientX: e.clientX,
@@ -1152,12 +1165,40 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					panY: panRef.current.y,
 				};
 				container.style.cursor = 'grabbing';
+				try {
+					container.setPointerCapture(e.pointerId);
+				} catch {
+					// Ignore if capture not available
+				}
+			}
+		};
+
+		const onPointerMove = (e: PointerEvent) => {
+			if (isPanningRef.current) {
+				panRef.current = {
+					x: panStartRef.current.panX + (e.clientX - panStartRef.current.clientX),
+					y: panStartRef.current.panY + (e.clientY - panStartRef.current.clientY),
+				};
+				applyTransform();
+			}
+		};
+
+		const onPointerUp = (e: PointerEvent) => {
+			if (isPanningRef.current) {
+				isPanningRef.current = false;
+				container.style.cursor = '';
+				try {
+					container.releasePointerCapture(e.pointerId);
+				} catch {
+					// Ignore
+				}
 			}
 		};
 
 		const onMouseDown = (e: MouseEvent) => {
-			if (e.button === 1) {
+			if (e.button === 1 || (e.buttons & 4) !== 0) {
 				e.preventDefault();
+				e.stopPropagation();
 				isPanningRef.current = true;
 				panStartRef.current = {
 					clientX: e.clientX,
@@ -1178,11 +1219,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 		const onMouseMove = (e: MouseEvent) => {
 			if (isPanningRef.current) {
-				if (e.buttons === 0 || (e.buttons & 4) === 0) {
-					isPanningRef.current = false;
-					container.style.cursor = '';
-					return;
-				}
 				panRef.current = {
 					x: panStartRef.current.panX + (e.clientX - panStartRef.current.clientX),
 					y: panStartRef.current.panY + (e.clientY - panStartRef.current.clientY),
@@ -1192,7 +1228,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			}
 			if (ignoreMouseDownRef.current) return;
 			const pt = getCanvasCoords(e.clientX, e.clientY);
-			if (isDrawingRef.current || isDraggingStampRef.current || isDraggingHandleRef.current) {
+			if (
+				isDrawingRef.current ||
+				isDraggingStampRef.current ||
+				isDraggingHandleRef.current ||
+				isDraggingResizeRef.current
+			) {
 				pointerMove(pt);
 			} else if (currentMode === 'eraser' && container.contains(e.target as Node)) {
 				cursorPosRef.current = pt;
@@ -1201,7 +1242,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		};
 
 		const onMouseUp = (e: MouseEvent) => {
-			if (isPanningRef.current) {
+			if (isPanningRef.current && (e.button === 1 || (e.buttons & 4) === 0)) {
 				isPanningRef.current = false;
 				container.style.cursor = '';
 				return;
@@ -1267,6 +1308,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		};
 
 		container.addEventListener('pointerdown', onPointerDown);
+		container.addEventListener('pointermove', onPointerMove);
+		container.addEventListener('pointerup', onPointerUp);
+		container.addEventListener('pointercancel', onPointerUp);
 		container.addEventListener('touchstart', onTouchStart, { passive: false });
 		container.addEventListener('touchmove', onTouchMove, { passive: false });
 		container.addEventListener('touchend', onTouchEnd);
@@ -1281,6 +1325,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 		return () => {
 			container.removeEventListener('pointerdown', onPointerDown);
+			container.removeEventListener('pointermove', onPointerMove);
+			container.removeEventListener('pointerup', onPointerUp);
+			container.removeEventListener('pointercancel', onPointerUp);
 			container.removeEventListener('touchstart', onTouchStart);
 			container.removeEventListener('touchmove', onTouchMove);
 			container.removeEventListener('touchend', onTouchEnd);
