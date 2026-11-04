@@ -13,7 +13,7 @@ import {
 	NOTES,
 } from '@/constants/editor';
 
-export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text';
+export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw';
 
 interface StampSettingsProps {
 	selectedNote: string;
@@ -94,6 +94,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 						{ label: 'Лік', value: 'count' },
 						{ label: 'Власні', value: 'custom' },
 						{ label: 'Текст', value: 'text' },
+						{ label: 'Малюнок', value: 'draw' },
 					]}
 					classNames={{
 						root: 'stamp-segmented-root',
@@ -365,6 +366,13 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 								input: 'stamp-textarea-input',
 							}}
 						/>
+					</div>
+				)}
+
+				{/* 6. Режим довільного малювання */}
+				{category === 'draw' && (
+					<div className="stamp-draw-info">
+						<span>Малюйте на полотні. Штрихи об&apos;єднаються у штамп через 1 с</span>
 					</div>
 				)}
 			</div>

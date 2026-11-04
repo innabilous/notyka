@@ -6,6 +6,7 @@ import {
 	Eye,
 	EyeOff,
 	Link,
+	Magnet,
 	MoveVertical,
 	Trash2,
 	Unlink,
@@ -13,11 +14,13 @@ import {
 
 interface RulerSettingsProps {
 	visible: boolean;
+	snap: boolean;
 	attachContent: boolean;
 	showDistance: boolean;
 	lockEqualDistance: boolean;
 	rulersCount: number;
 	onToggleVisible: () => void;
+	onToggleSnap: () => void;
 	onToggleAttachContent: () => void;
 	onToggleShowDistance: () => void;
 	onToggleLockEqualDistance: () => void;
@@ -26,11 +29,13 @@ interface RulerSettingsProps {
 
 export const RulerSettings: React.FC<RulerSettingsProps> = ({
 	visible,
+	snap,
 	attachContent,
 	showDistance,
 	lockEqualDistance,
 	rulersCount,
 	onToggleVisible,
+	onToggleSnap,
 	onToggleAttachContent,
 	onToggleShowDistance,
 	onToggleLockEqualDistance,
@@ -49,6 +54,17 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			>
 				{visible ? <Eye className="icon" /> : <EyeOff className="icon" />}
 				<span>Показати</span>
+			</button>
+
+			<button
+				type="button"
+				className={`ruler-setting-btn ${snap ? 'active' : ''}`}
+				onClick={onToggleSnap}
+				title="Прив'язка до лінійок"
+				aria-label="Прив'язка до лінійок"
+			>
+				<Magnet className="icon" />
+				<span>Прив&apos;язка</span>
 			</button>
 
 			<button

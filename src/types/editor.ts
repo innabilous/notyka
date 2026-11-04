@@ -5,6 +5,10 @@ export interface RulerItem {
 	y: number;
 }
 
+export interface StampDrawingPath {
+	points: Point[];
+}
+
 export interface StampItem {
 	id: string;
 	x: number;
@@ -14,6 +18,12 @@ export interface StampItem {
 	mainColor: string;
 	strokeColor: string;
 	badgeMode?: boolean;
+	category?: string;
+	isDrawing?: boolean;
+	initialSize?: number;
+	rawBounds?: { width: number; height: number };
+	paths?: StampDrawingPath[];
+	strokeWidth?: number;
 }
 
 export interface CanvasLayerItem {

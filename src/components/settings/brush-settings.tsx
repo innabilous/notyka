@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Slider } from '@mantine/core';
-import { Lock, Minus, Plus, Unlock } from 'lucide-react';
+import { Lock, Minus, Plus, RefreshCw, Unlock } from 'lucide-react';
 import { ToolMode } from '@/types/editor';
 
 interface BrushSettingsProps {
@@ -14,6 +14,7 @@ interface BrushSettingsProps {
 	onChangeSize: (size: number) => void;
 	onToggleLock: (e: React.MouseEvent) => void;
 	onTogglePalette: (e: React.MouseEvent) => void;
+	onSyncCategorySizes?: () => void;
 }
 
 export const BrushSettings: React.FC<BrushSettingsProps> = ({
@@ -25,6 +26,7 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	onChangeSize,
 	onToggleLock,
 	onTogglePalette,
+	onSyncCategorySizes,
 }) => {
 	//! Відображення лейблу з розміром під слайдером у момент зміни розміру
 	const [isChanging, setIsChanging] = useState<boolean>(false);
@@ -81,6 +83,19 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 			>
 				{sizeLocked ? <Lock className="icon" /> : <Unlock className="icon" />}
 			</button>
+
+			{isStamp && onSyncCategorySizes && (
+				<button
+					id="btn-size-sync-category"
+					type="button"
+					className="btn-size-step"
+					aria-label="Синхронізувати розмір для розділу"
+					title="Синхронізувати розмір для розділу"
+					onClick={onSyncCategorySizes}
+				>
+					<RefreshCw className="icon" />
+				</button>
+			)}
 
 			<button
 				type="button"
