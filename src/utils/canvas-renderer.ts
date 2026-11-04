@@ -51,9 +51,20 @@ export function getHandleCoords(
 	stamp: StampItem,
 	U: number,
 	ctx: CanvasRenderingContext2D,
-): { x: number; y: number; radius: number } {
+): { x: number; y: number; radius: number; isFlipped: boolean } {
 	const bx = calculateStampBox(stamp, U, ctx);
-	return { x: stamp.x, y: bx.y + bx.h + 24 * U, radius: 15 * U };
+	const canvasH = ctx.canvas?.height ?? 10000;
+	const canvasW = ctx.canvas?.width ?? 10000;
+	const radius = 14 * U;
+
+	//! Якщо хендлер знизу виходить за межі канвасу, переносимо його нагору
+	const isFlipped = bx.y + bx.h + 24 * U + radius > canvasH - 4 * U;
+	const rawY = isFlipped ? bx.y - 24 * U : bx.y + bx.h + 24 * U;
+
+	const y = Math.max(radius + 4 * U, Math.min(canvasH - radius - 4 * U, rawY));
+	const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
+
+	return { x, y, radius, isFlipped };
 }
 
 export function getDeleteCoords(
@@ -62,7 +73,26 @@ export function getDeleteCoords(
 	ctx: CanvasRenderingContext2D,
 ): { x: number; y: number; radius: number } {
 	const bx = calculateStampBox(stamp, U, ctx);
-	return { x: stamp.x, y: Math.max(bx.y - 15 * U, 11 * U), radius: 9 * U };
+	const canvasH = ctx.canvas?.height ?? 10000;
+	const canvasW = ctx.canvas?.width ?? 10000;
+	const radius = 9 * U;
+
+	const handle = getHandleCoords(stamp, U, ctx);
+	if (handle.isFlipped) {
+		//! Коли хендлер переміщення вгорі, розміщуємо кнопку видалення поруч, щоб вони не перекривалися
+		const offset = 26 * U;
+		const rawX =
+			handle.x + offset + radius <= canvasW - 4 * U
+				? handle.x + offset
+				: handle.x - offset;
+		const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, rawX));
+		const y = handle.y;
+		return { x, y, radius };
+	}
+
+	const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
+	const y = Math.max(bx.y - 15 * U, radius + 2 * U);
+	return { x, y, radius };
 }
 
 export function getResizeHandleCoords(
@@ -76,7 +106,7 @@ export function getResizeHandleCoords(
 	const bx = calculateStampBox(stamp, U, ctx);
 	const cy = bx.y + bx.h / 2;
 	const radius = 6 * U;
-	const hitRadius = Math.max(16 * U, 14);
+	const hitRadius = Math.max(12 * U, 12);
 	return {
 		left: { x: bx.x, y: cy, radius, hitRadius },
 		right: { x: bx.x + bx.w, y: cy, radius, hitRadius },
@@ -89,17 +119,28 @@ export function isPointInResizeHandle(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): 'left' | 'right' | null {
+	const bx = calculateStampBox(stamp, U, ctx);
 	const handles = getResizeHandleCoords(stamp, U, ctx);
-	const dlx = p.x - handles.left.x;
-	const dly = p.y - handles.left.y;
-	if (dlx * dlx + dly * dly <= handles.left.hitRadius * handles.left.hitRadius) {
-		return 'left';
+
+	//! Обмежуємо зону всередині рамки (макс 15% ширини або 4*U), щоб клік по тексту штампа тягнув штамп, а не масштабував
+	const maxInward = Math.min(bx.w * 0.15, 4 * U);
+
+	if (p.x <= bx.x + maxInward) {
+		const dlx = p.x - handles.left.x;
+		const dly = p.y - handles.left.y;
+		if (dlx * dlx + dly * dly <= handles.left.hitRadius * handles.left.hitRadius) {
+			return 'left';
+		}
 	}
-	const drx = p.x - handles.right.x;
-	const dry = p.y - handles.right.y;
-	if (drx * drx + dry * dry <= handles.right.hitRadius * handles.right.hitRadius) {
-		return 'right';
+
+	if (p.x >= bx.x + bx.w - maxInward) {
+		const drx = p.x - handles.right.x;
+		const dry = p.y - handles.right.y;
+		if (drx * drx + dry * dry <= handles.right.hitRadius * handles.right.hitRadius) {
+			return 'right';
+		}
 	}
+
 	return null;
 }
 
@@ -175,11 +216,13 @@ export function drawStamp(
 		}
 		ctx.stroke();
 
-		const hx = stamp.x;
-		const hy = bx.y + bx.h + 24 * U;
+		const handle = getHandleCoords(stamp, U, ctx);
+		const hx = handle.x;
+		const hy = handle.y;
 		ctx.setLineDash([]);
 		ctx.beginPath();
-		ctx.moveTo(hx, bx.y + bx.h);
+		const stemStartY = handle.isFlipped ? bx.y : bx.y + bx.h;
+		ctx.moveTo(hx, stemStartY);
 		ctx.lineTo(hx, hy);
 		ctx.stroke();
 

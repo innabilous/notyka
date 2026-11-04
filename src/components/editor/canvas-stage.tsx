@@ -777,10 +777,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				const canvas = canvasRef.current;
 				const ctx = canvas?.getContext('2d');
 				if (ctx) {
-					const bx = calculateStampBox(active, uRef.current, ctx);
-					active.x = pt.x - dragOffsetRef.current.x;
-					let targetY =
-						pt.y - dragOffsetRef.current.y - 24 * uRef.current - (bx.y + bx.h - active.y);
+					//! Зрушуємо штамп на дельту переміщення хендлера (працює коректно і для звичайного, і для перевернутого хендлера)
+					const h = getHandleCoords(active, uRef.current, ctx);
+					const dx = pt.x - dragOffsetRef.current.x - h.x;
+					const dy = pt.y - dragOffsetRef.current.y - h.y;
+					active.x += dx;
+					let targetY = active.y + dy;
 					const snapY = rulersVisible
 						? getClosestRulerY(targetY, rulersListRef.current, 16 * uRef.current)
 						: null;
