@@ -44,10 +44,12 @@ interface CanvasStageProps {
 	resizeHandlesOn?: boolean;
 	rulersVisible?: boolean;
 	rulersAttachContent?: boolean;
+	rulersShowDistance?: boolean;
 	hasCanvas: boolean;
 	onSelectStamp: (stamp: StampItem) => void;
 	onChangeSize?: (newSize: number) => void;
 	onHistoryChange: (canUndo: boolean, canRedo: boolean) => void;
+	onRulersCountChange?: (count: number) => void;
 	onNotify: (message: string) => void;
 	onInitBlank: () => void;
 	onResetCanvas: () => void;
@@ -61,6 +63,8 @@ export interface CanvasStageHandle {
 	clear: () => void;
 	undo: () => void;
 	redo: () => void;
+	distributeRulers: () => void;
+	getRulersCount: () => number;
 	commitActiveStamp: () => void;
 	prepareExport: () => void;
 	getExportBlob: () => Promise<Blob | null>;
@@ -88,10 +92,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	resizeHandlesOn = true,
 	rulersVisible = true,
 	rulersAttachContent = false,
+	rulersShowDistance = false,
 	hasCanvas,
 	onSelectStamp,
 	onChangeSize,
 	onHistoryChange,
+	onRulersCountChange,
 	onNotify,
 	onInitBlank,
 	onResetCanvas,
@@ -227,6 +233,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				ctx,
 				uRef.current,
 				canvas.width,
+				rulersShowDistance,
 			);
 		}
 
@@ -244,7 +251,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			ctx.stroke();
 			ctx.restore();
 		}
-	}, [currentMode, currentSize, deleteBtnOn, resizeHandlesOn, rulersVisible]);
+	}, [currentMode, currentSize, deleteBtnOn, resizeHandlesOn, rulersVisible, rulersShowDistance]);
 
 	const scheduleRender = useCallback(() => {
 		if (rafIdRef.current) return;
@@ -420,6 +427,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 					onInitBlank();
 					render();
+					onRulersCountChange?.(rulersListRef.current.length);
 
 					historyStackRef.current = [];
 					historyStepRef.current = -1;
@@ -443,7 +451,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				reader.readAsDataURL(fileOrSrc);
 			}
 		},
-		[initCanvas, onInitBlank, onNotify, render, resetTransform, saveHistory],
+		[initCanvas, onInitBlank, onNotify, onRulersCountChange, render, resetTransform, saveHistory],
 	);
 
 	const clearCanvas = useCallback(() => {
@@ -452,6 +460,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		stampsListRef.current = [];
 		rulersListRef.current = [];
 		activeRulerIdRef.current = null;
+		onRulersCountChange?.(0);
 
 		if (currentImageRef.current) {
 			const base = baseCanvasRef.current;
@@ -474,6 +483,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		onContentChange,
 		onNotify,
 		onResetCanvas,
+		onRulersCountChange,
 		render,
 		resetTransform,
 		saveHistory,
@@ -498,8 +508,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			render();
 			updateUndoRedo();
 			onContentChange?.();
+			onRulersCountChange?.(rulersListRef.current.length);
 		},
-		[onContentChange, render, updateUndoRedo],
+		[onContentChange, onRulersCountChange, render, updateUndoRedo],
 	);
 
 	const handleUndo = useCallback(() => {
@@ -848,6 +859,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 						isDraggingRulerRef.current = false;
 						saveHistory();
 						scheduleRender();
+						onRulersCountChange?.(rulersListRef.current.length);
 						onNotify('Лінійку видалено');
 						return;
 					}
@@ -882,6 +894,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				dragMovedRef.current = false;
 				dragOffsetRef.current = { x: 0, y: 0 };
 				draggedStampIdsRef.current = [];
+				onRulersCountChange?.(rulersListRef.current.length);
 				saveHistory();
 				scheduleRender();
 				onNotify('Лінійку створено');
@@ -1202,12 +1215,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			resetTransform();
 			onInitBlank();
 			render();
+			onRulersCountChange?.(rulersListRef.current.length);
 
 			historyStackRef.current = [];
 			historyStepRef.current = -1;
 			saveHistory();
 		},
-		[initCanvas, onInitBlank, render, resetTransform, saveHistory],
+		[initCanvas, onInitBlank, onRulersCountChange, render, resetTransform, saveHistory],
 	);
 
 	// Attach stageRef imperative handle
@@ -1218,6 +1232,50 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			clear: clearCanvas,
 			undo: handleUndo,
 			redo: handleRedo,
+			distributeRulers: () => {
+				const rulers = rulersListRef.current;
+				if (rulers.length < 3) {
+					onNotify('Потрібно щонайменше 3 лінійки для вирівнювання');
+					return;
+				}
+
+				const sorted = [...rulers].sort((a, b) => a.y - b.y);
+				const top = sorted[0];
+				const bottom = sorted[sorted.length - 1];
+				const totalDist = bottom.y - top.y;
+				if (totalDist <= 0) return;
+
+				const step = totalDist / (sorted.length - 1);
+				const u = uRef.current;
+				const threshold = 16 * u;
+
+				sorted.forEach((ruler, index) => {
+					if (index === 0 || index === sorted.length - 1) return;
+					const newY = Math.round(top.y + index * step);
+					const deltaY = newY - ruler.y;
+
+					if (rulersAttachContent && deltaY !== 0) {
+						stampsListRef.current.forEach((st) => {
+							if (Math.abs(st.y - ruler.y) <= threshold) {
+								st.y += deltaY;
+							}
+						});
+						if (activeStampRef.current && Math.abs(activeStampRef.current.y - ruler.y) <= threshold) {
+							activeStampRef.current.y += deltaY;
+						}
+					}
+
+					ruler.y = newY;
+				});
+
+				saveHistory();
+				render();
+				scheduleRender();
+				onContentChange?.();
+				onRulersCountChange?.(rulersListRef.current.length);
+				onNotify('Лінійки вирівняно рівновіддалено');
+			},
+			getRulersCount: () => rulersListRef.current.length,
 			commitActiveStamp,
 			prepareExport,
 			getExportBlob: async () => {
@@ -1250,8 +1308,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		handleUndo,
 		loadImage,
 		loadProject,
+		onContentChange,
+		onNotify,
 		prepareExport,
 		render,
+		rulersAttachContent,
+		saveHistory,
 		serializeProject,
 		stageRef,
 	]);
@@ -1262,11 +1324,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	}, [render]);
 
 	useEffect(() => {
-		if (currentMode !== 'ruler' && activeRulerIdRef.current) {
+		if (currentMode === 'ruler') {
+			onRulersCountChange?.(rulersListRef.current.length);
+		} else if (activeRulerIdRef.current) {
 			activeRulerIdRef.current = null;
 			scheduleRender();
 		}
-	}, [currentMode, scheduleRender]);
+	}, [currentMode, onRulersCountChange, scheduleRender]);
 
 	// Native gesture listeners on container
 	useEffect(() => {

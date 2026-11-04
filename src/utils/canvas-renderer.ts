@@ -24,25 +24,35 @@ export function calculateStampBox(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): BoundingBox {
+	const lines = String(stamp.text).split('\n');
 	ctx.save();
 	ctx.font = getStampFont(stamp.size, U);
 	ctx.textAlign = 'center';
 	ctx.textBaseline = 'middle';
-	const m = ctx.measureText(stamp.text);
+
+	let maxW = 0;
+	lines.forEach((line) => {
+		const m = ctx.measureText(line);
+		const l = m.actualBoundingBoxLeft ?? m.width / 2;
+		const r = m.actualBoundingBoxRight ?? m.width / 2;
+		const w = Math.max(m.width, l + r);
+		if (w > maxW) maxW = w;
+	});
 	ctx.restore();
 
 	const fs = stamp.size * 2 * U;
+	const lineH = fs * 1.25;
+	const totalH = fs + (lines.length - 1) * lineH;
 	const pad = fs * 0.22;
 	const outline = stamp.strokeColor !== 'transparent' ? Math.max(2, fs / 10) / 2 : 0;
-	const l = m.actualBoundingBoxLeft ?? m.width / 2;
-	const r = m.actualBoundingBoxRight ?? m.width / 2;
-	const asc = m.actualBoundingBoxAscent ?? fs * 0.4;
-	const desc = m.actualBoundingBoxDescent ?? fs * 0.4;
 
-	const x0 = stamp.x - l - outline - pad;
-	const x1 = stamp.x + r + outline + pad;
-	const y0 = stamp.y - asc - outline - pad;
-	const y1 = stamp.y + desc + outline + pad;
+	const halfW = maxW / 2;
+	const halfH = totalH / 2;
+
+	const x0 = stamp.x - halfW - outline - pad;
+	const x1 = stamp.x + halfW + outline + pad;
+	const y0 = stamp.y - halfH - outline - pad;
+	const y1 = stamp.y + halfH + outline + pad;
 
 	return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
@@ -261,6 +271,10 @@ export function drawStamp(
 	ctx.lineJoin = 'round';
 	ctx.lineCap = 'round';
 
+	const lines = String(stamp.text).split('\n');
+	const lineH = fontSize * 1.25;
+	const startY = stamp.y - ((lines.length - 1) * lineH) / 2;
+
 	if (stamp.strokeColor !== 'transparent') {
 		if (stamp.badgeMode) {
 			//! Малюємо кольорову суцільну плашку під текстом
@@ -277,12 +291,16 @@ export function drawStamp(
 		} else {
 			ctx.strokeStyle = stamp.strokeColor;
 			ctx.lineWidth = Math.max(2, fontSize / 10);
-			ctx.strokeText(stamp.text, stamp.x, stamp.y);
+			lines.forEach((line, i) => {
+				ctx.strokeText(line, stamp.x, startY + i * lineH);
+			});
 		}
 	}
 
 	ctx.fillStyle = stamp.mainColor;
-	ctx.fillText(stamp.text, stamp.x, stamp.y);
+	lines.forEach((line, i) => {
+		ctx.fillText(line, stamp.x, startY + i * lineH);
+	});
 
 	if (isActive) {
 		const bx = calculateStampBox(stamp, U, ctx);
@@ -443,6 +461,7 @@ export function drawRulers(
 	ctx: CanvasRenderingContext2D,
 	U: number,
 	canvasWidth: number,
+	showDistance: boolean = false,
 ): void {
 	if (rulers.length === 0) return;
 
@@ -492,5 +511,57 @@ export function drawRulers(
 		}
 
 		ctx.restore();
+	}
+
+	//! Відображення дистанції між сусідніми лінійками в пікселях
+	if (showDistance && rulers.length >= 2) {
+		const sorted = [...rulers].sort((a, b) => a.y - b.y);
+		const dimX = canvasWidth - 55 * U;
+
+		for (let i = 0; i < sorted.length - 1; i++) {
+			const r1 = sorted[i];
+			const r2 = sorted[i + 1];
+			const distPx = Math.round(r2.y - r1.y);
+			if (distPx <= 2) continue;
+			const midY = (r1.y + r2.y) / 2;
+
+			ctx.save();
+			ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+			ctx.lineWidth = 1 * U;
+			ctx.setLineDash([3 * U, 3 * U]);
+			ctx.beginPath();
+			ctx.moveTo(dimX, r1.y);
+			ctx.lineTo(dimX, r2.y);
+			ctx.stroke();
+
+			const text = `${distPx} px`;
+			const fontSize = Math.max(9, Math.round(10 * U));
+			ctx.font = `600 ${fontSize}px system-ui, -apple-system, sans-serif`;
+			const tw = ctx.measureText(text).width;
+			const bw = tw + 8 * U;
+			const bh = Math.max(14 * U, fontSize + 4 * U);
+			const bx = dimX - bw / 2;
+			const by = midY - bh / 2;
+
+			// Фон бейджа в кольорі лінійок замість чорного
+			ctx.fillStyle = '#4f46e5';
+			ctx.setLineDash([]);
+			ctx.beginPath();
+			if (typeof ctx.roundRect === 'function') {
+				ctx.roundRect(bx, by, bw, bh, 4 * U);
+			} else {
+				ctx.rect(bx, by, bw, bh);
+			}
+			ctx.fill();
+			ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+			ctx.lineWidth = 1 * U;
+			ctx.stroke();
+
+			ctx.fillStyle = '#ffffff';
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillText(text, dimX, midY);
+			ctx.restore();
+		}
 	}
 }

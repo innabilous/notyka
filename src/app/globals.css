@@ -1021,6 +1021,42 @@ footer {
 	stroke-width: 3;
 }
 
+/* Stamp Text Input */
+.stamp-text-input-wrap {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	padding: 0.2rem 0.5rem;
+	box-sizing: border-box;
+	overflow: visible;
+}
+
+.stamp-textarea-root {
+	width: 100%;
+	max-width: 360px;
+}
+
+.stamp-textarea-input {
+	background: rgba(22, 23, 27, 0.75) !important;
+	backdrop-filter: blur(8px) !important;
+	border: 1px solid var(--line-strong) !important;
+	color: var(--text) !important;
+	border-radius: 12px !important;
+	font-size: 0.85rem !important;
+	line-height: 1.35 !important;
+	padding: 0.35rem 0.75rem !important;
+	resize: none !important;
+	transition:
+		border-color 0.15s,
+		box-shadow 0.15s !important;
+}
+
+.stamp-textarea-input:focus {
+	border-color: #6366f1 !important;
+	box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+}
+
 @keyframes pop-in {
 	0% {
 		transform: scale(0.5);

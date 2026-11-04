@@ -54,7 +54,7 @@ export const PhotoEditor: React.FC = () => {
 		ruler: 24,
 	});
 
-	const [selectedNote, setSelectedNote] = useState<string>('до');
+	const [selectedNote, setSelectedNote] = useState<string>('До');
 	const [selectedAccidental, setSelectedAccidental] = useState<string>('');
 	const [selectedChordRoot, setSelectedChordRoot] = useState<string>('C');
 	const [selectedChordAccidental, setSelectedChordAccidental] = useState<string>('');
@@ -63,17 +63,20 @@ export const PhotoEditor: React.FC = () => {
 	const [selectedChordBassRoot, setSelectedChordBassRoot] = useState<string>('');
 	const [selectedChordBassAccidental, setSelectedChordBassAccidental] = useState<string>('');
 	const [stampBadgeMode, setStampBadgeMode] = useState<boolean>(false);
-	const [activeStampText, setActiveStampText] = useState<string>('до');
+	const [activeStampText, setActiveStampText] = useState<string>('До');
 	const [stampCategory, setStampCategory] = useState<StampCategory>('notes');
 	const [customStamps, setCustomStamps] = useState<string[]>([]);
+	const [customText, setCustomText] = useState<string>('Текст');
 	const [customStampModalOpen, setCustomStampModalOpen] = useState<boolean>(false);
 	const [sizeLocked, setSizeLocked] = useState<boolean>(true);
 	const [noteSizes, setNoteSizes] = useState<Record<string, number>>({});
 
-	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(false);
+	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(true);
 	const [resizeHandlesOn, setResizeHandlesOn] = useState<boolean>(true);
 	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
 	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(false);
+	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
+	const [rulersCount, setRulersCount] = useState<number>(0);
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
@@ -99,12 +102,20 @@ export const PhotoEditor: React.FC = () => {
 	// Outside click listener for popups
 	useEffect(() => {
 		const handleDocClick = (e: MouseEvent) => {
-			const target = e.target as HTMLElement | null;
-			if (!target) return;
-			if (!target.closest('#image-menu') && !target.closest('#btn-toggle-menu')) {
+			const path = e.composedPath();
+			const isInsideMenu = path.some((el) => {
+				const htmlEl = el as HTMLElement;
+				return htmlEl?.id === 'image-menu' || htmlEl?.id === 'btn-toggle-menu';
+			});
+			if (!isInsideMenu) {
 				setIsMenuOpen(false);
 			}
-			if (!target.closest('#color-palette-popup') && !target.closest('#btn-toggle-palette')) {
+
+			const isInsidePalette = path.some((el) => {
+				const htmlEl = el as HTMLElement;
+				return htmlEl?.id === 'color-palette-popup' || htmlEl?.id === 'btn-toggle-palette';
+			});
+			if (!isInsidePalette) {
 				setIsPaletteOpen(false);
 			}
 		};
@@ -167,6 +178,9 @@ export const PhotoEditor: React.FC = () => {
 				setRulersVisible(savedSettings.rulersVisible);
 			if (savedSettings.rulersAttachContent !== undefined)
 				setRulersAttachContent(savedSettings.rulersAttachContent);
+			if (savedSettings.rulersShowDistance !== undefined)
+				setRulersShowDistance(savedSettings.rulersShowDistance);
+			if (savedSettings.customText) setCustomText(savedSettings.customText);
 		}
 
 		loadCurrentSession()
@@ -210,15 +224,19 @@ export const PhotoEditor: React.FC = () => {
 			resizeHandlesOn,
 			rulersVisible,
 			rulersAttachContent,
+			rulersShowDistance,
+			customText,
 		});
 	}, [
 		activeStampText,
 		currentMode,
 		customStamps,
+		customText,
 		deleteBtnOn,
 		noteSizes,
 		resizeHandlesOn,
 		rulersAttachContent,
+		rulersShowDistance,
 		rulersVisible,
 		selectedAccidental,
 		selectedChordAccidental,
@@ -829,6 +847,8 @@ export const PhotoEditor: React.FC = () => {
 				if (customStamps.length > 0) {
 					nextText = customStamps[0];
 				}
+			} else if (cat === 'text') {
+				nextText = customText || 'Текст';
 			}
 			setActiveStampText(nextText);
 			stageRef.current?.updateActiveStampProps(
@@ -844,6 +864,7 @@ export const PhotoEditor: React.FC = () => {
 			currentMainColor,
 			currentStrokeColor,
 			customStamps,
+			customText,
 			selectedAccidental,
 			selectedChordAccidental,
 			selectedChordBassAccidental,
@@ -854,6 +875,23 @@ export const PhotoEditor: React.FC = () => {
 			selectedNote,
 			toolSizes.stamp,
 		],
+	);
+
+	//! Зміна користувацького тексту штампа
+	const handleChangeCustomText = useCallback(
+		(text: string) => {
+			setCustomText(text);
+			const effectiveText = text || 'Текст';
+			setActiveStampText(effectiveText);
+			stageRef.current?.updateActiveStampProps(
+				toolSizes.stamp,
+				effectiveText,
+				currentMainColor,
+				currentStrokeColor,
+				stampBadgeMode,
+			);
+		},
+		[currentMainColor, currentStrokeColor, stampBadgeMode, toolSizes.stamp],
 	);
 
 	const handleAddCustomStamp = useCallback(
@@ -1270,6 +1308,8 @@ export const PhotoEditor: React.FC = () => {
 				strokeColor={currentStrokeColor}
 				rulersVisible={rulersVisible}
 				rulersAttachContent={rulersAttachContent}
+				rulersShowDistance={rulersShowDistance}
+				rulersCount={rulersCount}
 				onUndo={() => stageRef.current?.undo()}
 				onRedo={() => stageRef.current?.redo()}
 				onToggleMenu={handleToggleMenu}
@@ -1278,6 +1318,8 @@ export const PhotoEditor: React.FC = () => {
 				onTogglePalette={handleTogglePalette}
 				onToggleRulersVisible={handleToggleRulersVisible}
 				onToggleRulersAttachContent={handleToggleRulersAttachContent}
+				onToggleRulersShowDistance={() => setRulersShowDistance((prev) => !prev)}
+				onDistributeRulers={() => stageRef.current?.distributeRulers()}
 			/>
 
 			<CanvasStage
@@ -1293,6 +1335,7 @@ export const PhotoEditor: React.FC = () => {
 				resizeHandlesOn={resizeHandlesOn}
 				rulersVisible={rulersVisible}
 				rulersAttachContent={rulersAttachContent}
+				rulersShowDistance={rulersShowDistance}
 				hasCanvas={hasCanvas}
 				onSelectStamp={handleSelectStampFromCanvas}
 				onChangeSize={handleChangeSize}
@@ -1300,6 +1343,7 @@ export const PhotoEditor: React.FC = () => {
 					setCanUndo(undo);
 					setCanRedo(redo);
 				}}
+				onRulersCountChange={setRulersCount}
 				onNotify={showToast}
 				onInitBlank={() => setHasCanvas(true)}
 				onResetCanvas={() => setHasCanvas(false)}
@@ -1390,6 +1434,7 @@ export const PhotoEditor: React.FC = () => {
 							activeStampText={activeStampText}
 							category={stampCategory}
 							customStamps={customStamps}
+							customText={customText}
 							onChangeCategory={handleChangeStampCategory}
 							onSelectNote={handleSelectNote}
 							onSelectAccidental={handleSelectAccidental}
@@ -1402,6 +1447,7 @@ export const PhotoEditor: React.FC = () => {
 							onSelectStampText={handleSelectStampText}
 							onOpenAddCustomModal={() => setCustomStampModalOpen(true)}
 							onDeleteCustomStamp={handleDeleteCustomStamp}
+							onChangeCustomText={handleChangeCustomText}
 						/>
 					)}
 

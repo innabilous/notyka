@@ -22,6 +22,8 @@ export interface EditorSettings {
 	resizeHandlesOn?: boolean;
 	rulersVisible?: boolean;
 	rulersAttachContent?: boolean;
+	rulersShowDistance?: boolean;
+	customText?: string;
 }
 
 export interface ProjectItem {

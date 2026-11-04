@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SegmentedControl } from '@mantine/core';
+import { SegmentedControl, Textarea } from '@mantine/core';
 import { Plus, Trash2, X } from 'lucide-react';
 import {
 	ACCIDENTALS,
@@ -13,7 +13,7 @@ import {
 	NOTES,
 } from '@/constants/editor';
 
-export type StampCategory = 'notes' | 'chords' | 'count' | 'custom';
+export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text';
 
 interface StampSettingsProps {
 	selectedNote: string;
@@ -27,6 +27,7 @@ interface StampSettingsProps {
 	activeStampText: string;
 	category: StampCategory;
 	customStamps: string[];
+	customText?: string;
 	onChangeCategory: (cat: StampCategory) => void;
 	onSelectNote: (note: string) => void;
 	onSelectAccidental: (acc: string) => void;
@@ -39,6 +40,7 @@ interface StampSettingsProps {
 	onSelectStampText: (text: string) => void;
 	onOpenAddCustomModal: () => void;
 	onDeleteCustomStamp: (text: string) => void;
+	onChangeCustomText?: (text: string) => void;
 }
 
 export const StampSettings: React.FC<StampSettingsProps> = ({
@@ -53,6 +55,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 	activeStampText,
 	category,
 	customStamps,
+	customText = '',
 	onChangeCategory,
 	onSelectNote,
 	onSelectAccidental,
@@ -65,6 +68,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 	onSelectStampText,
 	onOpenAddCustomModal,
 	onDeleteCustomStamp,
+	onChangeCustomText,
 }) => {
 	const [isDeleteMode, setIsDeleteMode] = useState<boolean>(false);
 
@@ -89,6 +93,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 						{ label: 'Акорди', value: 'chords' },
 						{ label: 'Лік', value: 'count' },
 						{ label: 'Власні', value: 'custom' },
+						{ label: 'Текст', value: 'text' },
 					]}
 					classNames={{
 						root: 'stamp-segmented-root',
@@ -99,7 +104,9 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 			</div>
 
 			{/* Рівень 2: Чипи відповідно до категорії */}
-			<div className={`stamp-chips-scroll ${category === 'chords' ? 'multi-row' : ''}`}>
+			<div
+				className={`stamp-chips-scroll ${category === 'chords' || category === 'text' ? 'multi-row' : ''}`}
+			>
 				{/* 1. Ноти та знаки альтерації */}
 				{category === 'notes' && (
 					<div className="stamp-chips-row fit-width">
@@ -341,6 +348,24 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							</div>
 						</div>
 					)
+				)}
+
+				{/* 5. Довільний текст */}
+				{category === 'text' && (
+					<div className="stamp-text-input-wrap">
+						<Textarea
+							autosize
+							minRows={1}
+							maxRows={3}
+							placeholder="Введіть текст штампа..."
+							value={customText}
+							onChange={(e) => onChangeCustomText?.(e.currentTarget.value)}
+							classNames={{
+								root: 'stamp-textarea-root',
+								input: 'stamp-textarea-input',
+							}}
+						/>
+					</div>
 				)}
 			</div>
 		</div>
