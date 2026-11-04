@@ -76,6 +76,7 @@ export const PhotoEditor: React.FC = () => {
 	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
 	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(false);
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
+	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
 	const [rulersCount, setRulersCount] = useState<number>(0);
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
@@ -180,6 +181,8 @@ export const PhotoEditor: React.FC = () => {
 				setRulersAttachContent(savedSettings.rulersAttachContent);
 			if (savedSettings.rulersShowDistance !== undefined)
 				setRulersShowDistance(savedSettings.rulersShowDistance);
+			if (savedSettings.rulersLockEqualDistance !== undefined)
+				setRulersLockEqualDistance(savedSettings.rulersLockEqualDistance);
 			if (savedSettings.customText) setCustomText(savedSettings.customText);
 		}
 
@@ -225,6 +228,7 @@ export const PhotoEditor: React.FC = () => {
 			rulersVisible,
 			rulersAttachContent,
 			rulersShowDistance,
+			rulersLockEqualDistance,
 			customText,
 		});
 	}, [
@@ -236,6 +240,7 @@ export const PhotoEditor: React.FC = () => {
 		noteSizes,
 		resizeHandlesOn,
 		rulersAttachContent,
+		rulersLockEqualDistance,
 		rulersShowDistance,
 		rulersVisible,
 		selectedAccidental,
@@ -1309,6 +1314,7 @@ export const PhotoEditor: React.FC = () => {
 				rulersVisible={rulersVisible}
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
+				rulersLockEqualDistance={rulersLockEqualDistance}
 				rulersCount={rulersCount}
 				onUndo={() => stageRef.current?.undo()}
 				onRedo={() => stageRef.current?.redo()}
@@ -1319,7 +1325,8 @@ export const PhotoEditor: React.FC = () => {
 				onToggleRulersVisible={handleToggleRulersVisible}
 				onToggleRulersAttachContent={handleToggleRulersAttachContent}
 				onToggleRulersShowDistance={() => setRulersShowDistance((prev) => !prev)}
-				onDistributeRulers={() => stageRef.current?.distributeRulers()}
+				onToggleRulersLockEqualDistance={() => setRulersLockEqualDistance((prev) => !prev)}
+				onClearRulers={() => stageRef.current?.clearRulers()}
 			/>
 
 			<CanvasStage
@@ -1336,6 +1343,7 @@ export const PhotoEditor: React.FC = () => {
 				rulersVisible={rulersVisible}
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
+				rulersLockEqualDistance={rulersLockEqualDistance}
 				hasCanvas={hasCanvas}
 				onSelectStamp={handleSelectStampFromCanvas}
 				onChangeSize={handleChangeSize}
@@ -1364,6 +1372,7 @@ export const PhotoEditor: React.FC = () => {
 				opened={isMenuOpen}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
+				onClose={() => setIsMenuOpen(false)}
 				onUploadClick={() => {
 					setIsMenuOpen(false);
 					fileInputRef.current?.click();

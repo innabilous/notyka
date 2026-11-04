@@ -19,6 +19,7 @@ interface ImageMenuModalProps {
 	opened: boolean;
 	deleteBtnOn: boolean;
 	resizeHandlesOn: boolean;
+	onClose?: () => void;
 	onUploadClick: () => void;
 	onNewBlank: () => void;
 	onOpenHistory: () => void;
@@ -33,6 +34,7 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 	opened,
 	deleteBtnOn,
 	resizeHandlesOn,
+	onClose,
 	onUploadClick,
 	onNewBlank,
 	onOpenHistory,
@@ -52,13 +54,28 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 
 	if (!opened) return null;
 
+	const handleBackdropClick = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		e.preventDefault();
+		onClose?.();
+	};
+
 	return (
-		<div
-			id="image-menu"
-			className="popup"
-			onClick={(e) => e.stopPropagation()}
-			onMouseDown={(e) => e.stopPropagation()}
-		>
+		<>
+			{/* Бекдроп для блокування взаємодії з полотном/штампами та закриття меню при кліку повз */}
+			<div
+				className="menu-backdrop"
+				onClick={handleBackdropClick}
+				onMouseDown={(e) => e.stopPropagation()}
+				onPointerDown={(e) => e.stopPropagation()}
+			/>
+
+			<div
+				id="image-menu"
+				className="popup"
+				onClick={(e) => e.stopPropagation()}
+				onMouseDown={(e) => e.stopPropagation()}
+			>
 			{isSettingsOpen ? (
 				<>
 					<button
@@ -161,5 +178,6 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 				</>
 			)}
 		</div>
-	);
+	</>
+);
 };
