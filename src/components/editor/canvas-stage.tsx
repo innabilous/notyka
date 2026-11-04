@@ -16,6 +16,7 @@ import { HistoryItem, Point, RulerItem, StampItem, ToolMode } from '@/types/edit
 import { ProjectItem } from '@/types/storage';
 import {
 	calculateStampBox,
+	clampStampPosition,
 	drawRulers,
 	drawStamp,
 	findRulerNearPoint,
@@ -617,6 +618,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				mainColor,
 				strokeColor,
 			};
+			//! Гарантуємо, що новостворений штамп не виходить за межі полотна
+			const clamped = clampStampPosition(newStamp.x, newStamp.y, newStamp, uRef.current, ctx);
+			newStamp.x = clamped.x;
+			newStamp.y = clamped.y;
 			activeStampRef.current = newStamp;
 			activeOrigRef.current = '';
 			isDraggingStampRef.current = true;
@@ -747,6 +752,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				);
 				if (newCalculatedSize !== active.size) {
 					active.size = newCalculatedSize;
+					const canvas = canvasRef.current;
+					const ctx = canvas?.getContext('2d');
+					if (ctx) {
+						const clamped = clampStampPosition(active.x, active.y, active, uRef.current, ctx);
+						active.x = clamped.x;
+						active.y = clamped.y;
+					}
 					onChangeSize?.(newCalculatedSize);
 					render();
 				}
@@ -777,11 +789,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				const canvas = canvasRef.current;
 				const ctx = canvas?.getContext('2d');
 				if (ctx) {
-					//! Зрушуємо штамп на дельту переміщення хендлера (працює коректно і для звичайного, і для перевернутого хендлера)
+					//! Зрушуємо штамп на дельту переміщення хендлера та зупиняємо на межі полотна
 					const h = getHandleCoords(active, uRef.current, ctx);
 					const dx = pt.x - dragOffsetRef.current.x - h.x;
 					const dy = pt.y - dragOffsetRef.current.y - h.y;
-					active.x += dx;
+					let targetX = active.x + dx;
 					let targetY = active.y + dy;
 					const snapY = rulersVisible
 						? getClosestRulerY(targetY, rulersListRef.current, 16 * uRef.current)
@@ -789,20 +801,28 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					if (snapY !== null) {
 						targetY = snapY;
 					}
-					active.y = targetY;
+					const clamped = clampStampPosition(targetX, targetY, active, uRef.current, ctx);
+					active.x = clamped.x;
+					active.y = clamped.y;
 					render();
 				}
 			} else if (isDraggingStampRef.current) {
-				active.x = pt.x - dragOffsetRef.current.x;
-				let targetY = pt.y - dragOffsetRef.current.y;
-				const snapY = rulersVisible
-					? getClosestRulerY(targetY, rulersListRef.current, 16 * uRef.current)
-					: null;
-				if (snapY !== null) {
-					targetY = snapY;
+				const canvas = canvasRef.current;
+				const ctx = canvas?.getContext('2d');
+				if (ctx) {
+					let targetX = pt.x - dragOffsetRef.current.x;
+					let targetY = pt.y - dragOffsetRef.current.y;
+					const snapY = rulersVisible
+						? getClosestRulerY(targetY, rulersListRef.current, 16 * uRef.current)
+						: null;
+					if (snapY !== null) {
+						targetY = snapY;
+					}
+					const clamped = clampStampPosition(targetX, targetY, active, uRef.current, ctx);
+					active.x = clamped.x;
+					active.y = clamped.y;
+					render();
 				}
-				active.y = targetY;
-				render();
 			}
 		},
 		[onChangeSize, render, rulersVisible],
@@ -915,9 +935,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 							dragMovedRef.current = true;
 							ruler.y = newY;
 							if (rulersAttachContent && draggedStampIdsRef.current.length > 0) {
+								const ctx = canvas.getContext('2d');
 								for (const st of stampsListRef.current) {
 									if (draggedStampIdsRef.current.includes(st.id)) {
 										st.y += dy;
+										if (ctx) {
+											const clamped = clampStampPosition(st.x, st.y, st, uRef.current, ctx);
+											st.x = clamped.x;
+											st.y = clamped.y;
+										}
 									}
 								}
 								if (
@@ -925,6 +951,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 									draggedStampIdsRef.current.includes(activeStampRef.current.id)
 								) {
 									activeStampRef.current.y += dy;
+									if (ctx) {
+										const clamped = clampStampPosition(
+											activeStampRef.current.x,
+											activeStampRef.current.y,
+											activeStampRef.current,
+											uRef.current,
+											ctx,
+										);
+										activeStampRef.current.x = clamped.x;
+										activeStampRef.current.y = clamped.y;
+									}
 								}
 							}
 							scheduleRender();

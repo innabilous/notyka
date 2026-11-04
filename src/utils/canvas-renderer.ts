@@ -47,6 +47,47 @@ export function calculateStampBox(
 	return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }
 
+export function getStampBoxOffsets(
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): { left: number; right: number; top: number; bottom: number } {
+	const bx = calculateStampBox(stamp, U, ctx);
+	return {
+		left: stamp.x - bx.x,
+		right: bx.x + bx.w - stamp.x,
+		top: stamp.y - bx.y,
+		bottom: bx.y + bx.h - stamp.y,
+	};
+}
+
+//! Зупиняє штамп на межі канвасу, не дозволяючи жодному елементу вийти за межі
+export function clampStampPosition(
+	x: number,
+	y: number,
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): { x: number; y: number } {
+	const offsets = getStampBoxOffsets(stamp, U, ctx);
+	const canvasW = ctx.canvas?.width ?? 10000;
+	const canvasH = ctx.canvas?.height ?? 10000;
+
+	// Враховуємо бічні напівкружечки зміни розміру (6*U)
+	const sideMargin = 7 * U;
+	const topBottomMargin = 2 * U;
+
+	const minX = offsets.left + sideMargin;
+	const maxX = Math.max(minX, canvasW - offsets.right - sideMargin);
+	const minY = offsets.top + topBottomMargin;
+	const maxY = Math.max(minY, canvasH - offsets.bottom - topBottomMargin);
+
+	const clampedX = Math.max(minX, Math.min(maxX, x));
+	const clampedY = Math.max(minY, Math.min(maxY, y));
+
+	return { x: clampedX, y: clampedY };
+}
+
 export function getHandleCoords(
 	stamp: StampItem,
 	U: number,
@@ -57,8 +98,12 @@ export function getHandleCoords(
 	const canvasW = ctx.canvas?.width ?? 10000;
 	const radius = 14 * U;
 
-	//! Якщо хендлер знизу виходить за межі канвасу, переносимо його нагору
-	const isFlipped = bx.y + bx.h + 24 * U + radius > canvasH - 4 * U;
+	const spaceBelow = canvasH - (bx.y + bx.h);
+	const spaceAbove = bx.y;
+	const neededSpace = 24 * U + radius + 4 * U;
+
+	//! Якщо знизу місця недостатньо, а зверху вистачає — переносимо хендлер нагору
+	const isFlipped = spaceBelow < neededSpace && spaceAbove >= neededSpace;
 	const rawY = isFlipped ? bx.y - 24 * U : bx.y + bx.h + 24 * U;
 
 	const y = Math.max(radius + 4 * U, Math.min(canvasH - radius - 4 * U, rawY));
@@ -78,20 +123,42 @@ export function getDeleteCoords(
 	const radius = 9 * U;
 
 	const handle = getHandleCoords(stamp, U, ctx);
+	const spaceAbove = bx.y;
+	const spaceBelow = canvasH - (bx.y + bx.h);
+	const neededSpace = 15 * U + radius + 4 * U;
+
+	//! Якщо хендлер вгорі (бо знизу мало місця):
 	if (handle.isFlipped) {
-		//! Коли хендлер переміщення вгорі, розміщуємо кнопку видалення поруч, щоб вони не перекривалися
+		// Якщо знизу є місце для кошика — розміщуємо його знизу
+		if (spaceBelow >= neededSpace) {
+			const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
+			const y = Math.min(canvasH - radius - 2 * U, bx.y + bx.h + 15 * U);
+			return { x, y, radius };
+		}
+		// Інакше ділимо верхній простір з хендлером: праворуч, або ліворуч якщо справа нема місця
 		const offset = 26 * U;
-		const rawX =
-			handle.x + offset + radius <= canvasW - 4 * U
-				? handle.x + offset
-				: handle.x - offset;
+		const preferRight = handle.x + offset + radius <= canvasW - 4 * U;
+		const rawX = preferRight ? handle.x + offset : handle.x - offset;
 		const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, rawX));
 		const y = handle.y;
 		return { x, y, radius };
 	}
 
-	const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
-	const y = Math.max(bx.y - 15 * U, radius + 2 * U);
+	//! Хендлер переміщення знизу:
+	// Чи є вільне місце зверху для кошика?
+	if (spaceAbove >= neededSpace) {
+		const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
+		const y = Math.max(radius + 2 * U, bx.y - 15 * U);
+		return { x, y, radius };
+	}
+
+	//! Якщо зверху місця немає (нота впритик до верхнього краю) — переміщуємо кошик вниз до хендлера!
+	// Якщо нота в правому кутку — кошик розміщується ліворуч від хендлера
+	const offset = 26 * U;
+	const preferRight = handle.x + offset + radius <= canvasW - 4 * U;
+	const rawX = preferRight ? handle.x + offset : handle.x - offset;
+	const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, rawX));
+	const y = handle.y;
 	return { x, y, radius };
 }
 
