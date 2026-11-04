@@ -3,13 +3,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppPreloader } from '@/components/common/app-preloader';
 import { ColorPaletteModal } from '@/components/modals/color-palette-modal';
+import { CustomStampModal } from '@/components/modals/custom-stamp-modal';
 import { ImageCropModal } from '@/components/modals/image-crop-modal';
 import { ImageMenuModal } from '@/components/modals/image-menu-modal';
 import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal';
 import { BrushSettings } from '@/components/settings/brush-settings';
-import { StampSettings } from '@/components/settings/stamp-settings';
+import { StampCategory, StampSettings } from '@/components/settings/stamp-settings';
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
 import { ToolbarSkeleton } from '@/components/toolbar/toolbar-skeleton';
+import { TopToolbar } from '@/components/toolbar/top-toolbar';
 import { StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
@@ -48,14 +50,22 @@ export const PhotoEditor: React.FC = () => {
 		pencil: 24,
 		stamp: 24,
 		eraser: 24,
+		ruler: 24,
 	});
 
 	const [selectedNote, setSelectedNote] = useState<string>('до');
 	const [selectedAccidental, setSelectedAccidental] = useState<string>('');
+	const [activeStampText, setActiveStampText] = useState<string>('до');
+	const [stampCategory, setStampCategory] = useState<StampCategory>('notes');
+	const [customStamps, setCustomStamps] = useState<string[]>([]);
+	const [customStampModalOpen, setCustomStampModalOpen] = useState<boolean>(false);
 	const [sizeLocked, setSizeLocked] = useState<boolean>(true);
 	const [noteSizes, setNoteSizes] = useState<Record<string, number>>({});
 
 	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(false);
+	const [resizeHandlesOn, setResizeHandlesOn] = useState<boolean>(true);
+	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
+	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(false);
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
@@ -90,8 +100,25 @@ export const PhotoEditor: React.FC = () => {
 				setIsPaletteOpen(false);
 			}
 		};
+
+		const handleBeforeUnload = () => {
+			if (autoSaveTimerRef.current && stageRef.current) {
+				clearTimeout(autoSaveTimerRef.current);
+				stageRef.current.serializeProject().then((project) => {
+					if (project) {
+						saveCurrentSession(project);
+						saveProject(project);
+					}
+				});
+			}
+		};
+
 		document.addEventListener('click', handleDocClick);
-		return () => document.removeEventListener('click', handleDocClick);
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		return () => {
+			document.removeEventListener('click', handleDocClick);
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+		};
 	}, []);
 
 	// Initial restore from localStorage & IndexedDB
@@ -99,14 +126,25 @@ export const PhotoEditor: React.FC = () => {
 		const savedSettings = loadSettings();
 		if (savedSettings) {
 			if (savedSettings.currentMode) setCurrentMode(savedSettings.currentMode);
-			if (savedSettings.toolSizes) setToolSizes(savedSettings.toolSizes);
+			if (savedSettings.toolSizes)
+				setToolSizes((prev) => ({ ...prev, ...savedSettings.toolSizes }));
 			if (savedSettings.toolColors) setToolColors(savedSettings.toolColors);
 			if (savedSettings.selectedNote) setSelectedNote(savedSettings.selectedNote);
 			if (savedSettings.selectedAccidental !== undefined)
 				setSelectedAccidental(savedSettings.selectedAccidental);
+			if (savedSettings.activeStampText) setActiveStampText(savedSettings.activeStampText);
+			if (savedSettings.stampCategory)
+				setStampCategory(savedSettings.stampCategory as StampCategory);
+			if (savedSettings.customStamps) setCustomStamps(savedSettings.customStamps);
 			if (savedSettings.sizeLocked !== undefined) setSizeLocked(savedSettings.sizeLocked);
 			if (savedSettings.noteSizes) setNoteSizes(savedSettings.noteSizes);
 			if (savedSettings.deleteBtnOn !== undefined) setDeleteBtnOn(savedSettings.deleteBtnOn);
+			if (savedSettings.resizeHandlesOn !== undefined)
+				setResizeHandlesOn(savedSettings.resizeHandlesOn);
+			if (savedSettings.rulersVisible !== undefined)
+				setRulersVisible(savedSettings.rulersVisible);
+			if (savedSettings.rulersAttachContent !== undefined)
+				setRulersAttachContent(savedSettings.rulersAttachContent);
 		}
 
 		loadCurrentSession()
@@ -134,26 +172,41 @@ export const PhotoEditor: React.FC = () => {
 			toolColors,
 			selectedNote,
 			selectedAccidental,
+			activeStampText,
+			stampCategory,
+			customStamps,
 			sizeLocked,
 			noteSizes,
 			deleteBtnOn,
+			resizeHandlesOn,
+			rulersVisible,
+			rulersAttachContent,
 		});
 	}, [
+		activeStampText,
 		currentMode,
+		customStamps,
 		deleteBtnOn,
 		noteSizes,
+		resizeHandlesOn,
+		rulersAttachContent,
+		rulersVisible,
 		selectedAccidental,
 		selectedNote,
 		sizeLocked,
+		stampCategory,
 		toolColors,
 		toolSizes,
 	]);
 
-	const currentSize = toolSizes[currentMode];
-	const currentMainColor = toolColors[currentMode === 'eraser' ? 'pencil' : currentMode].main;
-	const currentStrokeColor = toolColors[currentMode === 'eraser' ? 'pencil' : currentMode].stroke;
+	const currentSize = toolSizes[currentMode] ?? 24;
+	const currentMainColor = toolColors[currentMode === 'stamp' ? 'stamp' : 'pencil'].main;
+	const currentStrokeColor = toolColors[currentMode === 'stamp' ? 'stamp' : 'pencil'].stroke;
 
-	const getStampKey = useCallback((note: string, acc: string) => `${note}${acc}`, []);
+	const getStampKey = useCallback(
+		(note: string, acc: string, customText?: string) => customText || `${note}${acc}`,
+		[],
+	);
 
 	const handleContentChange = useCallback(() => {
 		if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
@@ -171,10 +224,20 @@ export const PhotoEditor: React.FC = () => {
 		(mode: ToolMode) => {
 			stageRef.current?.commitActiveStamp();
 
+			if (autoSaveTimerRef.current && stageRef.current) {
+				clearTimeout(autoSaveTimerRef.current);
+				stageRef.current.serializeProject().then((project) => {
+					if (project) {
+						saveCurrentSession(project);
+						saveProject(project);
+					}
+				});
+			}
+
 			if (!sizeLocked && currentMode === 'stamp') {
 				setNoteSizes((prev) => ({
 					...prev,
-					[getStampKey(selectedNote, selectedAccidental)]: toolSizes.stamp,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
 				}));
 			}
 
@@ -182,7 +245,7 @@ export const PhotoEditor: React.FC = () => {
 			setIsPaletteOpen(false);
 
 			if (!sizeLocked && mode === 'stamp') {
-				const key = getStampKey(selectedNote, selectedAccidental);
+				const key = getStampKey(selectedNote, selectedAccidental, activeStampText);
 				if (noteSizes[key] != null) {
 					setToolSizes((prev) => ({
 						...prev,
@@ -192,6 +255,7 @@ export const PhotoEditor: React.FC = () => {
 			}
 		},
 		[
+			activeStampText,
 			currentMode,
 			getStampKey,
 			noteSizes,
@@ -207,13 +271,15 @@ export const PhotoEditor: React.FC = () => {
 			if (!sizeLocked && currentMode === 'stamp') {
 				setNoteSizes((prev) => ({
 					...prev,
-					[getStampKey(selectedNote, selectedAccidental)]: toolSizes.stamp,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
 				}));
 			}
 
 			setSelectedNote(note);
+			const fullNoteText = `${note}${selectedAccidental}`;
+			setActiveStampText(fullNoteText);
 
-			const key = getStampKey(note, selectedAccidental);
+			const key = getStampKey(note, selectedAccidental, fullNoteText);
 			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
 			if (!sizeLocked && noteSizes[key] != null) {
 				setToolSizes((prev) => ({
@@ -224,12 +290,13 @@ export const PhotoEditor: React.FC = () => {
 
 			stageRef.current?.updateActiveStampProps(
 				newSize,
-				`${note}${selectedAccidental}`,
+				fullNoteText,
 				currentMainColor,
 				currentStrokeColor,
 			);
 		},
 		[
+			activeStampText,
 			currentMainColor,
 			currentMode,
 			currentStrokeColor,
@@ -247,14 +314,16 @@ export const PhotoEditor: React.FC = () => {
 			if (!sizeLocked && currentMode === 'stamp') {
 				setNoteSizes((prev) => ({
 					...prev,
-					[getStampKey(selectedNote, selectedAccidental)]: toolSizes.stamp,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
 				}));
 			}
 
 			const nextAcc = selectedAccidental === acc ? '' : acc;
 			setSelectedAccidental(nextAcc);
+			const fullNoteText = `${selectedNote}${nextAcc}`;
+			setActiveStampText(fullNoteText);
 
-			const key = getStampKey(selectedNote, nextAcc);
+			const key = getStampKey(selectedNote, nextAcc, fullNoteText);
 			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
 			if (!sizeLocked && noteSizes[key] != null) {
 				setToolSizes((prev) => ({
@@ -265,12 +334,13 @@ export const PhotoEditor: React.FC = () => {
 
 			stageRef.current?.updateActiveStampProps(
 				newSize,
-				`${selectedNote}${nextAcc}`,
+				fullNoteText,
 				currentMainColor,
 				currentStrokeColor,
 			);
 		},
 		[
+			activeStampText,
 			currentMainColor,
 			currentMode,
 			currentStrokeColor,
@@ -283,6 +353,74 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
+	const handleSelectStampText = useCallback(
+		(text: string) => {
+			if (!sizeLocked && currentMode === 'stamp') {
+				setNoteSizes((prev) => ({
+					...prev,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
+				}));
+			}
+
+			setActiveStampText(text);
+
+			const key = text;
+			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
+			if (!sizeLocked && noteSizes[key] != null) {
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: newSize,
+				}));
+			}
+
+			stageRef.current?.updateActiveStampProps(
+				newSize,
+				text,
+				currentMainColor,
+				currentStrokeColor,
+			);
+		},
+		[
+			activeStampText,
+			currentMainColor,
+			currentMode,
+			currentStrokeColor,
+			getStampKey,
+			noteSizes,
+			selectedAccidental,
+			selectedNote,
+			sizeLocked,
+			toolSizes.stamp,
+		],
+	);
+
+	const handleAddCustomStamp = useCallback(
+		(text: string) => {
+			setCustomStamps((prev) => [text, ...prev.filter((item) => item !== text)].slice(0, 30));
+			handleSelectStampText(text);
+			showToast(`Додано штамп «${text}»`);
+		},
+		[handleSelectStampText, showToast],
+	);
+
+	const handleDeleteCustomStamp = useCallback(
+		(text: string) => {
+			setCustomStamps((prev) => {
+				const next = prev.filter((item) => item !== text);
+				if (activeStampText === text) {
+					if (next.length > 0) {
+						handleSelectStampText(next[0]);
+					} else {
+						handleSelectStampText('до');
+					}
+				}
+				return next;
+			});
+			showToast(`Видалено штамп «${text}»`);
+		},
+		[activeStampText, handleSelectStampText, showToast],
+	);
+
 	const handleChangeSize = useCallback(
 		(sz: number) => {
 			setToolSizes((prev) => ({
@@ -293,20 +431,21 @@ export const PhotoEditor: React.FC = () => {
 			if (!sizeLocked && currentMode === 'stamp') {
 				setNoteSizes((prev) => ({
 					...prev,
-					[getStampKey(selectedNote, selectedAccidental)]: sz,
+					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: sz,
 				}));
 			}
 
 			if (currentMode === 'stamp') {
 				stageRef.current?.updateActiveStampProps(
 					sz,
-					`${selectedNote}${selectedAccidental}`,
+					activeStampText || `${selectedNote}${selectedAccidental}`,
 					currentMainColor,
 					currentStrokeColor,
 				);
 			}
 		},
 		[
+			activeStampText,
 			currentMainColor,
 			currentMode,
 			currentStrokeColor,
@@ -325,22 +464,23 @@ export const PhotoEditor: React.FC = () => {
 				if (!next) {
 					setNoteSizes((s) => ({
 						...s,
-						[getStampKey(selectedNote, selectedAccidental)]: toolSizes.stamp,
+						[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
 					}));
 				}
 				showToast(next ? 'Розмір спільний для всіх нот' : 'Кожна нота має власний розмір');
 				return next;
 			});
 		},
-		[getStampKey, selectedAccidental, selectedNote, showToast, toolSizes.stamp],
+		[activeStampText, getStampKey, selectedAccidental, selectedNote, showToast, toolSizes.stamp],
 	);
 
 	const handleChangeMainColor = useCallback(
 		(color: string) => {
+			const modeKey = currentMode === 'stamp' ? 'stamp' : 'pencil';
 			setToolColors((prev) => ({
 				...prev,
-				[currentMode === 'eraser' ? 'pencil' : currentMode]: {
-					...prev[currentMode === 'eraser' ? 'pencil' : currentMode],
+				[modeKey]: {
+					...prev[modeKey],
 					main: color,
 				},
 			}));
@@ -348,13 +488,20 @@ export const PhotoEditor: React.FC = () => {
 			if (currentMode === 'stamp') {
 				stageRef.current?.updateActiveStampProps(
 					currentSize,
-					`${selectedNote}${selectedAccidental}`,
+					activeStampText || `${selectedNote}${selectedAccidental}`,
 					color,
 					currentStrokeColor,
 				);
 			}
 		},
-		[currentMode, currentSize, currentStrokeColor, selectedAccidental, selectedNote],
+		[
+			activeStampText,
+			currentMode,
+			currentSize,
+			currentStrokeColor,
+			selectedAccidental,
+			selectedNote,
+		],
 	);
 
 	const handleChangeStrokeColor = useCallback(
@@ -373,13 +520,33 @@ export const PhotoEditor: React.FC = () => {
 
 			stageRef.current?.updateActiveStampProps(
 				currentSize,
-				`${selectedNote}${selectedAccidental}`,
+				activeStampText || `${selectedNote}${selectedAccidental}`,
 				currentMainColor,
 				color,
 			);
 		},
-		[currentMainColor, currentSize, selectedAccidental, selectedNote, showToast],
+		[activeStampText, currentMainColor, currentSize, selectedAccidental, selectedNote, showToast],
 	);
+
+	const handleToggleRulersVisible = useCallback(() => {
+		setRulersVisible((prev) => {
+			const next = !prev;
+			showToast(next ? 'Лінійки відображено' : 'Лінійки приховано');
+			return next;
+		});
+	}, [showToast]);
+
+	const handleToggleRulersAttachContent = useCallback(() => {
+		setRulersAttachContent((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Увімкнено спільний рух нот з лінійкою'
+					: 'Вимкнено спільний рух (рухається тільки лінійка)',
+			);
+			return next;
+		});
+	}, [showToast]);
 
 	const handleSelectStampFromCanvas = useCallback((stamp: StampItem) => {
 		setToolSizes((prev) => ({
@@ -390,6 +557,8 @@ export const PhotoEditor: React.FC = () => {
 			...prev,
 			stamp: { main: stamp.mainColor, stroke: stamp.strokeColor },
 		}));
+
+		setActiveStampText(stamp.text);
 
 		const acc = stamp.text.match(/[♭♯]$/);
 		const accidental = acc ? acc[0] : '';
@@ -403,6 +572,14 @@ export const PhotoEditor: React.FC = () => {
 		setDeleteBtnOn((prev) => {
 			const next = !prev;
 			showToast(next ? 'Кошик на штампі увімкнено' : 'Кошик на штампі вимкнено');
+			return next;
+		});
+	}, [showToast]);
+
+	const handleToggleResizeHandles = useCallback(() => {
+		setResizeHandlesOn((prev) => {
+			const next = !prev;
+			showToast(next ? 'Хендли зміни розміру увімкнено' : 'Хендли зміни розміру вимкнено');
 			return next;
 		});
 	}, [showToast]);
@@ -580,7 +757,6 @@ export const PhotoEditor: React.FC = () => {
 			style={{
 				display: 'flex',
 				flexDirection: 'column',
-				justifyContent: 'space-between',
 				width: '100%',
 				height: '100%',
 				overflow: 'hidden',
@@ -589,6 +765,26 @@ export const PhotoEditor: React.FC = () => {
 		>
 			<AppPreloader isLoading={isLoading} />
 
+			<TopToolbar
+				canUndo={canUndo}
+				canRedo={canRedo}
+				currentMode={currentMode}
+				brushSize={currentSize}
+				sizeLocked={sizeLocked}
+				mainColor={currentMainColor}
+				strokeColor={currentStrokeColor}
+				rulersVisible={rulersVisible}
+				rulersAttachContent={rulersAttachContent}
+				onUndo={() => stageRef.current?.undo()}
+				onRedo={() => stageRef.current?.redo()}
+				onToggleMenu={handleToggleMenu}
+				onChangeSize={handleChangeSize}
+				onToggleLock={handleToggleLock}
+				onTogglePalette={handleTogglePalette}
+				onToggleRulersVisible={handleToggleRulersVisible}
+				onToggleRulersAttachContent={handleToggleRulersAttachContent}
+			/>
+
 			<CanvasStage
 				currentMode={currentMode}
 				mainColor={currentMainColor}
@@ -596,9 +792,14 @@ export const PhotoEditor: React.FC = () => {
 				currentSize={currentSize}
 				selectedNote={selectedNote}
 				selectedAccidental={selectedAccidental}
+				activeStampText={activeStampText}
 				deleteBtnOn={deleteBtnOn}
+				resizeHandlesOn={resizeHandlesOn}
+				rulersVisible={rulersVisible}
+				rulersAttachContent={rulersAttachContent}
 				hasCanvas={hasCanvas}
 				onSelectStamp={handleSelectStampFromCanvas}
+				onChangeSize={handleChangeSize}
 				onHistoryChange={(undo, redo) => {
 					setCanUndo(undo);
 					setCanRedo(redo);
@@ -622,6 +823,7 @@ export const PhotoEditor: React.FC = () => {
 			<ImageMenuModal
 				opened={isMenuOpen}
 				deleteBtnOn={deleteBtnOn}
+				resizeHandlesOn={resizeHandlesOn}
 				onUploadClick={() => {
 					setIsMenuOpen(false);
 					fileInputRef.current?.click();
@@ -639,6 +841,7 @@ export const PhotoEditor: React.FC = () => {
 				onSave={handleSave}
 				onShare={handleShare}
 				onToggleDeleteBtn={handleToggleDeleteBtn}
+				onToggleResizeHandles={handleToggleResizeHandles}
 			/>
 
 			<ImageCropModal
@@ -666,6 +869,12 @@ export const PhotoEditor: React.FC = () => {
 				onChangeStrokeColor={handleChangeStrokeColor}
 			/>
 
+			<CustomStampModal
+				opened={customStampModalOpen}
+				onClose={() => setCustomStampModalOpen(false)}
+				onAddStamp={handleAddCustomStamp}
+			/>
+
 			{isLoading ? (
 				<ToolbarSkeleton />
 			) : (
@@ -674,31 +883,19 @@ export const PhotoEditor: React.FC = () => {
 						<StampSettings
 							selectedNote={selectedNote}
 							selectedAccidental={selectedAccidental}
+							activeStampText={activeStampText}
+							category={stampCategory}
+							customStamps={customStamps}
+							onChangeCategory={setStampCategory}
 							onSelectNote={handleSelectNote}
 							onSelectAccidental={handleSelectAccidental}
+							onSelectStampText={handleSelectStampText}
+							onOpenAddCustomModal={() => setCustomStampModalOpen(true)}
+							onDeleteCustomStamp={handleDeleteCustomStamp}
 						/>
 					)}
 
-					<BrushSettings
-						currentMode={currentMode}
-						brushSize={currentSize}
-						sizeLocked={sizeLocked}
-						mainColor={currentMainColor}
-						strokeColor={currentStrokeColor}
-						onChangeSize={handleChangeSize}
-						onToggleLock={handleToggleLock}
-						onTogglePalette={handleTogglePalette}
-					/>
-
-					<BottomToolbar
-						currentMode={currentMode}
-						canUndo={canUndo}
-						canRedo={canRedo}
-						onSelectMode={handleSelectMode}
-						onUndo={() => stageRef.current?.undo()}
-						onRedo={() => stageRef.current?.redo()}
-						onToggleMenu={handleToggleMenu}
-					/>
+					<BottomToolbar currentMode={currentMode} onSelectMode={handleSelectMode} />
 				</footer>
 			)}
 

@@ -1,6 +1,23 @@
 export const NOTES = ['до', 'ре', 'мі', 'фа', 'соль', 'ля', 'сі'] as const;
 export const ACCIDENTALS = ['♭', '♯'] as const;
 
+export const COUNT_ITEMS = ['1', '2', '3', '4', 'і', 'та', 'на'] as const;
+
+export const REMARKS_ITEMS = [
+	'p',
+	'mp',
+	'mf',
+	'f',
+	'ff',
+	'rit.',
+	'cresc.',
+	'dim.',
+	'fine',
+	'V',
+	'П',
+	'𝄐',
+] as const;
+
 export const PALETTE_COLORS: readonly string[] = [
 	'#ffffff',
 	'#000000',

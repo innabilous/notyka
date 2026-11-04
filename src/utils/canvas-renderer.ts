@@ -1,4 +1,4 @@
-import { BoundingBox, Point, StampItem } from '@/types/editor';
+import { BoundingBox, Point, RulerItem, StampItem } from '@/types/editor';
 
 let trashPaths: Path2D[] | null = null;
 
@@ -62,7 +62,45 @@ export function getDeleteCoords(
 	ctx: CanvasRenderingContext2D,
 ): { x: number; y: number; radius: number } {
 	const bx = calculateStampBox(stamp, U, ctx);
-	return { x: stamp.x, y: Math.max(bx.y - 20 * U, 14 * U), radius: 13 * U };
+	return { x: stamp.x, y: Math.max(bx.y - 15 * U, 11 * U), radius: 9 * U };
+}
+
+export function getResizeHandleCoords(
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): {
+	left: { x: number; y: number; radius: number; hitRadius: number };
+	right: { x: number; y: number; radius: number; hitRadius: number };
+} {
+	const bx = calculateStampBox(stamp, U, ctx);
+	const cy = bx.y + bx.h / 2;
+	const radius = 6 * U;
+	const hitRadius = Math.max(16 * U, 14);
+	return {
+		left: { x: bx.x, y: cy, radius, hitRadius },
+		right: { x: bx.x + bx.w, y: cy, radius, hitRadius },
+	};
+}
+
+export function isPointInResizeHandle(
+	p: Point,
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): 'left' | 'right' | null {
+	const handles = getResizeHandleCoords(stamp, U, ctx);
+	const dlx = p.x - handles.left.x;
+	const dly = p.y - handles.left.y;
+	if (dlx * dlx + dly * dly <= handles.left.hitRadius * handles.left.hitRadius) {
+		return 'left';
+	}
+	const drx = p.x - handles.right.x;
+	const dry = p.y - handles.right.y;
+	if (drx * drx + dry * dry <= handles.right.hitRadius * handles.right.hitRadius) {
+		return 'right';
+	}
+	return null;
 }
 
 export function isPointInStamp(
@@ -105,6 +143,7 @@ export function drawStamp(
 	ctx: CanvasRenderingContext2D,
 	U: number,
 	deleteBtnOn: boolean = true,
+	resizeHandlesOn: boolean = true,
 ): void {
 	const fontSize = stamp.size * 2 * U;
 	ctx.save();
@@ -180,28 +219,154 @@ export function drawStamp(
 		if (deleteBtnOn) {
 			const d = getDeleteCoords(stamp, U, ctx);
 			ctx.beginPath();
-			ctx.arc(d.x, d.y, 11 * U, 0, Math.PI * 2);
+			ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
 			ctx.fillStyle = '#ef4444';
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
-			ctx.lineWidth = 2 * U;
+			ctx.lineWidth = 1.5 * U;
 			ctx.stroke();
 
 			const paths = getTrashPaths();
 			if (paths.length > 0) {
 				ctx.save();
-				const k = (12 * U) / 24;
+				const k = (9 * U) / 24;
 				ctx.translate(d.x - 12 * k, d.y - 12 * k);
 				ctx.scale(k, k);
 				ctx.strokeStyle = '#ffffff';
-				ctx.lineWidth = 2.4;
+				ctx.lineWidth = 2.2;
 				ctx.lineCap = 'round';
 				ctx.lineJoin = 'round';
 				paths.forEach((pth) => ctx.stroke(pth));
 				ctx.restore();
 			}
 		}
+
+		if (resizeHandlesOn) {
+			const resizes = getResizeHandleCoords(stamp, U, ctx);
+			ctx.fillStyle = '#6366f1';
+			ctx.strokeStyle = '#6366f1';
+			ctx.lineWidth = 1 * U;
+
+			// Лівий напівкружечок: випинається назовні вліво (від PI/2 до 3*PI/2)
+			ctx.beginPath();
+			ctx.arc(
+				resizes.left.x,
+				resizes.left.y,
+				resizes.left.radius,
+				Math.PI / 2,
+				(3 * Math.PI) / 2,
+			);
+			ctx.closePath();
+			ctx.fill();
+
+			// Правий напівкружечок: випинається назовні вправо (від -PI/2 до PI/2)
+			ctx.beginPath();
+			ctx.arc(resizes.right.x, resizes.right.y, resizes.right.radius, -Math.PI / 2, Math.PI / 2);
+			ctx.closePath();
+			ctx.fill();
+		}
 	}
 
 	ctx.restore();
+}
+
+export function getRulerDeleteCoords(
+	ruler: RulerItem,
+	U: number,
+): { x: number; y: number; radius: number } {
+	return { x: Math.max(24 * U, 24), y: ruler.y, radius: 9 * U };
+}
+
+export function isPointInRulerDelete(p: Point, ruler: RulerItem, U: number): boolean {
+	const d = getRulerDeleteCoords(ruler, U);
+	const hitRadius = Math.max(d.radius + 6 * U, 18);
+	const dx = p.x - d.x;
+	const dy = p.y - d.y;
+	return dx * dx + dy * dy <= hitRadius * hitRadius;
+}
+
+export function findRulerNearPoint(p: Point, rulers: RulerItem[], U: number): RulerItem | null {
+	const threshold = Math.max(16 * U, 14);
+	let closest: RulerItem | null = null;
+	let minDist = Infinity;
+	for (const r of rulers) {
+		const dist = Math.abs(p.y - r.y);
+		if (dist <= threshold && dist < minDist) {
+			minDist = dist;
+			closest = r;
+		}
+	}
+	return closest;
+}
+
+export function getClosestRulerY(y: number, rulers: RulerItem[], threshold: number): number | null {
+	let closestDist = Infinity;
+	let closestY: number | null = null;
+	for (const r of rulers) {
+		const dist = Math.abs(y - r.y);
+		if (dist <= threshold && dist < closestDist) {
+			closestDist = dist;
+			closestY = r.y;
+		}
+	}
+	return closestY;
+}
+
+export function drawRulers(
+	rulers: RulerItem[],
+	activeRulerId: string | null,
+	isRulerMode: boolean,
+	ctx: CanvasRenderingContext2D,
+	U: number,
+	canvasWidth: number,
+): void {
+	if (rulers.length === 0) return;
+
+	for (const ruler of rulers) {
+		const isActive = isRulerMode && ruler.id === activeRulerId;
+
+		ctx.save();
+		if (isActive) {
+			ctx.strokeStyle = '#4f46e5';
+			ctx.lineWidth = 1.5 * U;
+			ctx.setLineDash([6 * U, 4 * U]);
+		} else {
+			ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+			ctx.lineWidth = 1 * U;
+			ctx.setLineDash([5 * U, 5 * U]);
+		}
+
+		ctx.beginPath();
+		ctx.moveTo(0, ruler.y);
+		ctx.lineTo(canvasWidth, ruler.y);
+		ctx.stroke();
+
+		if (isActive) {
+			const d = getRulerDeleteCoords(ruler, U);
+			ctx.setLineDash([]);
+			ctx.beginPath();
+			ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
+			ctx.fillStyle = '#ef4444';
+			ctx.fill();
+			ctx.strokeStyle = '#ffffff';
+			ctx.lineWidth = 1.5 * U;
+			ctx.stroke();
+
+			const paths = getTrashPaths();
+			if (paths.length > 0) {
+				ctx.save();
+				const k = (9 * U) / 24;
+				ctx.translate(d.x - 12 * k, d.y - 12 * k);
+				ctx.scale(k, k);
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 2.2;
+				ctx.lineCap = 'round';
+				ctx.lineJoin = 'round';
+				paths.forEach((pth) => ctx.stroke(pth));
+				ctx.restore();
+			}
+		}
+
+		ctx.restore();
+	}
 }

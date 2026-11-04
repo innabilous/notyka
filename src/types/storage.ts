@@ -1,4 +1,4 @@
-import { StampItem, ToolMode } from './editor';
+import { RulerItem, StampItem, ToolMode } from './editor';
 
 export interface EditorSettings {
 	currentMode: ToolMode;
@@ -6,9 +6,15 @@ export interface EditorSettings {
 	toolColors: Record<'pencil' | 'stamp', { main: string; stroke: string }>;
 	selectedNote: string;
 	selectedAccidental: string;
+	activeStampText?: string;
+	stampCategory?: string;
+	customStamps?: string[];
 	sizeLocked: boolean;
 	noteSizes: Record<string, number>;
 	deleteBtnOn: boolean;
+	resizeHandlesOn?: boolean;
+	rulersVisible?: boolean;
+	rulersAttachContent?: boolean;
 }
 
 export interface ProjectItem {
@@ -20,6 +26,7 @@ export interface ProjectItem {
 	bgDataUrl: string | null;
 	baseDataUrl: string | null;
 	stamps: StampItem[];
+	rulers?: RulerItem[];
 	width: number;
 	height: number;
 	cssW: number;

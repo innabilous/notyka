@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
+import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
 import './globals.css';
 
 export const metadata: Metadata = {

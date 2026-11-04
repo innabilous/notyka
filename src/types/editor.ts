@@ -1,4 +1,9 @@
-export type ToolMode = 'pencil' | 'stamp' | 'eraser';
+export type ToolMode = 'pencil' | 'stamp' | 'eraser' | 'ruler';
+
+export interface RulerItem {
+	id: string;
+	y: number;
+}
 
 export interface StampItem {
 	id: string;
@@ -13,6 +18,7 @@ export interface StampItem {
 export interface HistoryItem {
 	imageData: ImageData;
 	stamps: StampItem[];
+	rulers?: RulerItem[];
 }
 
 export interface Point {
