@@ -65,6 +65,43 @@ export function getDeleteCoords(
 	return { x: stamp.x, y: Math.max(bx.y - 20 * U, 14 * U), radius: 13 * U };
 }
 
+export function getResizeHandleCoords(
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): {
+	left: { x: number; y: number; radius: number };
+	right: { x: number; y: number; radius: number };
+} {
+	const bx = calculateStampBox(stamp, U, ctx);
+	const cy = bx.y + bx.h / 2;
+	const radius = 7 * U;
+	return {
+		left: { x: bx.x, y: cy, radius },
+		right: { x: bx.x + bx.w, y: cy, radius },
+	};
+}
+
+export function isPointInResizeHandle(
+	p: Point,
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): 'left' | 'right' | null {
+	const handles = getResizeHandleCoords(stamp, U, ctx);
+	const dlx = p.x - handles.left.x;
+	const dly = p.y - handles.left.y;
+	if (dlx * dlx + dly * dly <= handles.left.radius * handles.left.radius) {
+		return 'left';
+	}
+	const drx = p.x - handles.right.x;
+	const dry = p.y - handles.right.y;
+	if (drx * drx + dry * dry <= handles.right.radius * handles.right.radius) {
+		return 'right';
+	}
+	return null;
+}
+
 export function isPointInStamp(
 	p: Point,
 	stamp: StampItem,
@@ -105,6 +142,7 @@ export function drawStamp(
 	ctx: CanvasRenderingContext2D,
 	U: number,
 	deleteBtnOn: boolean = true,
+	resizeHandlesOn: boolean = true,
 ): void {
 	const fontSize = stamp.size * 2 * U;
 	ctx.save();
@@ -200,6 +238,19 @@ export function drawStamp(
 				paths.forEach((pth) => ctx.stroke(pth));
 				ctx.restore();
 			}
+		}
+
+		if (resizeHandlesOn) {
+			const resizes = getResizeHandleCoords(stamp, U, ctx);
+			[resizes.left, resizes.right].forEach((h) => {
+				ctx.beginPath();
+				ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
+				ctx.fillStyle = '#0ea5e9';
+				ctx.fill();
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 1.5 * U;
+				ctx.stroke();
+			});
 		}
 	}
 

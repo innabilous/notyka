@@ -370,12 +370,13 @@ button {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+	gap: 0.5rem;
 	padding: 0.45rem 0.85rem;
 	padding-top: max(0.45rem, env(safe-area-inset-top, 0px));
 	background: linear-gradient(
 		180deg,
 		rgba(10, 11, 14, 0.95) 0%,
-		rgba(10, 11, 14, 0.5) 55%,
+		rgba(10, 11, 14, 0.6) 60%,
 		rgba(10, 11, 14, 0) 100%
 	);
 	border: none;
@@ -389,6 +390,15 @@ button {
 	display: flex;
 	align-items: center;
 	gap: 0.35rem;
+	flex-shrink: 0;
+}
+
+.top-center-settings {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 1;
+	max-width: 440px;
 }
 
 .top-btn {
@@ -445,18 +455,13 @@ footer {
 	pointer-events: auto;
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: 0.55rem;
-	width: min(440px, calc(100vw - 1.25rem));
-	padding: 0.35rem;
-	background: rgba(22, 23, 27, 0.94);
-	backdrop-filter: blur(20px);
-	-webkit-backdrop-filter: blur(20px);
-	border: 1px solid var(--line-strong);
-	border-radius: 9999px;
-	box-shadow:
-		0 10px 28px rgba(0, 0, 0, 0.5),
-		0 2px 8px rgba(0, 0, 0, 0.3);
+	justify-content: center;
+	gap: 0.35rem;
+	width: 100%;
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	padding: 0;
 	font-size: 0.75rem;
 }
 
@@ -602,19 +607,185 @@ footer {
 #stamp-settings {
 	pointer-events: auto;
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.25rem;
+	flex-direction: column;
+	gap: 0.35rem;
 	width: min(440px, calc(100vw - 1.25rem));
-	padding: 0.35rem;
+	padding: 0.35rem 0.5rem;
 	background: rgba(22, 23, 27, 0.94);
 	backdrop-filter: blur(20px);
 	-webkit-backdrop-filter: blur(20px);
 	border: 1px solid var(--line-strong);
-	border-radius: 9999px;
+	border-radius: 1.25rem;
 	box-shadow:
 		0 10px 28px rgba(0, 0, 0, 0.5),
 		0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.stamp-category-tabs {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+}
+
+.stamp-segmented-root {
+	background: rgba(255, 255, 255, 0.06) !important;
+	border: 1px solid rgba(255, 255, 255, 0.08) !important;
+	padding: 2px !important;
+}
+
+.stamp-segmented-indicator {
+	background: rgba(255, 255, 255, 0.16) !important;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+.stamp-segmented-label {
+	font-size: 0.72rem !important;
+	font-weight: 600 !important;
+	color: var(--text-secondary) !important;
+	padding: 0.2rem 0.6rem !important;
+	transition: color 0.12s !important;
+}
+
+.stamp-segmented-label[data-active="true"] {
+	color: #ffffff !important;
+}
+
+.stamp-chips-scroll {
+	width: 100%;
+	overflow-x: hidden;
+	display: flex;
+	align-items: center;
+	padding: 0.1rem 0;
+}
+
+.stamp-chips-row {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	width: 100%;
+}
+
+.stamp-chips-row.fit-width {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.2rem;
+	width: 100%;
+}
+
+.stamp-chips-row.fit-width .chip {
+	flex: 1 1 0;
+	min-width: 0;
+	padding: 0.35rem 0.2rem;
+	font-size: 0.75rem;
+	text-align: center;
+}
+
+.stamp-chips-row.fit-width .sep {
+	margin: 0 0.1rem;
+}
+
+.stamp-custom-container {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	width: 100%;
+}
+
+.stamp-custom-form {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	width: 100%;
+}
+
+.stamp-custom-input {
+	flex: 1;
+	background: var(--panel-2);
+	border: 1px solid var(--line);
+	border-radius: 9999px;
+	padding: 0.25rem 0.65rem;
+	font-size: 0.75rem;
+	color: var(--text);
+	outline: none;
+	transition: border-color 0.12s;
+}
+
+.stamp-custom-input:focus {
+	border-color: var(--accent);
+}
+
+.stamp-custom-submit-btn {
+	width: 1.75rem;
+	height: 1.75rem;
+	border-radius: 50%;
+	background: var(--accent-gradient);
+	border: none;
+	color: #ffffff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	flex-shrink: 0;
+	transition:
+		transform 0.12s,
+		opacity 0.12s;
+}
+
+.stamp-custom-submit-btn:disabled {
+	opacity: 0.3;
+	cursor: default;
+}
+
+.stamp-custom-submit-btn:not(:disabled):active {
+	transform: scale(0.92);
+}
+
+.stamp-custom-submit-btn .icon {
+	width: 0.9rem;
+	height: 0.9rem;
+}
+
+.stamp-custom-chips-row {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	width: max-content;
+}
+
+.stamp-custom-chip-wrap {
+	display: flex;
+	align-items: center;
+	position: relative;
+}
+
+.stamp-custom-chip-wrap .custom-chip {
+	padding-right: 1.4rem;
+}
+
+.stamp-custom-del-btn {
+	position: absolute;
+	right: 0.3rem;
+	top: 50%;
+	transform: translateY(-50%);
+	background: transparent;
+	border: none;
+	color: var(--muted);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+}
+
+.stamp-custom-del-btn:hover {
+	color: #ef4444;
+}
+
+.stamp-custom-del-btn .icon {
+	width: 0.65rem;
+	height: 0.65rem;
 }
 
 #note-selector {

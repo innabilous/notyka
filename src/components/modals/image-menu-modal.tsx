@@ -1,11 +1,21 @@
 'use client';
 
 import React from 'react';
-import { Clock, Download, FilePlus, ImagePlus, RotateCcw, Share2, Trash2 } from 'lucide-react';
+import {
+	Clock,
+	Download,
+	FilePlus,
+	ImagePlus,
+	Maximize2,
+	RotateCcw,
+	Share2,
+	Trash2,
+} from 'lucide-react';
 
 interface ImageMenuModalProps {
 	opened: boolean;
 	deleteBtnOn: boolean;
+	resizeHandlesOn: boolean;
 	onUploadClick: () => void;
 	onNewBlank: () => void;
 	onOpenHistory: () => void;
@@ -13,11 +23,13 @@ interface ImageMenuModalProps {
 	onSave: () => void;
 	onShare: () => void;
 	onToggleDeleteBtn: () => void;
+	onToggleResizeHandles: () => void;
 }
 
 export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 	opened,
 	deleteBtnOn,
+	resizeHandlesOn,
 	onUploadClick,
 	onNewBlank,
 	onOpenHistory,
@@ -25,6 +37,7 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 	onSave,
 	onShare,
 	onToggleDeleteBtn,
+	onToggleResizeHandles,
 }) => {
 	if (!opened) return null;
 
@@ -71,6 +84,20 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 				<Trash2 className="icon" style={{ color: deleteBtnOn ? '#ef4444' : 'var(--muted)' }} />
 				<span style={{ color: 'var(--text)', flex: 1 }}>Кошик на штампі</span>
 				<span id="sw-delete" className={`sw ${deleteBtnOn ? 'on' : ''}`} />
+			</button>
+
+			<button
+				id="btn-toggle-resize-handles"
+				type="button"
+				className="c-indigo"
+				onClick={onToggleResizeHandles}
+			>
+				<Maximize2
+					className="icon"
+					style={{ color: resizeHandlesOn ? '#0ea5e9' : 'var(--muted)' }}
+				/>
+				<span style={{ color: 'var(--text)', flex: 1 }}>Хендли розміру на рамці</span>
+				<span id="sw-resize" className={`sw ${resizeHandlesOn ? 'on' : ''}`} />
 			</button>
 
 			<button id="btn-clear" type="button" className="c-red" onClick={onClear}>

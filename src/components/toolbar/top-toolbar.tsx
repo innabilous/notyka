@@ -2,21 +2,39 @@
 
 import React from 'react';
 import { Menu, Redo2, Undo2 } from 'lucide-react';
+import { BrushSettings } from '@/components/settings/brush-settings';
+import { ToolMode } from '@/types/editor';
 
 interface TopToolbarProps {
 	canUndo: boolean;
 	canRedo: boolean;
+	currentMode: ToolMode;
+	brushSize: number;
+	sizeLocked: boolean;
+	mainColor: string;
+	strokeColor: string;
 	onUndo: () => void;
 	onRedo: () => void;
 	onToggleMenu: (e: React.MouseEvent) => void;
+	onChangeSize: (size: number) => void;
+	onToggleLock: (e: React.MouseEvent) => void;
+	onTogglePalette: (e: React.MouseEvent) => void;
 }
 
 export const TopToolbar: React.FC<TopToolbarProps> = ({
 	canUndo,
 	canRedo,
+	currentMode,
+	brushSize,
+	sizeLocked,
+	mainColor,
+	strokeColor,
 	onUndo,
 	onRedo,
 	onToggleMenu,
+	onChangeSize,
+	onToggleLock,
+	onTogglePalette,
 }) => {
 	return (
 		<header id="top-bar">
@@ -44,6 +62,20 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 				>
 					<Redo2 className="icon" />
 				</button>
+			</div>
+
+			{/* Центр: Панель розміру, повзунка, -+ та палітри */}
+			<div className="top-center-settings">
+				<BrushSettings
+					currentMode={currentMode}
+					brushSize={brushSize}
+					sizeLocked={sizeLocked}
+					mainColor={mainColor}
+					strokeColor={strokeColor}
+					onChangeSize={onChangeSize}
+					onToggleLock={onToggleLock}
+					onTogglePalette={onTogglePalette}
+				/>
 			</div>
 
 			{/* Правий кут: Кнопка Меню */}

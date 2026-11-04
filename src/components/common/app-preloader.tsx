@@ -47,21 +47,8 @@ export const AppPreloader: React.FC<AppPreloaderProps> = ({ isLoading }) => {
 					gap: '1rem',
 				}}
 			>
-				{/* Animated Bespoke Logo */}
-				<BrandLogo size={80} animated={true} />
-
-				{/* Brand title */}
-				<h1
-					style={{
-						fontSize: '1.5rem',
-						fontWeight: 600,
-						letterSpacing: '-0.025em',
-						color: 'var(--text)',
-						margin: 0,
-					}}
-				>
-					Notyka
-				</h1>
+				{/* Animated Bespoke Logo with PRO badge */}
+				<BrandLogo size={76} animated={true} showText={true} />
 			</div>
 		</div>
 	);

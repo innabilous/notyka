@@ -19,8 +19,10 @@ import {
 	drawStamp,
 	getDeleteCoords,
 	getHandleCoords,
+	getResizeHandleCoords,
 	isPointInDelete,
 	isPointInHandle,
+	isPointInResizeHandle,
 	isPointInStamp,
 } from '@/utils/canvas-renderer';
 
@@ -31,9 +33,12 @@ interface CanvasStageProps {
 	currentSize: number;
 	selectedNote: string;
 	selectedAccidental: string;
+	activeStampText?: string;
 	deleteBtnOn: boolean;
+	resizeHandlesOn?: boolean;
 	hasCanvas: boolean;
 	onSelectStamp: (stamp: StampItem) => void;
+	onChangeSize?: (newSize: number) => void;
 	onHistoryChange: (canUndo: boolean, canRedo: boolean) => void;
 	onNotify: (message: string) => void;
 	onInitBlank: () => void;
@@ -68,9 +73,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	currentSize,
 	selectedNote,
 	selectedAccidental,
+	activeStampText,
 	deleteBtnOn,
+	resizeHandlesOn = true,
 	hasCanvas,
 	onSelectStamp,
+	onChangeSize,
 	onHistoryChange,
 	onNotify,
 	onInitBlank,
@@ -108,6 +116,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 	const isDraggingStampRef = useRef<boolean>(false);
 	const isDraggingHandleRef = useRef<boolean>(false);
+	const isDraggingResizeRef = useRef<'left' | 'right' | null>(null);
+	const resizeStartSizeRef = useRef<number>(24);
+	const resizeStartDistRef = useRef<number>(0);
 	const dragOffsetRef = useRef<Point>({ x: 0, y: 0 });
 	const dragStartPtRef = useRef<Point | null>(null);
 	const dragMovedRef = useRef<boolean>(true);
@@ -185,11 +196,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		ctx.drawImage(baseCanvas, 0, 0);
 
 		stampsListRef.current.forEach((st) => {
-			drawStamp(st, false, ctx, uRef.current, deleteBtnOn);
+			drawStamp(st, false, ctx, uRef.current, deleteBtnOn, resizeHandlesOn);
 		});
 
 		if (activeStampRef.current) {
-			drawStamp(activeStampRef.current, true, ctx, uRef.current, deleteBtnOn);
+			drawStamp(activeStampRef.current, true, ctx, uRef.current, deleteBtnOn, resizeHandlesOn);
 		}
 
 		if (cursorPosRef.current && currentMode === 'eraser') {
@@ -206,7 +217,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			ctx.stroke();
 			ctx.restore();
 		}
-	}, [currentMode, currentSize, deleteBtnOn]);
+	}, [currentMode, currentSize, deleteBtnOn, resizeHandlesOn]);
 
 	const scheduleRender = useCallback(() => {
 		if (rafIdRef.current) return;
@@ -476,6 +487,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		activeOrigRef.current = '';
 		isDraggingStampRef.current = false;
 		isDraggingHandleRef.current = false;
+		isDraggingResizeRef.current = null;
 		render();
 		if (!wasNew) saveHistory();
 		onNotify('Штамп видалено');
@@ -497,6 +509,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			if (active && deleteBtnOn && isPointInDelete(pt, active, uRef.current, ctx)) {
 				deleteActiveStamp();
 				return;
+			}
+
+			// 0.1. Resize handle click on active stamp (лівий або правий)
+			if (active && resizeHandlesOn) {
+				const resizeSide = isPointInResizeHandle(pt, active, uRef.current, ctx);
+				if (resizeSide) {
+					isDraggingResizeRef.current = resizeSide;
+					resizeStartSizeRef.current = active.size;
+					resizeStartDistRef.current = Math.abs(pt.x - active.x);
+					return;
+				}
 			}
 
 			// 1. Handle drag on active stamp
@@ -541,7 +564,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				x: pt.x,
 				y: pt.y,
 				size: currentSize,
-				text: selectedNote + selectedAccidental,
+				text: activeStampText || selectedNote + selectedAccidental,
 				mainColor,
 				strokeColor,
 			};
@@ -552,6 +575,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			render();
 		},
 		[
+			activeStampText,
 			commitActiveStamp,
 			currentSize,
 			deleteActiveStamp,
@@ -560,6 +584,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			onNotify,
 			onSelectStamp,
 			render,
+			resizeHandlesOn,
 			selectedAccidental,
 			selectedNote,
 			strokeColor,
@@ -662,6 +687,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const active = activeStampRef.current;
 			if (!active) return;
 
+			if (isDraggingResizeRef.current) {
+				const currentDist = Math.abs(pt.x - active.x);
+				const startDist = Math.max(10 * uRef.current, resizeStartDistRef.current);
+				const ratio = currentDist / startDist;
+				const newCalculatedSize = Math.max(
+					1,
+					Math.min(100, Math.round(resizeStartSizeRef.current * ratio)),
+				);
+				if (newCalculatedSize !== active.size) {
+					active.size = newCalculatedSize;
+					onChangeSize?.(newCalculatedSize);
+					render();
+				}
+				return;
+			}
+
 			if ((isDraggingHandleRef.current || isDraggingStampRef.current) && !dragMovedRef.current) {
 				const start = dragStartPtRef.current;
 				if (
@@ -698,7 +739,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				render();
 			}
 		},
-		[render],
+		[onChangeSize, render],
 	);
 
 	const pointerDown = useCallback(
@@ -761,6 +802,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		}
 		isDraggingStampRef.current = false;
 		isDraggingHandleRef.current = false;
+		isDraggingResizeRef.current = null;
 	}, [currentMode, quadSegment, saveHistory]);
 
 	const buildExportCanvas = useCallback((): HTMLCanvasElement | null => {
@@ -1267,7 +1309,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		<main id="canvas-container" ref={containerRef}>
 			<div id="placeholder" className={hasCanvas ? 'hidden' : ''}>
 				<div style={{ marginBottom: '1.25rem' }}>
-					<BrandLogo size={56} showBadge={true} />
+					<BrandLogo size={56} showBadge={true} showText={true} />
 				</div>
 				<h2>Нотний редактор</h2>
 				<p>Створіть чистий білий аркуш або відкрийте фото чи партитуру для розмітки</p>

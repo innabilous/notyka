@@ -6,9 +6,13 @@ export interface EditorSettings {
 	toolColors: Record<'pencil' | 'stamp', { main: string; stroke: string }>;
 	selectedNote: string;
 	selectedAccidental: string;
+	activeStampText?: string;
+	stampCategory?: string;
+	customStamps?: string[];
 	sizeLocked: boolean;
 	noteSizes: Record<string, number>;
 	deleteBtnOn: boolean;
+	resizeHandlesOn?: boolean;
 }
 
 export interface ProjectItem {

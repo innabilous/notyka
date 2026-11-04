@@ -56,6 +56,15 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				{sizeLocked ? <Lock className="icon" /> : <Unlock className="icon" />}
 			</button>
 
+			<button
+				type="button"
+				className="btn-size-step"
+				aria-label="Зменшити розмір"
+				onClick={handleDecrease}
+			>
+				<Minus className="icon" />
+			</button>
+
 			<input
 				type="range"
 				id="brush-size"
@@ -65,27 +74,14 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				onChange={(e) => onChangeSize(parseInt(e.target.value, 10))}
 			/>
 
-			<div className="size-stepper-group">
-				<button
-					type="button"
-					className="btn-size-step"
-					aria-label="Зменшити розмір"
-					onClick={handleDecrease}
-				>
-					<Minus className="icon" />
-				</button>
-
-				<button
-					type="button"
-					className="btn-size-step"
-					aria-label="Збільшити розмір"
-					onClick={handleIncrease}
-				>
-					<Plus className="icon" />
-				</button>
-			</div>
-
-			<span id="brush-size-val">{brushSize}px</span>
+			<button
+				type="button"
+				className="btn-size-step"
+				aria-label="Збільшити розмір"
+				onClick={handleIncrease}
+			>
+				<Plus className="icon" />
+			</button>
 
 			<button
 				id="btn-toggle-palette"
