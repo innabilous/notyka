@@ -18,13 +18,12 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 	showText = false,
 	className = '',
 }) => {
-	const pulseClass = animated ? 'notyka-logo-breathe' : '';
 	const numericSize = typeof size === 'number' ? size : parseInt(String(size), 10) || 64;
 	const iconSize = Math.round(numericSize * 0.52);
 
 	return (
 		<div
-			className={`${pulseClass} ${className}`.trim()}
+			className={className.trim()}
 			style={{
 				display: 'inline-flex',
 				flexDirection: 'column',
@@ -52,6 +51,58 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 				}}
 				aria-label="Notyka Logo"
 			>
+				{/* Ефект сяючого променя по периметру бейджа під час завантаження */}
+				{animated && showBadge && (
+					<svg
+						className="notyka-border-beam"
+						style={{
+							position: 'absolute',
+							inset: -2,
+							width: numericSize + 4,
+							height: numericSize + 4,
+							pointerEvents: 'none',
+							borderRadius: Math.round(numericSize * 0.26) + 2,
+						}}
+						viewBox={`0 0 ${numericSize + 4} ${numericSize + 4}`}
+						fill="none"
+					>
+						<defs>
+							<filter id="beam-glow" x="-50%" y="-50%" width="200%" height="200%">
+								<feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+								<feMerge>
+									<feMergeNode in="blur" />
+									<feMergeNode in="SourceGraphic" />
+								</feMerge>
+							</filter>
+							<linearGradient id="beam-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+								<stop offset="0%" stopColor="#38bdf8" />
+								<stop offset="50%" stopColor="#818cf8" />
+								<stop offset="100%" stopColor="#ffffff" />
+							</linearGradient>
+						</defs>
+						<rect
+							x={2}
+							y={2}
+							width={numericSize}
+							height={numericSize}
+							rx={Math.round(numericSize * 0.26)}
+							ry={Math.round(numericSize * 0.26)}
+							className="notyka-beam-track"
+						/>
+						<rect
+							x={2}
+							y={2}
+							width={numericSize}
+							height={numericSize}
+							rx={Math.round(numericSize * 0.26)}
+							ry={Math.round(numericSize * 0.26)}
+							className="notyka-beam-head"
+							filter="url(#beam-glow)"
+							pathLength="100"
+						/>
+					</svg>
+				)}
+
 				<svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }}>
 					<defs>
 						<linearGradient id="notyka-note-grad" x1="0%" y1="0%" x2="100%" y2="100%">

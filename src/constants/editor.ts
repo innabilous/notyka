@@ -22,7 +22,7 @@ export const CHORD_EXTENSIONS = [
 	'maj9',
 	'm9',
 	'add9',
-	'm7b5',
+	'11',
 	'5',
 ] as const;
 
