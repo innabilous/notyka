@@ -20,6 +20,9 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 }) => {
 	const numericSize = typeof size === 'number' ? size : parseInt(String(size), 10) || 64;
 	const iconSize = Math.round(numericSize * 0.52);
+	const borderRadius = Math.round(numericSize * 0.26);
+	const borderWidth = numericSize >= 64 ? 2.5 : 2;
+	const innerBorderRadius = Math.max(0, borderRadius - borderWidth);
 
 	return (
 		<div
@@ -29,99 +32,126 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 				flexDirection: 'column',
 				alignItems: 'center',
 				gap: showText ? `${Math.round(numericSize * 0.16)}px` : '0',
+				position: 'relative',
 			}}
 		>
-			<div
-				style={{
-					position: 'relative',
-					width: size,
-					height: size,
-					borderRadius: showBadge ? `${Math.round(numericSize * 0.26)}px` : undefined,
-					background: showBadge
-						? 'linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)'
-						: 'transparent',
-					border: showBadge ? '1px solid rgba(255, 255, 255, 0.25)' : 'none',
-					display: 'inline-flex',
-					alignItems: 'center',
-					justifyContent: 'center',
-					boxShadow: showBadge
-						? '0 8px 24px rgba(56, 189, 248, 0.35), 0 2px 8px rgba(99, 102, 241, 0.25)'
-						: 'none',
-					flexShrink: 0,
-				}}
-				aria-label="Notyka Logo"
-			>
-				{/* Ефект сяючого променя по периметру бейджа під час завантаження */}
-				{animated && showBadge && (
-					<svg
-						className="notyka-border-beam"
-						style={{
-							position: 'absolute',
-							inset: -2,
-							width: numericSize + 4,
-							height: numericSize + 4,
-							pointerEvents: 'none',
-							borderRadius: Math.round(numericSize * 0.26) + 2,
-						}}
-						viewBox={`0 0 ${numericSize + 4} ${numericSize + 4}`}
-						fill="none"
-					>
-						<defs>
-							<filter id="beam-glow" x="-50%" y="-50%" width="200%" height="200%">
-								<feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
-								<feMerge>
-									<feMergeNode in="blur" />
-									<feMergeNode in="SourceGraphic" />
-								</feMerge>
-							</filter>
-							<linearGradient id="beam-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-								<stop offset="0%" stopColor="#38bdf8" />
-								<stop offset="50%" stopColor="#818cf8" />
-								<stop offset="100%" stopColor="#ffffff" />
-							</linearGradient>
-						</defs>
-						<rect
-							x={2}
-							y={2}
-							width={numericSize}
-							height={numericSize}
-							rx={Math.round(numericSize * 0.26)}
-							ry={Math.round(numericSize * 0.26)}
-							className="notyka-beam-track"
-						/>
-						<rect
-							x={2}
-							y={2}
-							width={numericSize}
-							height={numericSize}
-							rx={Math.round(numericSize * 0.26)}
-							ry={Math.round(numericSize * 0.26)}
-							className="notyka-beam-head"
-							filter="url(#beam-glow)"
-							pathLength="100"
-						/>
-					</svg>
-				)}
+			<svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }}>
+				<defs>
+					<linearGradient id="notyka-note-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+						<stop offset="0%" stopColor="#38bdf8" />
+						<stop offset="100%" stopColor="#6366f1" />
+					</linearGradient>
+				</defs>
+			</svg>
 
-				<svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }}>
-					<defs>
-						<linearGradient id="notyka-note-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-							<stop offset="0%" stopColor="#38bdf8" />
-							<stop offset="100%" stopColor="#6366f1" />
-						</linearGradient>
-					</defs>
-				</svg>
+			{/* Бейдж з іконкою або чиста іконка */}
+			{showBadge ? (
+				animated ? (
+					/* Анімований бордер: повний видимий контур із сяючим світловим променем */
+					<div
+						style={{
+							position: 'relative',
+							width: numericSize,
+							height: numericSize,
+							borderRadius,
+							padding: `${borderWidth}px`,
+							boxSizing: 'border-box',
+							overflow: 'hidden',
+							display: 'inline-flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							boxShadow:
+								'0 8px 24px rgba(56, 189, 248, 0.35), 0 0 16px rgba(56, 189, 248, 0.25)',
+							flexShrink: 0,
+						}}
+						aria-label="Notyka Logo"
+					>
+						{/* Обертовий градієнт бордера: 100% периметру видимий, світло плавно рухається по колу */}
+						<div
+							className="notyka-border-glow-track"
+							style={{
+								position: 'absolute',
+								top: '-60%',
+								left: '-60%',
+								width: '220%',
+								height: '220%',
+								background:
+									'conic-gradient(from 0deg, rgba(255, 255, 255, 0.22) 0deg, rgba(255, 255, 255, 0.22) 200deg, rgba(56, 189, 248, 0.5) 240deg, #38bdf8 280deg, #ffffff 320deg, #6366f1 345deg, rgba(255, 255, 255, 0.22) 360deg)',
+								borderRadius: '50%',
+								pointerEvents: 'none',
+							}}
+						/>
+						{/* Внутрішній фон бейджа */}
+						<div
+							style={{
+								position: 'relative',
+								zIndex: 1,
+								width: '100%',
+								height: '100%',
+								borderRadius: innerBorderRadius,
+								background: 'linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)',
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								overflow: 'hidden',
+							}}
+						>
+							<Music
+								style={{
+									width: iconSize,
+									height: iconSize,
+									stroke: '#ffffff',
+									strokeWidth: 2.2,
+									display: 'block',
+									filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))',
+								}}
+							/>
+						</div>
+					</div>
+				) : (
+					/* Статичний бейдж для звичайного відображення */
+					<div
+						style={{
+							position: 'relative',
+							width: numericSize,
+							height: numericSize,
+							borderRadius,
+							background: 'linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)',
+							border: '1px solid rgba(255, 255, 255, 0.28)',
+							display: 'inline-flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							boxShadow:
+								'0 8px 24px rgba(56, 189, 248, 0.35), 0 2px 8px rgba(99, 102, 241, 0.25)',
+							flexShrink: 0,
+							overflow: 'hidden',
+						}}
+						aria-label="Notyka Logo"
+					>
+						<Music
+							style={{
+								width: iconSize,
+								height: iconSize,
+								stroke: '#ffffff',
+								strokeWidth: 2.2,
+								display: 'block',
+								filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))',
+							}}
+						/>
+					</div>
+				)
+			) : (
+				/* Чиста іконка без підкладки */
 				<Music
 					style={{
 						width: iconSize,
 						height: iconSize,
-						stroke: showBadge ? '#ffffff' : 'url(#notyka-note-grad)',
+						stroke: 'url(#notyka-note-grad)',
 						strokeWidth: 2.2,
 						display: 'block',
-						filter: showBadge ? 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))' : 'none',
 					}}
 				/>
-			</div>
+			)}
 
 			{showText && (
 				<div
