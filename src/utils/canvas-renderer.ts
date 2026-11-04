@@ -1,4 +1,4 @@
-import { BoundingBox, Point, StampItem } from '@/types/editor';
+import { BoundingBox, Point, RulerItem, StampItem } from '@/types/editor';
 
 let trashPaths: Path2D[] | null = null;
 
@@ -268,4 +268,210 @@ export function drawStamp(
 	}
 
 	ctx.restore();
+}
+
+export function getRulerDeleteCoords(
+	ruler: RulerItem,
+	U: number,
+): { x: number; y: number; radius: number } {
+	return { x: Math.max(24 * U, 24), y: ruler.y, radius: 9 * U };
+}
+
+export function isPointInRulerDelete(p: Point, ruler: RulerItem, U: number): boolean {
+	const d = getRulerDeleteCoords(ruler, U);
+	const hitRadius = Math.max(d.radius + 6 * U, 18);
+	const dx = p.x - d.x;
+	const dy = p.y - d.y;
+	return dx * dx + dy * dy <= hitRadius * hitRadius;
+}
+
+export function findRulerNearPoint(p: Point, rulers: RulerItem[], U: number): RulerItem | null {
+	const threshold = Math.max(16 * U, 14);
+	let closest: RulerItem | null = null;
+	let minDist = Infinity;
+	for (const r of rulers) {
+		const dist = Math.abs(p.y - r.y);
+		if (dist <= threshold && dist < minDist) {
+			minDist = dist;
+			closest = r;
+		}
+	}
+	return closest;
+}
+
+export function getClosestRulerY(y: number, rulers: RulerItem[], threshold: number): number | null {
+	let closestDist = Infinity;
+	let closestY: number | null = null;
+	for (const r of rulers) {
+		const dist = Math.abs(y - r.y);
+		if (dist <= threshold && dist < closestDist) {
+			closestDist = dist;
+			closestY = r.y;
+		}
+	}
+	return closestY;
+}
+
+export function drawRulers(
+	rulers: RulerItem[],
+	activeRulerId: string | null,
+	isRulerMode: boolean,
+	ctx: CanvasRenderingContext2D,
+	U: number,
+	canvasWidth: number,
+): void {
+	if (rulers.length === 0) return;
+
+	for (const ruler of rulers) {
+		const isActive = isRulerMode && ruler.id === activeRulerId;
+
+		ctx.save();
+		if (isActive) {
+			ctx.strokeStyle = '#4f46e5';
+			ctx.lineWidth = 1.5 * U;
+			ctx.setLineDash([6 * U, 4 * U]);
+		} else {
+			ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+			ctx.lineWidth = 1 * U;
+			ctx.setLineDash([5 * U, 5 * U]);
+		}
+
+		ctx.beginPath();
+		ctx.moveTo(0, ruler.y);
+		ctx.lineTo(canvasWidth, ruler.y);
+		ctx.stroke();
+
+		if (isActive) {
+			const d = getRulerDeleteCoords(ruler, U);
+			ctx.setLineDash([]);
+			ctx.beginPath();
+			ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
+			ctx.fillStyle = '#ef4444';
+			ctx.fill();
+			ctx.strokeStyle = '#ffffff';
+			ctx.lineWidth = 1.5 * U;
+			ctx.stroke();
+
+			const paths = getTrashPaths();
+			if (paths.length > 0) {
+				ctx.save();
+				const k = (9 * U) / 24;
+				ctx.translate(d.x - 12 * k, d.y - 12 * k);
+				ctx.scale(k, k);
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 2.2;
+				ctx.lineCap = 'round';
+				ctx.lineJoin = 'round';
+				paths.forEach((pth) => ctx.stroke(pth));
+				ctx.restore();
+			}
+		}
+
+		ctx.restore();
+	}
+}
+
+export function getRulerDeleteCoords(
+	ruler: RulerItem,
+	U: number,
+): { x: number; y: number; radius: number } {
+	return { x: Math.max(24 * U, 24), y: ruler.y, radius: 9 * U };
+}
+
+export function isPointInRulerDelete(p: Point, ruler: RulerItem, U: number): boolean {
+	const d = getRulerDeleteCoords(ruler, U);
+	const hitRadius = Math.max(d.radius + 6 * U, 18);
+	const dx = p.x - d.x;
+	const dy = p.y - d.y;
+	return dx * dx + dy * dy <= hitRadius * hitRadius;
+}
+
+export function findRulerNearPoint(p: Point, rulers: RulerItem[], U: number): RulerItem | null {
+	const threshold = Math.max(16 * U, 14);
+	let closest: RulerItem | null = null;
+	let minDist = Infinity;
+	for (const r of rulers) {
+		const dist = Math.abs(p.y - r.y);
+		if (dist <= threshold && dist < minDist) {
+			minDist = dist;
+			closest = r;
+		}
+	}
+	return closest;
+}
+
+export function getClosestRulerY(
+	y: number,
+	rulers: RulerItem[],
+	threshold: number,
+): number | null {
+	let closestDist = Infinity;
+	let closestY: number | null = null;
+	for (const r of rulers) {
+		const dist = Math.abs(y - r.y);
+		if (dist <= threshold && dist < closestDist) {
+			closestDist = dist;
+			closestY = r.y;
+		}
+	}
+	return closestY;
+}
+
+export function drawRulers(
+	rulers: RulerItem[],
+	activeRulerId: string | null,
+	isRulerMode: boolean,
+	ctx: CanvasRenderingContext2D,
+	U: number,
+	canvasWidth: number,
+): void {
+	if (rulers.length === 0) return;
+
+	for (const ruler of rulers) {
+		const isActive = isRulerMode && ruler.id === activeRulerId;
+
+		ctx.save();
+		if (isActive) {
+			ctx.strokeStyle = '#4f46e5';
+			ctx.lineWidth = 1.5 * U;
+			ctx.setLineDash([6 * U, 4 * U]);
+		} else {
+			ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+			ctx.lineWidth = 1 * U;
+			ctx.setLineDash([5 * U, 5 * U]);
+		}
+
+		ctx.beginPath();
+		ctx.moveTo(0, ruler.y);
+		ctx.lineTo(canvasWidth, ruler.y);
+		ctx.stroke();
+
+		if (isActive) {
+			const d = getRulerDeleteCoords(ruler, U);
+			ctx.setLineDash([]);
+			ctx.beginPath();
+			ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
+			ctx.fillStyle = '#ef4444';
+			ctx.fill();
+			ctx.strokeStyle = '#ffffff';
+			ctx.lineWidth = 1.5 * U;
+			ctx.stroke();
+
+			const paths = getTrashPaths();
+			if (paths.length > 0) {
+				ctx.save();
+				const k = (9 * U) / 24;
+				ctx.translate(d.x - 12 * k, d.y - 12 * k);
+				ctx.scale(k, k);
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 2.2;
+				ctx.lineCap = 'round';
+				ctx.lineJoin = 'round';
+				paths.forEach((pth) => ctx.stroke(pth));
+				ctx.restore();
+			}
+		}
+
+		ctx.restore();
+	}
 }

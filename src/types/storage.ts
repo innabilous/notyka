@@ -1,4 +1,4 @@
-import { StampItem, ToolMode } from './editor';
+import { RulerItem, StampItem, ToolMode } from './editor';
 
 export interface EditorSettings {
 	currentMode: ToolMode;
@@ -24,6 +24,7 @@ export interface ProjectItem {
 	bgDataUrl: string | null;
 	baseDataUrl: string | null;
 	stamps: StampItem[];
+	rulers?: RulerItem[];
 	width: number;
 	height: number;
 	cssW: number;
