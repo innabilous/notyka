@@ -98,8 +98,25 @@ export const PhotoEditor: React.FC = () => {
 				setIsPaletteOpen(false);
 			}
 		};
+
+		const handleBeforeUnload = () => {
+			if (autoSaveTimerRef.current && stageRef.current) {
+				clearTimeout(autoSaveTimerRef.current);
+				stageRef.current.serializeProject().then((project) => {
+					if (project) {
+						saveCurrentSession(project);
+						saveProject(project);
+					}
+				});
+			}
+		};
+
 		document.addEventListener('click', handleDocClick);
-		return () => document.removeEventListener('click', handleDocClick);
+		window.addEventListener('beforeunload', handleBeforeUnload);
+		return () => {
+			document.removeEventListener('click', handleDocClick);
+			window.removeEventListener('beforeunload', handleBeforeUnload);
+		};
 	}, []);
 
 	// Initial restore from localStorage & IndexedDB
@@ -196,6 +213,16 @@ export const PhotoEditor: React.FC = () => {
 	const handleSelectMode = useCallback(
 		(mode: ToolMode) => {
 			stageRef.current?.commitActiveStamp();
+
+			if (autoSaveTimerRef.current && stageRef.current) {
+				clearTimeout(autoSaveTimerRef.current);
+				stageRef.current.serializeProject().then((project) => {
+					if (project) {
+						saveCurrentSession(project);
+						saveProject(project);
+					}
+				});
+			}
 
 			if (!sizeLocked && currentMode === 'stamp') {
 				setNoteSizes((prev) => ({

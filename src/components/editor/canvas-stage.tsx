@@ -818,6 +818,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				if (nearRuler) {
 					activeRulerIdRef.current = nearRuler.id;
 					isDraggingRulerRef.current = true;
+					dragMovedRef.current = false;
 					dragOffsetRef.current = { x: 0, y: pt.y - nearRuler.y };
 					scheduleRender();
 					return;
@@ -831,7 +832,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				rulersListRef.current.push(newRuler);
 				activeRulerIdRef.current = newRuler.id;
 				isDraggingRulerRef.current = true;
+				dragMovedRef.current = false;
 				dragOffsetRef.current = { x: 0, y: 0 };
+				saveHistory();
 				scheduleRender();
 				onNotify('Лінійку створено');
 				return;
@@ -877,6 +880,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					if (!canvas) return;
 					const ruler = rulersListRef.current.find((r) => r.id === activeRulerIdRef.current);
 					if (ruler) {
+						dragMovedRef.current = true;
 						ruler.y = Math.max(0, Math.min(canvas.height, pt.y - dragOffsetRef.current.y));
 						scheduleRender();
 					}
@@ -912,7 +916,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const pointerUp = useCallback(() => {
 		if (isDraggingRulerRef.current) {
 			isDraggingRulerRef.current = false;
-			saveHistory();
+			if (dragMovedRef.current) {
+				saveHistory();
+			}
 			return;
 		}
 
@@ -962,6 +968,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		if (activeStampRef.current) {
 			drawStamp(activeStampRef.current, false, expCtx, uRef.current, false);
 		}
+
+		drawRulers(rulersListRef.current, null, false, expCtx, uRef.current, exportCanvas.width);
 
 		return exportCanvas;
 	}, []);
