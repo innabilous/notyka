@@ -19,12 +19,54 @@ export function getStampFont(size: number, U: number): string {
 	return `bold ${size * 2 * U}px system-ui, -apple-system, sans-serif`;
 }
 
+//! Розбиваємо текст на рядки з автоматичним переносом по словах, якщо рядок ширший за полотно
+export function getStampLines(
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): string[] {
+	ctx.save();
+	ctx.font = getStampFont(stamp.size, U);
+
+	const maxLineWidth = Math.max(
+		100 * U,
+		ctx.canvas && ctx.canvas.width > 0 ? ctx.canvas.width - 48 * U : 600 * U,
+	);
+
+	const rawLines = String(stamp.text).split('\n');
+	const lines: string[] = [];
+
+	for (const rawLine of rawLines) {
+		const words = rawLine.split(' ');
+		if (words.length <= 1) {
+			lines.push(rawLine);
+			continue;
+		}
+
+		let currentLine = words[0];
+		for (let i = 1; i < words.length; i++) {
+			const word = words[i];
+			const testLine = `${currentLine} ${word}`;
+			if (ctx.measureText(testLine).width <= maxLineWidth) {
+				currentLine = testLine;
+			} else {
+				lines.push(currentLine);
+				currentLine = word;
+			}
+		}
+		lines.push(currentLine);
+	}
+
+	ctx.restore();
+	return lines;
+}
+
 export function calculateStampBox(
 	stamp: StampItem,
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): BoundingBox {
-	const lines = String(stamp.text).split('\n');
+	const lines = getStampLines(stamp, U, ctx);
 	ctx.save();
 	ctx.font = getStampFont(stamp.size, U);
 	ctx.textAlign = 'center';
@@ -271,7 +313,7 @@ export function drawStamp(
 	ctx.lineJoin = 'round';
 	ctx.lineCap = 'round';
 
-	const lines = String(stamp.text).split('\n');
+	const lines = getStampLines(stamp, U, ctx);
 	const lineH = fontSize * 1.25;
 	const startY = stamp.y - ((lines.length - 1) * lineH) / 2;
 
