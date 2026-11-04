@@ -435,33 +435,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		onContentChange?.();
 	}, [onContentChange, updateUndoRedo]);
 
-	const commitActiveStamp = useCallback(() => {
-		const active = activeStampRef.current;
-		if (!active) return;
-
-		const changed = JSON.stringify(active) !== activeOrigRef.current;
-		const existingIdx = layersRef.current.findIndex(
-			(l) => l.type === 'stamp' && l.id === active.id,
-		);
-		if (existingIdx !== -1) {
-			layersRef.current[existingIdx] = { type: 'stamp', id: active.id, stamp: active };
-		} else {
-			layersRef.current.push({ type: 'stamp', id: active.id, stamp: active });
-		}
-
-		stampsListRef.current = layersRef.current
-			.filter((l): l is { type: 'stamp'; id: string; stamp: StampItem } => l.type === 'stamp')
-			.map((l) => l.stamp);
-
-		activeStampRef.current = null;
-		activeOrigRef.current = '';
-		render();
-
-		if (changed) {
-			saveHistory();
-		}
-	}, [render, saveHistory]);
-
 	const finalizeDrawingStamp = useCallback(() => {
 		if (drawDebounceTimerRef.current) {
 			clearTimeout(drawDebounceTimerRef.current);
@@ -560,6 +533,39 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		saveHistory,
 		strokeColor,
 	]);
+
+	const commitActiveStamp = useCallback(() => {
+		if (drawDebounceTimerRef.current) {
+			clearTimeout(drawDebounceTimerRef.current);
+			drawDebounceTimerRef.current = null;
+			finalizeDrawingStamp();
+		}
+
+		const active = activeStampRef.current;
+		if (!active) return;
+
+		const changed = JSON.stringify(active) !== activeOrigRef.current;
+		const existingIdx = layersRef.current.findIndex(
+			(l) => l.type === 'stamp' && l.id === active.id,
+		);
+		if (existingIdx !== -1) {
+			layersRef.current[existingIdx] = { type: 'stamp', id: active.id, stamp: active };
+		} else {
+			layersRef.current.push({ type: 'stamp', id: active.id, stamp: active });
+		}
+
+		stampsListRef.current = layersRef.current
+			.filter((l): l is { type: 'stamp'; id: string; stamp: StampItem } => l.type === 'stamp')
+			.map((l) => l.stamp);
+
+		activeStampRef.current = null;
+		activeOrigRef.current = '';
+		render();
+
+		if (changed) {
+			saveHistory();
+		}
+	}, [finalizeDrawingStamp, render, saveHistory]);
 
 	const syncCategorySizes = useCallback(
 		(category: string, size: number) => {
@@ -1045,8 +1051,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 
-			//! 4. Якщо категорія "draw" або активний штамп — це малюнок
-			if (stampCategory === 'draw' || active?.isDrawing) {
+			//! 4. Якщо обрано режим малювання штампа
+			if (stampCategory === 'draw') {
 				if (drawDuplicateMode && active && active.isDrawing) {
 					commitActiveStamp();
 					const snapY = rulersSnap
@@ -1105,6 +1111,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 			// 5. Create new stamp at clicked position
 			commitActiveStamp();
+			const stampText = activeStampText ?? '';
+			if (!stampText.trim()) {
+				return;
+			}
 			const snapY = rulersSnap
 				? getClosestRulerY(pt.y, rulersListRef.current, 16 * uRef.current)
 				: null;
@@ -1115,7 +1125,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				y: finalY,
 				size: currentSize,
 				category: stampCategory || 'custom',
-				text: activeStampText || selectedNote + selectedAccidental,
+				text: stampText,
 				mainColor,
 				strokeColor,
 				badgeMode: stampBadgeMode,
