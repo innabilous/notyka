@@ -7,6 +7,7 @@ import {
 	EyeOff,
 	Link,
 	MoveVertical,
+	Trash2,
 	Unlink,
 } from 'lucide-react';
 
@@ -14,22 +15,26 @@ interface RulerSettingsProps {
 	visible: boolean;
 	attachContent: boolean;
 	showDistance: boolean;
+	lockEqualDistance: boolean;
 	rulersCount: number;
 	onToggleVisible: () => void;
 	onToggleAttachContent: () => void;
 	onToggleShowDistance: () => void;
-	onDistributeRulers: () => void;
+	onToggleLockEqualDistance: () => void;
+	onClearRulers: () => void;
 }
 
 export const RulerSettings: React.FC<RulerSettingsProps> = ({
 	visible,
 	attachContent,
 	showDistance,
+	lockEqualDistance,
 	rulersCount,
 	onToggleVisible,
 	onToggleAttachContent,
 	onToggleShowDistance,
-	onDistributeRulers,
+	onToggleLockEqualDistance,
+	onClearRulers,
 }) => {
 	const canDistribute = rulersCount > 2;
 
@@ -70,17 +75,36 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 
 			<button
 				type="button"
-				className={`ruler-setting-btn ${canDistribute ? 'active' : ''}`}
-				onClick={onDistributeRulers}
-				title="Вирівняти відстань між лінійками"
-				aria-label="Вирівняти відстань між лінійками"
+				className={`ruler-setting-btn ${lockEqualDistance ? 'active' : ''}`}
+				onClick={onToggleLockEqualDistance}
+				title={
+					lockEqualDistance
+						? 'Зафіксовано рівновіддаленість лінійок'
+						: 'Зафіксувати рівну відстань між лінійками'
+				}
+				aria-label="Зафіксувати рівну відстань між лінійками"
 				style={{
-					opacity: canDistribute ? 1 : 0.6,
+					opacity: canDistribute || lockEqualDistance ? 1 : 0.65,
 					cursor: 'pointer',
 				}}
 			>
 				<AlignVerticalDistributeCenter className="icon" />
-				<span>Вирівняти</span>
+				<span>Рівновіддаленість</span>
+			</button>
+
+			<button
+				type="button"
+				className="ruler-setting-btn"
+				onClick={onClearRulers}
+				title="Очистити всі лінійки"
+				aria-label="Очистити всі лінійки"
+				style={{
+					opacity: rulersCount > 0 ? 1 : 0.5,
+					cursor: rulersCount > 0 ? 'pointer' : 'default',
+				}}
+			>
+				<Trash2 className="icon" />
+				<span>Очистити</span>
 			</button>
 		</div>
 	);

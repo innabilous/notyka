@@ -17,6 +17,7 @@ interface TopToolbarProps {
 	rulersVisible?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
+	rulersLockEqualDistance?: boolean;
 	rulersCount?: number;
 	onUndo: () => void;
 	onRedo: () => void;
@@ -27,7 +28,8 @@ interface TopToolbarProps {
 	onToggleRulersVisible?: () => void;
 	onToggleRulersAttachContent?: () => void;
 	onToggleRulersShowDistance?: () => void;
-	onDistributeRulers?: () => void;
+	onToggleRulersLockEqualDistance?: () => void;
+	onClearRulers?: () => void;
 }
 
 export const TopToolbar: React.FC<TopToolbarProps> = ({
@@ -41,6 +43,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	rulersVisible = true,
 	rulersAttachContent = false,
 	rulersShowDistance = false,
+	rulersLockEqualDistance = false,
 	rulersCount = 0,
 	onUndo,
 	onRedo,
@@ -51,7 +54,8 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	onToggleRulersVisible,
 	onToggleRulersAttachContent,
 	onToggleRulersShowDistance,
-	onDistributeRulers,
+	onToggleRulersLockEqualDistance,
+	onClearRulers,
 }) => {
 	return (
 		<header id="top-bar">
@@ -88,11 +92,13 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 						visible={rulersVisible}
 						attachContent={rulersAttachContent}
 						showDistance={rulersShowDistance}
+						lockEqualDistance={rulersLockEqualDistance}
 						rulersCount={rulersCount}
 						onToggleVisible={() => onToggleRulersVisible?.()}
 						onToggleAttachContent={() => onToggleRulersAttachContent?.()}
 						onToggleShowDistance={() => onToggleRulersShowDistance?.()}
-						onDistributeRulers={() => onDistributeRulers?.()}
+						onToggleLockEqualDistance={() => onToggleRulersLockEqualDistance?.()}
+						onClearRulers={() => onClearRulers?.()}
 					/>
 				) : (
 					<BrushSettings

@@ -23,6 +23,7 @@ export interface EditorSettings {
 	rulersVisible?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
+	rulersLockEqualDistance?: boolean;
 	customText?: string;
 }
 

@@ -45,6 +45,7 @@ interface CanvasStageProps {
 	rulersVisible?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
+	rulersLockEqualDistance?: boolean;
 	hasCanvas: boolean;
 	onSelectStamp: (stamp: StampItem) => void;
 	onChangeSize?: (newSize: number) => void;
@@ -61,6 +62,7 @@ export interface CanvasStageHandle {
 	createBlank: () => void;
 	loadImage: (fileOrSrc: File | string, title?: string) => void;
 	clear: () => void;
+	clearRulers: () => void;
 	undo: () => void;
 	redo: () => void;
 	distributeRulers: () => void;
@@ -93,6 +95,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	rulersVisible = true,
 	rulersAttachContent = false,
 	rulersShowDistance = false,
+	rulersLockEqualDistance = false,
 	hasCanvas,
 	onSelectStamp,
 	onChangeSize,
@@ -1073,6 +1076,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				dragMovedRef.current = false;
 				dragOffsetRef.current = { x: 0, y: 0 };
 				draggedStampIdsRef.current = [];
+
+				if (rulersLockEqualDistance && rulersListRef.current.length >= 3) {
+					//! При активній фіксації відстані автоматично перераховуємо відстані для всіх ліній
+					const sorted = [...rulersListRef.current].sort((a, b) => a.y - b.y);
+					const top = sorted[0].y;
+					const bottom = sorted[sorted.length - 1].y;
+					const totalDist = bottom - top;
+					if (totalDist > 0) {
+						const step = totalDist / (sorted.length - 1);
+						sorted.forEach((r, idx) => {
+							r.y = Math.round(top + idx * step);
+						});
+					}
+				}
+
 				onRulersCountChange?.(rulersListRef.current.length);
 				saveHistory();
 				scheduleRender();
@@ -1131,6 +1149,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			onNotify,
 			placeStamp,
 			rulersAttachContent,
+			rulersLockEqualDistance,
 			rulersVisible,
 			saveHistory,
 			scheduleRender,
@@ -1150,34 +1169,109 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 						const dy = newY - prevY;
 						if (dy !== 0) {
 							dragMovedRef.current = true;
-							ruler.y = newY;
-							if (rulersAttachContent && draggedStampIdsRef.current.length > 0) {
-								const ctx = canvas.getContext('2d');
-								for (const st of stampsListRef.current) {
-									if (draggedStampIdsRef.current.includes(st.id)) {
-										st.y += dy;
-										if (ctx) {
-											const clamped = clampStampPosition(st.x, st.y, st, uRef.current, ctx);
-											st.x = clamped.x;
-											st.y = clamped.y;
+
+							if (rulersLockEqualDistance && rulersListRef.current.length >= 3) {
+								const sorted = [...rulersListRef.current].sort((a, b) => a.y - b.y);
+								const isTop = ruler.id === sorted[0].id;
+								const isBottom = ruler.id === sorted[sorted.length - 1].id;
+
+								if (isTop || isBottom) {
+									//! Переміщення крайньої лінійки: проміжні лінії автопідлаштовуються для однакової відстані
+									ruler.y = newY;
+									const currentSorted = [...rulersListRef.current].sort((a, b) => a.y - b.y);
+									const topY = currentSorted[0].y;
+									const bottomY = currentSorted[currentSorted.length - 1].y;
+									const totalDist = bottomY - topY;
+									const step = totalDist / (currentSorted.length - 1);
+									const threshold = 16 * uRef.current;
+
+									currentSorted.forEach((r, idx) => {
+										if (idx === 0 || idx === currentSorted.length - 1) return;
+										const targetY = Math.round(topY + idx * step);
+										const deltaY = targetY - r.y;
+										if (rulersAttachContent && deltaY !== 0) {
+											stampsListRef.current.forEach((st) => {
+												if (Math.abs(st.y - r.y) <= threshold) {
+													st.y += deltaY;
+												}
+											});
+											if (activeStampRef.current && Math.abs(activeStampRef.current.y - r.y) <= threshold) {
+												activeStampRef.current.y += deltaY;
+											}
+										}
+										r.y = targetY;
+									});
+								} else {
+									//! Переміщення внутрішньої лінійки: всі лінійки переміщуються разом із зафіксованою відстанню
+									rulersListRef.current.forEach((r) => {
+										if (r.id === ruler.id) {
+											r.y = newY;
+										} else {
+											r.y = Math.max(0, Math.min(canvas.height, r.y + dy));
+										}
+									});
+									if (rulersAttachContent && draggedStampIdsRef.current.length > 0) {
+										const ctx = canvas.getContext('2d');
+										for (const st of stampsListRef.current) {
+											if (draggedStampIdsRef.current.includes(st.id)) {
+												st.y += dy;
+												if (ctx) {
+													const clamped = clampStampPosition(st.x, st.y, st, uRef.current, ctx);
+													st.x = clamped.x;
+													st.y = clamped.y;
+												}
+											}
+										}
+										if (
+											activeStampRef.current &&
+											draggedStampIdsRef.current.includes(activeStampRef.current.id)
+										) {
+											activeStampRef.current.y += dy;
+											if (ctx) {
+												const clamped = clampStampPosition(
+													activeStampRef.current.x,
+													activeStampRef.current.y,
+													activeStampRef.current,
+													uRef.current,
+													ctx,
+												);
+												activeStampRef.current.x = clamped.x;
+												activeStampRef.current.y = clamped.y;
+											}
 										}
 									}
 								}
-								if (
-									activeStampRef.current &&
-									draggedStampIdsRef.current.includes(activeStampRef.current.id)
-								) {
-									activeStampRef.current.y += dy;
-									if (ctx) {
-										const clamped = clampStampPosition(
-											activeStampRef.current.x,
-											activeStampRef.current.y,
-											activeStampRef.current,
-											uRef.current,
-											ctx,
-										);
-										activeStampRef.current.x = clamped.x;
-										activeStampRef.current.y = clamped.y;
+							} else {
+								//! Звичайний вільний режим переміщення окремої лінійки
+								ruler.y = newY;
+								if (rulersAttachContent && draggedStampIdsRef.current.length > 0) {
+									const ctx = canvas.getContext('2d');
+									for (const st of stampsListRef.current) {
+										if (draggedStampIdsRef.current.includes(st.id)) {
+											st.y += dy;
+											if (ctx) {
+												const clamped = clampStampPosition(st.x, st.y, st, uRef.current, ctx);
+												st.x = clamped.x;
+												st.y = clamped.y;
+											}
+										}
+									}
+									if (
+										activeStampRef.current &&
+										draggedStampIdsRef.current.includes(activeStampRef.current.id)
+									) {
+										activeStampRef.current.y += dy;
+										if (ctx) {
+											const clamped = clampStampPosition(
+												activeStampRef.current.x,
+												activeStampRef.current.y,
+												activeStampRef.current,
+												uRef.current,
+												ctx,
+											);
+											activeStampRef.current.x = clamped.x;
+											activeStampRef.current.y = clamped.y;
+										}
 									}
 								}
 							}
@@ -1217,6 +1311,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			drawPencilStroke,
 			moveActive,
 			rulersAttachContent,
+			rulersLockEqualDistance,
 			rulersVisible,
 			scheduleRender,
 			strokeSmooth,
@@ -1460,57 +1555,87 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		[initCanvas, onInitBlank, onRulersCountChange, render, resetTransform, saveHistory],
 	);
 
+	const distributeRulers = useCallback(
+		(notify: boolean = true) => {
+			const rulers = rulersListRef.current;
+			if (rulers.length < 3) {
+				if (notify) {
+					onNotify('Потрібно щонайменше 3 лінійки для вирівнювання');
+				}
+				return;
+			}
+
+			const sorted = [...rulers].sort((a, b) => a.y - b.y);
+			const top = sorted[0];
+			const bottom = sorted[sorted.length - 1];
+			const totalDist = bottom.y - top.y;
+			if (totalDist <= 0) return;
+
+			const step = totalDist / (sorted.length - 1);
+			const u = uRef.current;
+			const threshold = 16 * u;
+
+			sorted.forEach((ruler, index) => {
+				if (index === 0 || index === sorted.length - 1) return;
+				const newY = Math.round(top.y + index * step);
+				const deltaY = newY - ruler.y;
+
+				if (rulersAttachContent && deltaY !== 0) {
+					stampsListRef.current.forEach((st) => {
+						if (Math.abs(st.y - ruler.y) <= threshold) {
+							st.y += deltaY;
+						}
+					});
+					if (activeStampRef.current && Math.abs(activeStampRef.current.y - ruler.y) <= threshold) {
+						activeStampRef.current.y += deltaY;
+					}
+				}
+
+				ruler.y = newY;
+			});
+
+			saveHistory();
+			render();
+			scheduleRender();
+			onContentChange?.();
+			onRulersCountChange?.(rulersListRef.current.length);
+			if (notify) {
+				onNotify('Лінійки вирівняно рівновіддалено');
+			}
+		},
+		[onContentChange, onNotify, onRulersCountChange, render, rulersAttachContent, saveHistory, scheduleRender],
+	);
+
+	const clearRulers = useCallback(() => {
+		if (rulersListRef.current.length === 0) return;
+		rulersListRef.current = [];
+		activeRulerIdRef.current = null;
+		isDraggingRulerRef.current = false;
+		draggedStampIdsRef.current = [];
+		saveHistory();
+		render();
+		scheduleRender();
+		onContentChange?.();
+		onRulersCountChange?.(0);
+		onNotify('Всі лінійки очищено');
+	}, [onContentChange, onNotify, onRulersCountChange, render, saveHistory, scheduleRender]);
+
+	useEffect(() => {
+		if (rulersLockEqualDistance && rulersListRef.current.length >= 3) {
+			distributeRulers(false);
+		}
+	}, [distributeRulers, rulersLockEqualDistance]);
+
 	// Attach stageRef imperative handle
 	useEffect(() => {
 		stageRef.current = {
 			createBlank,
 			loadImage,
 			clear: clearCanvas,
+			clearRulers,
 			undo: handleUndo,
 			redo: handleRedo,
-			distributeRulers: () => {
-				const rulers = rulersListRef.current;
-				if (rulers.length < 3) {
-					onNotify('Потрібно щонайменше 3 лінійки для вирівнювання');
-					return;
-				}
-
-				const sorted = [...rulers].sort((a, b) => a.y - b.y);
-				const top = sorted[0];
-				const bottom = sorted[sorted.length - 1];
-				const totalDist = bottom.y - top.y;
-				if (totalDist <= 0) return;
-
-				const step = totalDist / (sorted.length - 1);
-				const u = uRef.current;
-				const threshold = 16 * u;
-
-				sorted.forEach((ruler, index) => {
-					if (index === 0 || index === sorted.length - 1) return;
-					const newY = Math.round(top.y + index * step);
-					const deltaY = newY - ruler.y;
-
-					if (rulersAttachContent && deltaY !== 0) {
-						stampsListRef.current.forEach((st) => {
-							if (Math.abs(st.y - ruler.y) <= threshold) {
-								st.y += deltaY;
-							}
-						});
-						if (activeStampRef.current && Math.abs(activeStampRef.current.y - ruler.y) <= threshold) {
-							activeStampRef.current.y += deltaY;
-						}
-					}
-
-					ruler.y = newY;
-				});
-
-				saveHistory();
-				render();
-				scheduleRender();
-				onContentChange?.();
-				onRulersCountChange?.(rulersListRef.current.length);
-				onNotify('Лінійки вирівняно рівновіддалено');
-			},
+			distributeRulers: () => distributeRulers(true),
 			getRulersCount: () => rulersListRef.current.length,
 			commitActiveStamp,
 			prepareExport,
@@ -1542,8 +1667,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	}, [
 		buildExportCanvas,
 		clearCanvas,
+		clearRulers,
 		commitActiveStamp,
 		createBlank,
+		distributeRulers,
 		handleRedo,
 		handleUndo,
 		loadImage,
