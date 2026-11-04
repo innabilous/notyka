@@ -24,7 +24,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
 	return (
 		<div
-			className={className}
+			className={`${pulseClass} ${className}`.trim()}
 			style={{
 				display: 'inline-flex',
 				flexDirection: 'column',
@@ -33,7 +33,6 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 			}}
 		>
 			<div
-				className={pulseClass}
 				style={{
 					position: 'relative',
 					width: size,
@@ -100,12 +99,12 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 					<span
 						style={{
 							fontFamily: 'system-ui, -apple-system, sans-serif',
-							fontSize: `${Math.max(10, Math.round(numericSize * 0.18))}px`,
+							fontSize: `${Math.max(8, Math.round(numericSize * 0.12))}px`,
 							fontWeight: 300,
-							letterSpacing: '0.22em',
-							color: 'var(--text-secondary, rgba(255, 255, 255, 0.7))',
+							letterSpacing: '0.25em',
+							color: 'var(--text-secondary, rgba(255, 255, 255, 0.65))',
 							textTransform: 'lowercase',
-							paddingLeft: '0.22em',
+							paddingLeft: '0.25em',
 						}}
 					>
 						pro
