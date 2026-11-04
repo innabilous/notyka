@@ -12,7 +12,7 @@ import { StampCategory, StampSettings } from '@/components/settings/stamp-settin
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
 import { ToolbarSkeleton } from '@/components/toolbar/toolbar-skeleton';
 import { TopToolbar } from '@/components/toolbar/top-toolbar';
-import { ACCIDENTALS, COUNT_ITEMS, NOTES } from '@/constants/editor';
+import { ACCIDENTALS, CHORD_ROOTS, COUNT_ITEMS, NOTES } from '@/constants/editor';
 import { StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
@@ -78,8 +78,11 @@ export const PhotoEditor: React.FC = () => {
 	const [activeStampText, setActiveStampText] = useState<string>('До');
 	const [stampCategory, setStampCategory] = useState<StampCategory>('notes');
 	const [customStamps, setCustomStamps] = useState<string[]>([]);
+	const [selectedCount, setSelectedCount] = useState<string>('1');
+	const [selectedCustom, setSelectedCustom] = useState<string>('');
 	const [customText, setCustomText] = useState<string>('Текст');
 	const [customStampModalOpen, setCustomStampModalOpen] = useState<boolean>(false);
+	const [drawDuplicateMode, setDrawDuplicateMode] = useState<boolean>(false);
 	const [sizeLocked, setSizeLocked] = useState<boolean>(true);
 	const [noteSizes, setNoteSizes] = useState<Record<string, number>>({});
 
@@ -348,6 +351,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedAccidental,
 			selectedNote,
 			sizeLocked,
+			stampCategory,
 			toolSizes.stamp,
 		],
 	);
@@ -391,6 +395,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedAccidental,
 			selectedNote,
 			sizeLocked,
+			stampCategory,
 			toolSizes.stamp,
 		],
 	);
@@ -435,6 +440,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedAccidental,
 			selectedNote,
 			sizeLocked,
+			stampCategory,
 			toolSizes.stamp,
 		],
 	);
@@ -449,6 +455,12 @@ export const PhotoEditor: React.FC = () => {
 			}
 
 			setActiveStampText(text);
+
+			if (stampCategory === 'count') {
+				setSelectedCount(text);
+			} else if (stampCategory === 'custom') {
+				setSelectedCustom(text);
+			}
 
 			const key = text;
 			const newSize = !sizeLocked && noteSizes[key] != null ? noteSizes[key] : toolSizes.stamp;
@@ -476,6 +488,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedAccidental,
 			selectedNote,
 			sizeLocked,
+			stampCategory,
 			toolSizes.stamp,
 		],
 	);
@@ -558,6 +571,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedChordSlash,
 			selectedNote,
 			sizeLocked,
+			stampCategory,
 			toolSizes.stamp,
 		],
 	);
@@ -618,6 +632,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedChordSlash,
 			selectedNote,
 			sizeLocked,
+			stampCategory,
 			toolSizes.stamp,
 		],
 	);
@@ -678,6 +693,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedChordSlash,
 			selectedNote,
 			sizeLocked,
+			stampCategory,
 			toolSizes.stamp,
 		],
 	);
@@ -794,6 +810,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedChordRoot,
 			selectedNote,
 			sizeLocked,
+			stampCategory,
 			toolSizes.stamp,
 		],
 	);
@@ -853,6 +870,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedChordRoot,
 			selectedNote,
 			sizeLocked,
+			stampCategory,
 			toolSizes.stamp,
 		],
 	);
@@ -860,16 +878,24 @@ export const PhotoEditor: React.FC = () => {
 	//! Перемикання категорії штампів
 	const handleChangeStampCategory = useCallback(
 		(cat: StampCategory) => {
+			stageRef.current?.commitActiveStamp();
 			setStampCategory(cat);
-			if (cat === 'draw') {
-				showToast("Малюйте на полотні. Штрихи об'єднаються у штамп через 1 с");
-			}
-			let nextText = activeStampText;
+			let nextText = '';
 			if (cat === 'notes') {
-				nextText = `${selectedNote}${selectedAccidental}`;
+				const note = (NOTES as readonly string[]).includes(selectedNote) ? selectedNote : NOTES[0];
+				if (note !== selectedNote) {
+					setSelectedNote(note);
+				}
+				nextText = `${note}${selectedAccidental}`;
 			} else if (cat === 'chords') {
+				const root = (CHORD_ROOTS as readonly string[]).includes(selectedChordRoot)
+					? selectedChordRoot
+					: CHORD_ROOTS[0];
+				if (root !== selectedChordRoot) {
+					setSelectedChordRoot(root);
+				}
 				nextText = buildChordText(
-					selectedChordRoot,
+					root,
 					selectedChordAccidental,
 					selectedChordModifier,
 					selectedChordSlash,
@@ -877,28 +903,34 @@ export const PhotoEditor: React.FC = () => {
 					selectedChordBassAccidental,
 				);
 			} else if (cat === 'count') {
-				nextText = COUNT_ITEMS[0];
+				const countItem = (COUNT_ITEMS as readonly string[]).includes(selectedCount)
+					? selectedCount
+					: COUNT_ITEMS[0];
+				if (countItem !== selectedCount) {
+					setSelectedCount(countItem);
+				}
+				nextText = countItem;
 			} else if (cat === 'custom') {
 				if (customStamps.length > 0) {
-					nextText = customStamps[0];
+					const customItem = customStamps.includes(selectedCustom)
+						? selectedCustom
+						: customStamps[0];
+					if (customItem !== selectedCustom) {
+						setSelectedCustom(customItem);
+					}
+					nextText = customItem;
+				} else {
+					nextText = '';
 				}
 			} else if (cat === 'text') {
-				nextText = customText || 'Текст';
+				nextText = customText;
+			} else if (cat === 'draw') {
+				nextText = '';
 			}
 			setActiveStampText(nextText);
-			const catMain = categoryColors[cat]?.main ?? '#ed1c24';
-			const catStroke = categoryColors[cat]?.stroke ?? 'transparent';
-			stageRef.current?.updateActiveStampProps(
-				toolSizes.stamp,
-				nextText,
-				catMain,
-				catStroke,
-			);
 		},
 		[
-			activeStampText,
 			buildChordText,
-			categoryColors,
 			customStamps,
 			customText,
 			selectedAccidental,
@@ -908,9 +940,9 @@ export const PhotoEditor: React.FC = () => {
 			selectedChordModifier,
 			selectedChordRoot,
 			selectedChordSlash,
+			selectedCount,
+			selectedCustom,
 			selectedNote,
-			showToast,
-			toolSizes.stamp,
 		],
 	);
 
@@ -918,11 +950,10 @@ export const PhotoEditor: React.FC = () => {
 	const handleChangeCustomText = useCallback(
 		(text: string) => {
 			setCustomText(text);
-			const effectiveText = text || 'Текст';
-			setActiveStampText(effectiveText);
+			setActiveStampText(text);
 			stageRef.current?.updateActiveStampProps(
 				toolSizes.stamp,
-				effectiveText,
+				text,
 				currentMainColor,
 				currentStrokeColor,
 				stampBadgeMode,
@@ -934,6 +965,7 @@ export const PhotoEditor: React.FC = () => {
 	const handleAddCustomStamp = useCallback(
 		(text: string) => {
 			setCustomStamps((prev) => [text, ...prev.filter((item) => item !== text)].slice(0, 30));
+			setSelectedCustom(text);
 			handleSelectStampText(text);
 			showToast(`Додано штамп «${text}»`);
 		},
@@ -946,9 +978,11 @@ export const PhotoEditor: React.FC = () => {
 				const next = prev.filter((item) => item !== text);
 				if (activeStampText === text) {
 					if (next.length > 0) {
+						setSelectedCustom(next[0]);
 						handleSelectStampText(next[0]);
 					} else {
-						handleSelectStampText('до');
+						setSelectedCustom('');
+						setActiveStampText('');
 					}
 				}
 				return next;
@@ -1163,7 +1197,8 @@ export const PhotoEditor: React.FC = () => {
 			...prev,
 			stamp: { main: stamp.mainColor, stroke: stamp.strokeColor },
 		}));
-		const cat = (stamp.category as StampCategory) || 'custom';
+		const cat = (stamp.category as StampCategory) || (stamp.isDrawing ? 'draw' : 'custom');
+		setStampCategory(cat);
 		setCategoryColors((prev) => ({
 			...prev,
 			[cat]: { main: stamp.mainColor, stroke: stamp.strokeColor },
@@ -1171,12 +1206,28 @@ export const PhotoEditor: React.FC = () => {
 
 		setActiveStampText(stamp.text);
 
-		const acc = stamp.text.match(/[♭♯]$/);
-		const accidental = acc ? acc[0] : '';
-		const note = stamp.text.replace(/[♭♯]$/, '');
-
-		setSelectedNote(note);
-		setSelectedAccidental(accidental);
+		if (cat === 'notes') {
+			const acc = stamp.text.match(/[♭♯]$/);
+			const accidental = acc ? acc[0] : '';
+			const note = stamp.text.replace(/[♭♯]$/, '');
+			if ((NOTES as readonly string[]).includes(note)) {
+				setSelectedNote(note);
+				setSelectedAccidental(accidental);
+			}
+		} else if (cat === 'count') {
+			if ((COUNT_ITEMS as readonly string[]).includes(stamp.text)) {
+				setSelectedCount(stamp.text);
+			}
+		} else if (cat === 'custom') {
+			setSelectedCustom(stamp.text);
+		} else if (cat === 'text') {
+			setCustomText(stamp.text);
+		} else if (cat === 'chords') {
+			const root = (CHORD_ROOTS as readonly string[]).find((r) => stamp.text.startsWith(r));
+			if (root) {
+				setSelectedChordRoot(root);
+			}
+		}
 	}, []);
 
 	const handleToggleDeleteBtn = useCallback(() => {
@@ -1415,6 +1466,7 @@ export const PhotoEditor: React.FC = () => {
 				activeStampText={activeStampText}
 				stampBadgeMode={stampBadgeMode}
 				stampCategory={stampCategory}
+				drawDuplicateMode={drawDuplicateMode}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
 				rulersVisible={rulersVisible}
@@ -1535,6 +1587,8 @@ export const PhotoEditor: React.FC = () => {
 							onOpenAddCustomModal={() => setCustomStampModalOpen(true)}
 							onDeleteCustomStamp={handleDeleteCustomStamp}
 							onChangeCustomText={handleChangeCustomText}
+							isDrawDuplicateMode={drawDuplicateMode}
+							onToggleDrawDuplicateMode={() => setDrawDuplicateMode((prev) => !prev)}
 						/>
 					)}
 
