@@ -39,6 +39,7 @@ interface CanvasStageProps {
 	selectedNote: string;
 	selectedAccidental: string;
 	activeStampText?: string;
+	stampBadgeMode?: boolean;
 	deleteBtnOn: boolean;
 	resizeHandlesOn?: boolean;
 	rulersVisible?: boolean;
@@ -70,6 +71,7 @@ export interface CanvasStageHandle {
 		text: string,
 		mainColor: string,
 		strokeColor: string,
+		badgeMode?: boolean,
 	) => void;
 }
 
@@ -81,6 +83,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	selectedNote,
 	selectedAccidental,
 	activeStampText,
+	stampBadgeMode = false,
 	deleteBtnOn,
 	resizeHandlesOn = true,
 	rulersVisible = true,
@@ -617,6 +620,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				text: activeStampText || selectedNote + selectedAccidental,
 				mainColor,
 				strokeColor,
+				badgeMode: stampBadgeMode,
 			};
 			//! Гарантуємо, що новостворений штамп не виходить за межі полотна
 			const clamped = clampStampPosition(newStamp.x, newStamp.y, newStamp, uRef.current, ctx);
@@ -1224,13 +1228,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			},
 			serializeProject,
 			loadProject,
-			updateActiveStampProps: (sz, txt, mClr, sClr) => {
+			updateActiveStampProps: (sz, txt, mClr, sClr, bMode) => {
 				const active = activeStampRef.current;
 				if (!active) return;
 				active.size = sz;
 				active.text = txt;
 				active.mainColor = mClr;
 				active.strokeColor = sClr;
+				if (bMode !== undefined) {
+					active.badgeMode = bMode;
+				}
 				render();
 			},
 		};

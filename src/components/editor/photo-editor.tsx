@@ -62,6 +62,7 @@ export const PhotoEditor: React.FC = () => {
 	const [selectedChordSlash, setSelectedChordSlash] = useState<boolean>(false);
 	const [selectedChordBassRoot, setSelectedChordBassRoot] = useState<string>('');
 	const [selectedChordBassAccidental, setSelectedChordBassAccidental] = useState<string>('');
+	const [stampBadgeMode, setStampBadgeMode] = useState<boolean>(false);
 	const [activeStampText, setActiveStampText] = useState<string>('до');
 	const [stampCategory, setStampCategory] = useState<StampCategory>('notes');
 	const [customStamps, setCustomStamps] = useState<string[]>([]);
@@ -151,6 +152,8 @@ export const PhotoEditor: React.FC = () => {
 				setSelectedChordBassRoot(savedSettings.selectedChordBassRoot);
 			if (savedSettings.selectedChordBassAccidental !== undefined)
 				setSelectedChordBassAccidental(savedSettings.selectedChordBassAccidental);
+			if (savedSettings.stampBadgeMode !== undefined)
+				setStampBadgeMode(savedSettings.stampBadgeMode);
 			if (savedSettings.activeStampText) setActiveStampText(savedSettings.activeStampText);
 			if (savedSettings.stampCategory)
 				setStampCategory(savedSettings.stampCategory as StampCategory);
@@ -197,6 +200,7 @@ export const PhotoEditor: React.FC = () => {
 			selectedChordSlash,
 			selectedChordBassRoot,
 			selectedChordBassAccidental,
+			stampBadgeMode,
 			activeStampText,
 			stampCategory,
 			customStamps,
@@ -225,6 +229,7 @@ export const PhotoEditor: React.FC = () => {
 		selectedChordSlash,
 		selectedNote,
 		sizeLocked,
+		stampBadgeMode,
 		stampCategory,
 		toolColors,
 		toolSizes,
@@ -980,9 +985,42 @@ export const PhotoEditor: React.FC = () => {
 				activeStampText || `${selectedNote}${selectedAccidental}`,
 				currentMainColor,
 				color,
+				stampBadgeMode,
 			);
 		},
-		[activeStampText, currentMainColor, currentSize, selectedAccidental, selectedNote, showToast],
+		[
+			activeStampText,
+			currentMainColor,
+			currentSize,
+			selectedAccidental,
+			selectedNote,
+			showToast,
+			stampBadgeMode,
+		],
+	);
+
+	//! Перемикання стилю обводки / плашки штампа
+	const handleToggleBadgeMode = useCallback(
+		(isBadge: boolean) => {
+			setStampBadgeMode(isBadge);
+			stageRef.current?.updateActiveStampProps(
+				currentSize,
+				activeStampText || `${selectedNote}${selectedAccidental}`,
+				currentMainColor,
+				currentStrokeColor,
+				isBadge,
+			);
+			showToast(isBadge ? 'Увімкнено суцільну плашку' : 'Увімкнено контурну обводку');
+		},
+		[
+			activeStampText,
+			currentMainColor,
+			currentSize,
+			currentStrokeColor,
+			selectedAccidental,
+			selectedNote,
+			showToast,
+		],
 	);
 
 	const handleToggleRulersVisible = useCallback(() => {
@@ -1250,6 +1288,7 @@ export const PhotoEditor: React.FC = () => {
 				selectedNote={selectedNote}
 				selectedAccidental={selectedAccidental}
 				activeStampText={activeStampText}
+				stampBadgeMode={stampBadgeMode}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
 				rulersVisible={rulersVisible}
@@ -1322,8 +1361,10 @@ export const PhotoEditor: React.FC = () => {
 				currentMode={currentMode}
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
+				stampBadgeMode={stampBadgeMode}
 				onChangeMainColor={handleChangeMainColor}
 				onChangeStrokeColor={handleChangeStrokeColor}
+				onToggleBadgeMode={handleToggleBadgeMode}
 			/>
 
 			<CustomStampModal

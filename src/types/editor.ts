@@ -13,6 +13,7 @@ export interface StampItem {
 	text: string;
 	mainColor: string;
 	strokeColor: string;
+	badgeMode?: boolean;
 }
 
 export interface HistoryItem {

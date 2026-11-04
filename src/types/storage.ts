@@ -12,6 +12,7 @@ export interface EditorSettings {
 	selectedChordSlash?: boolean;
 	selectedChordBassRoot?: string;
 	selectedChordBassAccidental?: string;
+	stampBadgeMode?: boolean;
 	activeStampText?: string;
 	stampCategory?: string;
 	customStamps?: string[];

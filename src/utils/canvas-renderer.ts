@@ -262,9 +262,23 @@ export function drawStamp(
 	ctx.lineCap = 'round';
 
 	if (stamp.strokeColor !== 'transparent') {
-		ctx.strokeStyle = stamp.strokeColor;
-		ctx.lineWidth = Math.max(2, fontSize / 10);
-		ctx.strokeText(stamp.text, stamp.x, stamp.y);
+		if (stamp.badgeMode) {
+			//! Малюємо кольорову суцільну плашку під текстом
+			const bx = calculateStampBox(stamp, U, ctx);
+			ctx.fillStyle = stamp.strokeColor;
+			ctx.beginPath();
+			const radius = Math.min(6 * U, bx.h / 3);
+			if (typeof ctx.roundRect === 'function') {
+				ctx.roundRect(bx.x, bx.y, bx.w, bx.h, radius);
+			} else {
+				ctx.rect(bx.x, bx.y, bx.w, bx.h);
+			}
+			ctx.fill();
+		} else {
+			ctx.strokeStyle = stamp.strokeColor;
+			ctx.lineWidth = Math.max(2, fontSize / 10);
+			ctx.strokeText(stamp.text, stamp.x, stamp.y);
+		}
 	}
 
 	ctx.fillStyle = stamp.mainColor;
