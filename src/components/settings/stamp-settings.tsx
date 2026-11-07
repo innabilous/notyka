@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { SegmentedControl, Textarea } from '@mantine/core';
-import { Copy, Plus, Trash2, X } from 'lucide-react';
+import { Copy, Eraser, ListOrdered, Plus, RotateCcw, Trash2, X } from 'lucide-react';
 import {
 	ACCIDENTALS,
 	CHORD_ACCIDENTALS,
@@ -12,6 +12,7 @@ import {
 	COUNT_ITEMS,
 	NOTES,
 } from '@/constants/editor';
+import { AutoCountItem } from '@/types/editor';
 
 export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw';
 
@@ -28,6 +29,12 @@ interface StampSettingsProps {
 	category: StampCategory;
 	customStamps: string[];
 	customText?: string;
+	isAutoCountMode?: boolean;
+	countPattern?: readonly string[];
+	currentAutoCountIndex?: number;
+	selectedStepIndex?: number;
+	autoCountSequence?: AutoCountItem[];
+	currentAutoCountItemId?: string;
 	onChangeCategory: (cat: StampCategory) => void;
 	onSelectNote: (note: string) => void;
 	onSelectAccidental: (acc: string) => void;
@@ -43,6 +50,19 @@ interface StampSettingsProps {
 	onChangeCustomText?: (text: string) => void;
 	isDrawDuplicateMode?: boolean;
 	onToggleDrawDuplicateMode?: () => void;
+	onToggleAutoCount?: () => void;
+	onResetAutoCount?: () => void;
+	onSelectStep?: (index: number) => void;
+	onAssignTokenToStep?: (token: string) => void;
+	onClearCurrentStep?: () => void;
+	onResetCountPattern?: () => void;
+	onAddSteps?: () => void;
+	onRemoveSteps?: () => void;
+	onReorderAutoCount?: (fromIndex: number, toIndex: number) => void;
+	onToggleAutoCountItem?: (id: string) => void;
+	onDuplicateAutoCountItem?: (id: string) => void;
+	onDeleteAutoCountItem?: (id: string) => void;
+	onSelectAutoCountItem?: (id: string) => void;
 }
 
 export const StampSettings: React.FC<StampSettingsProps> = ({
@@ -73,6 +93,25 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 	onChangeCustomText,
 	isDrawDuplicateMode = false,
 	onToggleDrawDuplicateMode,
+	isAutoCountMode = false,
+	countPattern = [],
+	currentAutoCountIndex = 0,
+	selectedStepIndex = 0,
+	onSelectStep,
+	onAssignTokenToStep,
+	onClearCurrentStep,
+	onResetCountPattern,
+	onAddSteps,
+	onRemoveSteps,
+	autoCountSequence = [],
+	currentAutoCountItemId,
+	onToggleAutoCount,
+	onResetAutoCount,
+	onReorderAutoCount,
+	onToggleAutoCountItem,
+	onDuplicateAutoCountItem,
+	onDeleteAutoCountItem,
+	onSelectAutoCountItem,
 }) => {
 	const [isDeleteMode, setIsDeleteMode] = useState<boolean>(false);
 
@@ -95,7 +134,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 					data={[
 						{ label: 'Ноти', value: 'notes' },
 						{ label: 'Акорди', value: 'chords' },
-						{ label: 'Лік', value: 'count' },
+						{ label: 'Рахунок', value: 'count' },
 						{ label: 'Власні', value: 'custom' },
 						{ label: 'Текст', value: 'text' },
 						{ label: 'Малюнок', value: 'draw' },
@@ -110,7 +149,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 
 			{/* Рівень 2: Чипи відповідно до категорії */}
 			<div
-				className={`stamp-chips-scroll ${category === 'chords' || category === 'text' ? 'multi-row' : ''}`}
+				className={`stamp-chips-scroll ${category === 'chords' || category === 'text' || (category === 'count' && isAutoCountMode) ? 'multi-row' : ''}`}
 			>
 				{/* 1. Ноти та знаки альтерації */}
 				{category === 'notes' && (
@@ -261,22 +300,124 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 					</div>
 				)}
 
-				{/* 3. Рахунок / Лік: «1 2 3 4 і та на» */}
+				{/* 3. Рахунок: Чипи + 32-кроковий секвенсор для Авторахунку */}
 				{category === 'count' && (
-					<div className="stamp-chips-row fit-width">
-						{COUNT_ITEMS.map((item) => {
-							const isCountActive = activeStampText === item;
-							return (
+					<div className="stamp-count-container">
+						{isAutoCountMode && (
+							<div className="step-sequencer-wrapper">
+								<div className="step-sequencer-header">
+									<span className="step-sequencer-title">
+										Патерн ({countPattern.length} кр.):
+									</span>
+									<div className="step-sequencer-header-actions">
+										{countPattern.length > 16 && (
+											<button
+												type="button"
+												className="step-action-mini-btn"
+												title="Прибрати 16 кроків"
+												onClick={onRemoveSteps}
+											>
+												<span>-16</span>
+											</button>
+										)}
+										{countPattern.length < 64 && (
+											<button
+												type="button"
+												className="step-action-mini-btn"
+												title="Додати 16 кроків (макс. 64)"
+												onClick={onAddSteps}
+											>
+												<span>+16</span>
+											</button>
+										)}
+										<button
+											type="button"
+											className="step-action-mini-btn"
+											title="Скинути до стандартного (16 кроків)"
+											onClick={onResetCountPattern}
+										>
+											<RotateCcw className="icon" />
+											<span>Скинути</span>
+										</button>
+									</div>
+								</div>
+								<div className="step-cubes-scroll">
+									<div className="step-cubes-grid">
+										{countPattern.map((token, idx) => {
+											const isActive = idx === currentAutoCountIndex || idx === selectedStepIndex;
+											const isFilled = Boolean(token && token.trim());
+											const isBeatStart = idx % 4 === 0;
+
+											return (
+												<button
+													key={idx}
+													type="button"
+													className={`step-cube ${isFilled ? 'filled' : 'empty'} ${isActive ? 'active' : ''} ${isBeatStart ? 'beat-start' : ''}`}
+													onClick={() => onSelectStep?.(idx)}
+													title={`Крок ${idx + 1}: «${token || 'порожньо'}»${isActive ? ' — вибраний крок' : ''}`}
+												>
+													<span className="step-cube-num">{idx + 1}</span>
+													<span className="step-cube-val">{token || '·'}</span>
+												</button>
+											);
+										})}
+									</div>
+								</div>
+							</div>
+						)}
+
+						<div className="stamp-custom-container">
+							<div className="stamp-custom-chips-scroll">
+								{COUNT_ITEMS.map((item) => {
+									const isActive = !isAutoCountMode && activeStampText === item;
+									return (
+										<button
+											key={item}
+											type="button"
+											className={`chip count-btn ${isActive ? 'active' : ''}`}
+											onClick={() => {
+												if (isAutoCountMode) {
+													onAssignTokenToStep?.(item);
+												} else {
+													onSelectStampText(item);
+												}
+											}}
+											title={
+												isAutoCountMode
+													? `Записати «${item}» у клітинку ${(selectedStepIndex ?? 0) + 1}`
+													: item
+											}
+										>
+											{item}
+										</button>
+									);
+								})}
+
+								{isAutoCountMode && (
+									<button
+										type="button"
+										className="chip count-btn clear-step-btn"
+										onClick={onClearCurrentStep}
+										title={`Очистити клітинку ${(selectedStepIndex ?? 0) + 1}`}
+									>
+										<Eraser className="icon" />
+									</button>
+								)}
+							</div>
+
+							{/* Кнопка перемикання авторахунку справа */}
+							<div className="stamp-custom-actions">
 								<button
-									key={item}
 									type="button"
-									className={`chip count-btn ${isCountActive ? 'active' : ''}`}
-									onClick={() => onSelectStampText(item)}
+									className={`chip custom-chip auto-count-toggle-btn ${isAutoCountMode ? 'active' : ''}`}
+									title={isAutoCountMode ? 'Вимкнути авторахунок' : 'Увімкнути авторахунок'}
+									aria-label="Авторахунок"
+									onClick={onToggleAutoCount}
 								>
-									{item}
+									<ListOrdered className="icon" />
 								</button>
-							);
-						})}
+							</div>
+						</div>
 					</div>
 				)}
 

@@ -26,7 +26,53 @@ export const CHORD_EXTENSIONS = [
 	'5',
 ] as const;
 
-export const COUNT_ITEMS = ['1', '2', '3', '4', 'і', 'та', 'на'] as const;
+export const COUNT_ITEMS = [
+	'1',
+	'2',
+	'3',
+	'4',
+	'5',
+	'6',
+	'7',
+	'8',
+	'і',
+	'та',
+	'на',
+] as const;
+
+//! Стандартний 16-кроковий патерн для авторахунку (1, 2, 3, 4 на сильних долях з пропусками)
+export const DEFAULT_COUNT_PATTERN: readonly string[] = [
+	'1', '', '', '',
+	'2', '', '', '',
+	'3', '', '', '',
+	'4', '', '', '',
+];
+
+export const MAX_COUNT_PATTERN_LENGTH = 64;
+export const MIN_COUNT_PATTERN_LENGTH = 16;
+export const COUNT_PATTERN_STEP = 16;
+
+//! Legacy alias для сумісності
+export const DEFAULT_COUNT_PATTERN_32: readonly string[] = DEFAULT_COUNT_PATTERN;
+
+export const DEFAULT_AUTO_COUNT_SEQUENCE = [
+	{ id: 'ac_1', text: '1', enabled: true },
+	{ id: 'ac_2', text: 'та', enabled: true },
+	{ id: 'ac_3', text: 'і', enabled: true },
+	{ id: 'ac_4', text: 'та', enabled: true },
+	{ id: 'ac_5', text: '2', enabled: true },
+	{ id: 'ac_6', text: 'та', enabled: true },
+	{ id: 'ac_7', text: 'і', enabled: true },
+	{ id: 'ac_8', text: 'та', enabled: true },
+	{ id: 'ac_9', text: '3', enabled: true },
+	{ id: 'ac_10', text: 'та', enabled: true },
+	{ id: 'ac_11', text: 'і', enabled: true },
+	{ id: 'ac_12', text: 'та', enabled: true },
+	{ id: 'ac_13', text: '4', enabled: true },
+	{ id: 'ac_14', text: 'та', enabled: true },
+	{ id: 'ac_15', text: 'і', enabled: true },
+	{ id: 'ac_16', text: 'та', enabled: true },
+];
 
 export const REMARKS_ITEMS = [
 	'p',

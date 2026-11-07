@@ -1,4 +1,4 @@
-import { RulerItem, StampItem, ToolMode } from './editor';
+import { AutoCountItem, RulerItem, StampItem, ToolMode } from './editor';
 
 export interface EditorSettings {
 	currentMode: ToolMode;
@@ -27,6 +27,9 @@ export interface EditorSettings {
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
 	customText?: string;
+	isAutoCountMode?: boolean;
+	countPattern?: string[];
+	autoCountSequence?: AutoCountItem[];
 }
 
 export interface ProjectItem {
@@ -43,4 +46,5 @@ export interface ProjectItem {
 	height: number;
 	cssW: number;
 	cssH: number;
+	countPattern?: string[];
 }

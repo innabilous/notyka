@@ -526,7 +526,7 @@ footer {
 	height: 0.85rem;
 }
 
-@media (max-width: 440px) {
+@media (max-width: 860px) {
 	.ruler-setting-btn span {
 		display: none;
 	}
@@ -872,23 +872,187 @@ footer {
 	height: 100%;
 }
 
+.stamp-count-container {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+	width: 100%;
+}
+
+.step-sequencer-wrapper {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	width: 100%;
+	padding: 0.2rem 0.3rem;
+	background: rgba(0, 0, 0, 0.28);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 0.65rem;
+}
+
+.step-sequencer-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 0.2rem;
+	line-height: 1;
+}
+
+.step-sequencer-title {
+	font-size: 0.68rem;
+	font-weight: 600;
+	color: var(--mantine-color-dimmed);
+}
+
+.step-action-mini-btn {
+	background: none;
+	border: none;
+	color: var(--mantine-color-dimmed);
+	font-size: 0.65rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.2rem;
+	cursor: pointer;
+	padding: 0.05rem 0.3rem;
+	border-radius: 4px;
+	transition: all 0.15s ease;
+}
+
+.step-action-mini-btn:hover {
+	color: #ffffff;
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.step-action-mini-btn .icon {
+	width: 0.65rem;
+	height: 0.65rem;
+}
+
+.step-cubes-scroll {
+	width: 100%;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	padding: 4px;
+}
+
+.step-cubes-scroll::-webkit-scrollbar {
+	display: none;
+}
+
+.step-cubes-grid {
+	display: grid;
+	grid-template-columns: repeat(16, minmax(20px, 22px));
+	grid-auto-rows: 22px;
+	gap: 2px 2px;
+	width: max-content;
+	padding: 2px;
+}
+
+.step-cube {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 4px;
+	cursor: pointer;
+	user-select: none;
+	transition: all 0.12s ease;
+	padding: 0 1px;
+}
+
+.step-cube.beat-start {
+	border-left: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.step-cube:hover {
+	background: rgba(255, 255, 255, 0.1);
+	border-color: rgba(255, 255, 255, 0.25);
+}
+
+.step-cube.filled {
+	background: rgba(14, 165, 233, 0.15);
+	border-color: rgba(56, 189, 248, 0.4);
+}
+
+.step-cube.active,
+.step-cube.selected,
+.step-cube.active-target {
+	border-color: transparent;
+	box-shadow: 0 0 0 2px #38bdf8;
+	background: rgba(14, 165, 233, 0.32);
+}
+
+.step-cube.active .step-cube-val,
+.step-cube.selected .step-cube-val,
+.step-cube.active-target .step-cube-val {
+	color: #ffffff;
+}
+
+.step-cube-num {
+	font-size: 6px;
+	line-height: 1;
+	color: rgba(255, 255, 255, 0.4);
+}
+
+.step-cube-val {
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 1.1;
+	color: #ffffff;
+}
+
+.step-cube.empty .step-cube-val {
+	color: rgba(255, 255, 255, 0.2);
+}
+
+.clear-step-btn {
+	color: #f87171 !important;
+	padding: 0.4rem 0.6rem !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	flex: 0 0 auto !important;
+	min-width: 2rem !important;
+	box-sizing: border-box !important;
+}
+
+.clear-step-btn .icon {
+	width: 0.85rem;
+	height: 0.85rem;
+}
+
+.auto-count-toggle-btn {
+	padding: 0.35rem 0.5rem !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+}
+
+.auto-count-toggle-btn .icon {
+	width: 0.9rem;
+	height: 0.9rem;
+}
+
 .stamp-custom-container {
 	display: flex;
 	align-items: center;
 	width: 100%;
-	height: 100%;
+	min-height: 2rem;
 	gap: 0.35rem;
 }
 
 .stamp-custom-chips-scroll {
 	flex: 1 1 0;
 	min-width: 0;
-	height: 100%;
 	display: flex;
 	align-items: center;
 	gap: 0.35rem;
 	overflow-x: auto;
-	overflow-y: visible;
+	overflow-y: hidden;
 	scrollbar-width: none;
 	-ms-overflow-style: none;
 	padding: 0 0.15rem;
@@ -906,6 +1070,94 @@ footer {
 	flex-shrink: 0;
 	padding-left: 0.25rem;
 	border-left: 1px solid var(--line);
+}
+
+.auto-count-item-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.2rem;
+	background: var(--mantine-color-dark-6);
+	border: 1.5px solid var(--mantine-color-dark-4);
+	border-radius: 9999px;
+	padding: 0.15rem 0.35rem 0.15rem 0.25rem;
+	font-size: 0.85rem;
+	user-select: none;
+	cursor: grab;
+	transition: all 0.15s ease;
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+.auto-count-item-chip:active {
+	cursor: grabbing;
+}
+
+.auto-count-item-chip.active-target {
+	border-color: #6366f1;
+	background: rgba(99, 102, 241, 0.25);
+	box-shadow: 0 0 8px rgba(99, 102, 241, 0.45);
+}
+
+.auto-count-item-chip.disabled {
+	opacity: 0.45;
+	background: var(--mantine-color-dark-7);
+	border-style: dashed;
+}
+
+.auto-count-drag-handle {
+	display: inline-flex;
+	align-items: center;
+	color: var(--mantine-color-dimmed);
+	cursor: grab;
+	padding: 0 0.1rem;
+}
+
+.auto-count-drag-handle .icon {
+	width: 0.75rem;
+	height: 0.75rem;
+}
+
+.auto-count-text-btn {
+	background: none;
+	border: none;
+	color: inherit;
+	font-size: 0.875rem;
+	font-weight: 600;
+	padding: 0 0.25rem;
+	cursor: pointer;
+}
+
+.auto-count-item-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.15rem;
+}
+
+.auto-count-action-btn {
+	background: none;
+	border: none;
+	color: var(--mantine-color-dimmed);
+	padding: 0.15rem;
+	border-radius: 4px;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: color 0.1s, background-color 0.1s;
+}
+
+.auto-count-action-btn:hover {
+	color: var(--mantine-color-white);
+	background: var(--mantine-color-dark-5);
+}
+
+.auto-count-action-btn.delete:hover {
+	color: #ef4444;
+}
+
+.auto-count-action-btn .icon {
+	width: 0.75rem;
+	height: 0.75rem;
 }
 
 .stamp-custom-chips-row {
