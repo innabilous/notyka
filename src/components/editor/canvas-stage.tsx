@@ -63,6 +63,9 @@ interface CanvasStageProps {
 	stampBadgeMode?: boolean;
 	stampCategory?: string;
 	drawDuplicateMode?: boolean;
+	isAutoCountMode?: boolean;
+	currentAutoCountIndex?: number;
+	currentAutoCountSeqId?: string;
 	deleteBtnOn: boolean;
 	resizeHandlesOn?: boolean;
 	rulersVisible?: boolean;
@@ -73,6 +76,7 @@ interface CanvasStageProps {
 	hasCanvas: boolean;
 	onSelectStamp: (stamp: StampItem) => void;
 	onChangeSize?: (newSize: number) => void;
+	onAdvanceAutoCount?: () => void;
 	onHistoryChange: (canUndo: boolean, canRedo: boolean) => void;
 	onRulersCountChange?: (count: number) => void;
 	onNotify: (message: string) => void;
@@ -118,6 +122,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	stampBadgeMode = false,
 	stampCategory = 'notes',
 	drawDuplicateMode = false,
+	isAutoCountMode = false,
+	currentAutoCountIndex = 0,
+	currentAutoCountSeqId,
 	deleteBtnOn,
 	resizeHandlesOn = true,
 	rulersVisible = true,
@@ -128,6 +135,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	hasCanvas,
 	onSelectStamp,
 	onChangeSize,
+	onAdvanceAutoCount,
 	onHistoryChange,
 	onRulersCountChange,
 	onNotify,
@@ -1098,10 +1106,12 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					return;
 				}
 
-				commitActiveStamp();
+				//! Якщо таймер дебаунсу активний, скасовуємо його без фіналізації, щоб об'єднати штрихи
 				if (drawDebounceTimerRef.current) {
 					clearTimeout(drawDebounceTimerRef.current);
 					drawDebounceTimerRef.current = null;
+				} else {
+					commitActiveStamp();
 				}
 				isDrawingStampRef.current = true;
 				currentDrawingPathRef.current = [pt];
@@ -1119,6 +1129,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				? getClosestRulerY(pt.y, rulersListRef.current, 16 * uRef.current)
 				: null;
 			const finalY = snapY !== null ? snapY : pt.y;
+
+			const isAuto = Boolean(isAutoCountMode && stampCategory === 'count');
+
 			const newStamp: StampItem = {
 				id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
 				x: pt.x,
@@ -1129,6 +1142,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				mainColor,
 				strokeColor,
 				badgeMode: stampBadgeMode,
+				isAutoCount: isAuto,
+				autoCountIndex: isAuto ? currentAutoCountIndex : undefined,
+				autoCountSeqId: isAuto ? currentAutoCountSeqId : undefined,
 			};
 			//! Гарантуємо, що новостворений штамп не виходить за межі полотна
 			const clamped = clampStampPosition(newStamp.x, newStamp.y, newStamp, uRef.current, ctx);
@@ -1144,6 +1160,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			stampsListRef.current.push(newStamp);
 			isDraggingStampRef.current = true;
 			dragOffsetRef.current = { x: 0, y: 0 };
+			if (isAuto) {
+				onAdvanceAutoCount?.();
+			}
 			saveHistory();
 			render();
 		},
@@ -1151,11 +1170,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			activeStampText,
 			commitActiveStamp,
 			currentSize,
+			currentAutoCountIndex,
+			currentAutoCountSeqId,
 			deleteActiveStamp,
 			deleteBtnOn,
 			drawDuplicateMode,
 			duplicateActiveStamp,
+			isAutoCountMode,
 			mainColor,
+			onAdvanceAutoCount,
 			onNotify,
 			onSelectStamp,
 			render,
