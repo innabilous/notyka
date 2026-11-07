@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppPreloader } from '@/components/common/app-preloader';
 import { ColorPaletteModal } from '@/components/modals/color-palette-modal';
 import { CustomStampModal } from '@/components/modals/custom-stamp-modal';
@@ -12,8 +12,18 @@ import { StampCategory, StampSettings } from '@/components/settings/stamp-settin
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
 import { ToolbarSkeleton } from '@/components/toolbar/toolbar-skeleton';
 import { TopToolbar } from '@/components/toolbar/top-toolbar';
-import { ACCIDENTALS, CHORD_ROOTS, COUNT_ITEMS, NOTES } from '@/constants/editor';
-import { StampItem, ToolMode } from '@/types/editor';
+import {
+	ACCIDENTALS,
+	CHORD_ROOTS,
+	COUNT_ITEMS,
+	COUNT_PATTERN_STEP,
+	DEFAULT_AUTO_COUNT_SEQUENCE,
+	DEFAULT_COUNT_PATTERN,
+	MAX_COUNT_PATTERN_LENGTH,
+	MIN_COUNT_PATTERN_LENGTH,
+	NOTES,
+} from '@/constants/editor';
+import { AutoCountItem, StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
 	deleteProject,
@@ -79,6 +89,17 @@ export const PhotoEditor: React.FC = () => {
 	const [stampCategory, setStampCategory] = useState<StampCategory>('notes');
 	const [customStamps, setCustomStamps] = useState<string[]>([]);
 	const [selectedCount, setSelectedCount] = useState<string>('1');
+	const [isAutoCountMode, setIsAutoCountMode] = useState<boolean>(false);
+	const [countPattern, setCountPattern] =
+		useState<readonly string[]>(DEFAULT_COUNT_PATTERN);
+	const countPatternRef = useRef<readonly string[]>(countPattern);
+	useEffect(() => {
+		countPatternRef.current = countPattern;
+	}, [countPattern]);
+	const [selectedStepIndex, setSelectedStepIndex] = useState<number>(0);
+	const [autoCountSequence, setAutoCountSequence] =
+		useState<AutoCountItem[]>(DEFAULT_AUTO_COUNT_SEQUENCE);
+	const [autoCountIndex, setAutoCountIndex] = useState<number>(0);
 	const [selectedCustom, setSelectedCustom] = useState<string>('');
 	const [customText, setCustomText] = useState<string>('Текст');
 	const [customStampModalOpen, setCustomStampModalOpen] = useState<boolean>(false);
@@ -142,6 +163,7 @@ export const PhotoEditor: React.FC = () => {
 				clearTimeout(autoSaveTimerRef.current);
 				stageRef.current.serializeProject().then((project) => {
 					if (project) {
+						project.countPattern = [...countPatternRef.current];
 						saveCurrentSession(project);
 						saveProject(project);
 					}
@@ -204,12 +226,30 @@ export const PhotoEditor: React.FC = () => {
 			if (savedSettings.rulersLockEqualDistance !== undefined)
 				setRulersLockEqualDistance(savedSettings.rulersLockEqualDistance);
 			if (savedSettings.customText) setCustomText(savedSettings.customText);
+			if (savedSettings.isAutoCountMode !== undefined)
+				setIsAutoCountMode(savedSettings.isAutoCountMode);
+			if (savedSettings.countPattern && Array.isArray(savedSettings.countPattern)) {
+				const pattern = [...savedSettings.countPattern];
+				while (pattern.length < MIN_COUNT_PATTERN_LENGTH) pattern.push('');
+				setCountPattern(pattern.slice(0, MAX_COUNT_PATTERN_LENGTH));
+			} else if (savedSettings.autoCountSequence && Array.isArray(savedSettings.autoCountSequence)) {
+				const pattern = savedSettings.autoCountSequence.map((it) => it.text);
+				while (pattern.length < MIN_COUNT_PATTERN_LENGTH) pattern.push('');
+				setCountPattern(pattern.slice(0, MAX_COUNT_PATTERN_LENGTH));
+			}
 		}
 
 		loadCurrentSession()
 			.then((session) => {
 				if (session && stageRef.current) {
 					stageRef.current.loadProject(session);
+					if (
+						session.countPattern &&
+						Array.isArray(session.countPattern) &&
+						session.countPattern.length >= MIN_COUNT_PATTERN_LENGTH
+					) {
+						setCountPattern(session.countPattern.slice(0, MAX_COUNT_PATTERN_LENGTH));
+					}
 					setHasCanvas(true);
 				}
 			})
@@ -252,14 +292,20 @@ export const PhotoEditor: React.FC = () => {
 			rulersShowDistance,
 			rulersLockEqualDistance,
 			customText,
+			isAutoCountMode,
+			countPattern: [...countPattern],
+			autoCountSequence,
 		});
 	}, [
 		activeStampText,
+		autoCountSequence,
 		categoryColors,
+		countPattern,
 		currentMode,
 		customStamps,
 		customText,
 		deleteBtnOn,
+		isAutoCountMode,
 		noteSizes,
 		resizeHandlesOn,
 		rulersAttachContent,
@@ -303,6 +349,7 @@ export const PhotoEditor: React.FC = () => {
 			if (!stageRef.current) return;
 			const project = await stageRef.current.serializeProject();
 			if (project) {
+				project.countPattern = [...countPatternRef.current];
 				await saveCurrentSession(project);
 				await saveProject(project);
 			}
@@ -317,6 +364,7 @@ export const PhotoEditor: React.FC = () => {
 				clearTimeout(autoSaveTimerRef.current);
 				stageRef.current.serializeProject().then((project) => {
 					if (project) {
+						project.countPattern = [...countPatternRef.current];
 						saveCurrentSession(project);
 						saveProject(project);
 					}
@@ -875,6 +923,132 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
+	const handleToggleAutoCount = useCallback(() => {
+		setIsAutoCountMode((prev) => {
+			const next = !prev;
+			if (next) {
+				const len = countPattern.length;
+				let found = -1;
+				for (let i = 0; i < len; i++) {
+					const idx = (autoCountIndex + i) % len;
+					if (countPattern[idx] && countPattern[idx].trim()) {
+						found = idx;
+						break;
+					}
+				}
+				if (found !== -1) {
+					setAutoCountIndex(found);
+					setSelectedStepIndex(found);
+					setActiveStampText(countPattern[found]);
+					showToast(`Авторахунок: крок ${found + 1} «${countPattern[found]}»`);
+				} else {
+					showToast('Авторахунок увімкнено (патерн порожній)');
+				}
+			} else {
+				const countItem = (COUNT_ITEMS as readonly string[]).includes(selectedCount)
+					? selectedCount
+					: COUNT_ITEMS[0];
+				setActiveStampText(countItem);
+				showToast('Звичайний режим рахунку');
+			}
+			return next;
+		});
+	}, [autoCountIndex, countPattern, selectedCount, showToast]);
+
+	const handleSelectStep = useCallback(
+		(index: number) => {
+			setSelectedStepIndex(index);
+			setAutoCountIndex(index);
+			if (countPattern[index] && countPattern[index].trim()) {
+				setActiveStampText(countPattern[index]);
+			}
+		},
+		[countPattern],
+	);
+
+	const handleAssignTokenToStep = useCallback(
+		(token: string) => {
+			setCountPattern((prev) => {
+				const next = [...prev];
+				next[selectedStepIndex] = token;
+				return next;
+			});
+			if (selectedStepIndex === autoCountIndex) {
+				setActiveStampText(token);
+			}
+			const nextIdx = (selectedStepIndex + 1) % countPattern.length;
+			setSelectedStepIndex(nextIdx);
+			setAutoCountIndex(nextIdx);
+		},
+		[autoCountIndex, countPattern.length, selectedStepIndex],
+	);
+
+	const handleClearCurrentStep = useCallback(() => {
+		setCountPattern((prev) => {
+			const next = [...prev];
+			next[selectedStepIndex] = '';
+			return next;
+		});
+		const nextIdx = (selectedStepIndex + 1) % countPattern.length;
+		setSelectedStepIndex(nextIdx);
+		setAutoCountIndex(nextIdx);
+	}, [countPattern.length, selectedStepIndex]);
+
+	const handleResetCountPattern = useCallback(() => {
+		setCountPattern([...DEFAULT_COUNT_PATTERN]);
+		setSelectedStepIndex(0);
+		setAutoCountIndex(0);
+		setActiveStampText(DEFAULT_COUNT_PATTERN[0]);
+		showToast('Патерн скинуто до стандартного (16 кроків)');
+	}, [showToast]);
+
+	const handleAddSteps = useCallback(() => {
+		setCountPattern((prev) => {
+			if (prev.length >= MAX_COUNT_PATTERN_LENGTH) return prev;
+			const next = [...prev, ...Array(COUNT_PATTERN_STEP).fill('')];
+			return next;
+		});
+		showToast(`Патерн розширено (+16 кроків)`);
+	}, [showToast]);
+
+	const handleRemoveSteps = useCallback(() => {
+		setCountPattern((prev) => {
+			if (prev.length <= MIN_COUNT_PATTERN_LENGTH) return prev;
+			const newLen = prev.length - COUNT_PATTERN_STEP;
+			return prev.slice(0, newLen);
+		});
+		setSelectedStepIndex((prev) => {
+			const maxIdx = Math.max(0, countPattern.length - COUNT_PATTERN_STEP - 1);
+			return prev > maxIdx ? maxIdx : prev;
+		});
+		setAutoCountIndex((prev) => {
+			const maxIdx = Math.max(0, countPattern.length - COUNT_PATTERN_STEP - 1);
+			return prev > maxIdx ? 0 : prev;
+		});
+		showToast(`Патерн скорочено (-16 кроків)`);
+	}, [countPattern.length, showToast]);
+
+	const handleAdvanceAutoCount = useCallback(() => {
+		setAutoCountIndex((prevIdx) => {
+			const len = countPattern.length;
+			if (len === 0) return prevIdx;
+			let nextIdx = prevIdx;
+			for (let i = 1; i <= len; i++) {
+				const candidate = (prevIdx + i) % len;
+				if (countPattern[candidate] && countPattern[candidate].trim()) {
+					nextIdx = candidate;
+					break;
+				}
+			}
+			const nextText = countPattern[nextIdx] || '';
+			if (nextText) {
+				setActiveStampText(nextText);
+			}
+			setSelectedStepIndex(nextIdx);
+			return nextIdx;
+		});
+	}, [countPattern]);
+
 	//! Перемикання категорії штампів
 	const handleChangeStampCategory = useCallback(
 		(cat: StampCategory) => {
@@ -903,13 +1077,36 @@ export const PhotoEditor: React.FC = () => {
 					selectedChordBassAccidental,
 				);
 			} else if (cat === 'count') {
-				const countItem = (COUNT_ITEMS as readonly string[]).includes(selectedCount)
-					? selectedCount
-					: COUNT_ITEMS[0];
-				if (countItem !== selectedCount) {
-					setSelectedCount(countItem);
+				if (isAutoCountMode) {
+					const currentText = countPattern[autoCountIndex];
+					if (currentText && currentText.trim()) {
+						nextText = currentText;
+					} else {
+						const len = countPattern.length;
+						let found = -1;
+						for (let i = 0; i < len; i++) {
+							if (countPattern[i] && countPattern[i].trim()) {
+								found = i;
+								break;
+							}
+						}
+						if (found !== -1) {
+							nextText = countPattern[found];
+							setAutoCountIndex(found);
+							setSelectedStepIndex(found);
+						} else {
+							nextText = COUNT_ITEMS[0];
+						}
+					}
+				} else {
+					const countItem = (COUNT_ITEMS as readonly string[]).includes(selectedCount)
+						? selectedCount
+						: COUNT_ITEMS[0];
+					if (countItem !== selectedCount) {
+						setSelectedCount(countItem);
+					}
+					nextText = countItem;
 				}
-				nextText = countItem;
 			} else if (cat === 'custom') {
 				if (customStamps.length > 0) {
 					const customItem = customStamps.includes(selectedCustom)
@@ -930,9 +1127,12 @@ export const PhotoEditor: React.FC = () => {
 			setActiveStampText(nextText);
 		},
 		[
+			autoCountIndex,
 			buildChordText,
+			countPattern,
 			customStamps,
 			customText,
+			isAutoCountMode,
 			selectedAccidental,
 			selectedChordAccidental,
 			selectedChordBassAccidental,
@@ -1228,7 +1428,29 @@ export const PhotoEditor: React.FC = () => {
 				setSelectedChordRoot(root);
 			}
 		}
-	}, []);
+
+		if (stamp.isAutoCount) {
+			setStampCategory('count');
+			setIsAutoCountMode(true);
+			const len = countPattern.length;
+			let nextIdx = stamp.autoCountIndex !== undefined ? stamp.autoCountIndex : 0;
+			for (let i = 1; i <= len; i++) {
+				const candidate = (nextIdx + i) % len;
+				if (countPattern[candidate] && countPattern[candidate].trim()) {
+					nextIdx = candidate;
+					break;
+				}
+			}
+			setAutoCountIndex(nextIdx);
+			if (stamp.autoCountIndex !== undefined) {
+				setSelectedStepIndex(stamp.autoCountIndex);
+			}
+			const nextText = countPattern[nextIdx];
+			if (nextText) {
+				setActiveStampText(nextText);
+			}
+		}
+	}, [countPattern]);
 
 	const handleToggleDeleteBtn = useCallback(() => {
 		setDeleteBtnOn((prev) => {
@@ -1383,6 +1605,7 @@ export const PhotoEditor: React.FC = () => {
 		if (hasCanvas && stageRef.current) {
 			const current = await stageRef.current.serializeProject();
 			if (current) {
+				current.countPattern = [...countPatternRef.current];
 				await saveProject(current);
 			}
 		}
@@ -1396,6 +1619,13 @@ export const PhotoEditor: React.FC = () => {
 			setIsHistoryOpen(false);
 			if (stageRef.current) {
 				await stageRef.current.loadProject(project);
+				if (
+					project.countPattern &&
+					Array.isArray(project.countPattern) &&
+					project.countPattern.length >= MIN_COUNT_PATTERN_LENGTH
+				) {
+					setCountPattern(project.countPattern.slice(0, MAX_COUNT_PATTERN_LENGTH));
+				}
 				setHasCanvas(true);
 				await saveCurrentSession(project);
 				showToast('Проект відкрито');
@@ -1467,6 +1697,10 @@ export const PhotoEditor: React.FC = () => {
 				stampBadgeMode={stampBadgeMode}
 				stampCategory={stampCategory}
 				drawDuplicateMode={drawDuplicateMode}
+				isAutoCountMode={isAutoCountMode}
+				currentAutoCountIndex={autoCountIndex}
+				currentAutoCountSeqId={`step_${autoCountIndex}`}
+				onAdvanceAutoCount={handleAdvanceAutoCount}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
 				rulersVisible={rulersVisible}
@@ -1589,6 +1823,17 @@ export const PhotoEditor: React.FC = () => {
 							onChangeCustomText={handleChangeCustomText}
 							isDrawDuplicateMode={drawDuplicateMode}
 							onToggleDrawDuplicateMode={() => setDrawDuplicateMode((prev) => !prev)}
+							isAutoCountMode={isAutoCountMode}
+							countPattern={countPattern}
+							currentAutoCountIndex={autoCountIndex}
+							selectedStepIndex={selectedStepIndex}
+							onSelectStep={handleSelectStep}
+							onAssignTokenToStep={handleAssignTokenToStep}
+							onClearCurrentStep={handleClearCurrentStep}
+							onResetCountPattern={handleResetCountPattern}
+							onAddSteps={handleAddSteps}
+							onRemoveSteps={handleRemoveSteps}
+							onToggleAutoCount={handleToggleAutoCount}
 						/>
 					)}
 
