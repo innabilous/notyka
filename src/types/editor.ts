@@ -9,6 +9,12 @@ export interface StampDrawingPath {
 	points: Point[];
 }
 
+export interface AutoCountItem {
+	id: string;
+	text: string;
+	enabled: boolean;
+}
+
 export interface StampItem {
 	id: string;
 	x: number;
@@ -24,6 +30,9 @@ export interface StampItem {
 	rawBounds?: { width: number; height: number };
 	paths?: StampDrawingPath[];
 	strokeWidth?: number;
+	isAutoCount?: boolean;
+	autoCountIndex?: number;
+	autoCountSeqId?: string;
 }
 
 export interface CanvasLayerItem {
