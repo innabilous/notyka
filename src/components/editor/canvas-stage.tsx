@@ -40,6 +40,7 @@ import {
 	isPointInResizeHandle,
 	isPointInRulerDelete,
 	isPointInStamp,
+	isStampAttachedToRuler,
 } from '@/utils/canvas-renderer';
 
 export function getStampCategory(stamp: StampItem): string {
@@ -129,7 +130,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	resizeHandlesOn = true,
 	rulersVisible = true,
 	rulersSnap = true,
-	rulersAttachContent = false,
+	rulersAttachContent = true,
 	rulersShowDistance = false,
 	rulersLockEqualDistance = false,
 	hasCanvas,
@@ -1506,9 +1507,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					dragMovedRef.current = false;
 					dragOffsetRef.current = { x: 0, y: pt.y - nearRuler.y };
 					if (rulersAttachContent) {
-						draggedStampIdsRef.current = stampsListRef.current
-							.filter((s) => Math.abs(s.y - nearRuler.y) <= 4 * uRef.current)
-							.map((s) => s.id);
+						if (rulersLockEqualDistance) {
+							draggedStampIdsRef.current = stampsListRef.current
+								.filter((s) => rulersListRef.current.some((r) => isStampAttachedToRuler(s, r, rulersListRef.current, uRef.current)))
+								.map((s) => s.id);
+						} else {
+							draggedStampIdsRef.current = stampsListRef.current
+								.filter((s) => isStampAttachedToRuler(s, nearRuler, rulersListRef.current, uRef.current))
+								.map((s) => s.id);
+						}
 					} else {
 						draggedStampIdsRef.current = [];
 					}
@@ -1635,7 +1642,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 									const bottomY = currentSorted[currentSorted.length - 1].y;
 									const totalDist = bottomY - topY;
 									const step = totalDist / (currentSorted.length - 1);
-									const threshold = 16 * uRef.current;
 
 									currentSorted.forEach((r, idx) => {
 										if (idx === 0 || idx === currentSorted.length - 1) return;
@@ -1643,11 +1649,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 										const deltaY = targetY - r.y;
 										if (rulersAttachContent && deltaY !== 0) {
 											stampsListRef.current.forEach((st) => {
-												if (Math.abs(st.y - r.y) <= threshold) {
+												if (isStampAttachedToRuler(st, r, currentSorted, uRef.current)) {
 													st.y += deltaY;
 												}
 											});
-											if (activeStampRef.current && Math.abs(activeStampRef.current.y - r.y) <= threshold) {
+											if (
+												activeStampRef.current &&
+												isStampAttachedToRuler(activeStampRef.current, r, currentSorted, uRef.current)
+											) {
 												activeStampRef.current.y += deltaY;
 											}
 										}
@@ -2057,7 +2066,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 			const step = totalDist / (sorted.length - 1);
 			const u = uRef.current;
-			const threshold = 16 * u;
 
 			sorted.forEach((ruler, index) => {
 				if (index === 0 || index === sorted.length - 1) return;
@@ -2066,11 +2074,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 				if (rulersAttachContent && deltaY !== 0) {
 					stampsListRef.current.forEach((st) => {
-						if (Math.abs(st.y - ruler.y) <= threshold) {
+						if (isStampAttachedToRuler(st, ruler, sorted, u)) {
 							st.y += deltaY;
 						}
 					});
-					if (activeStampRef.current && Math.abs(activeStampRef.current.y - ruler.y) <= threshold) {
+					if (activeStampRef.current && isStampAttachedToRuler(activeStampRef.current, ruler, sorted, u)) {
 						activeStampRef.current.y += deltaY;
 					}
 				}

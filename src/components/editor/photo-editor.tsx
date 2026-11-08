@@ -111,7 +111,7 @@ export const PhotoEditor: React.FC = () => {
 	const [resizeHandlesOn, setResizeHandlesOn] = useState<boolean>(true);
 	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
 	const [rulersSnap, setRulersSnap] = useState<boolean>(true);
-	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(false);
+	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(true); //! За замовчуванням увімкнено спільний рух
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
 	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
 	const [rulersCount, setRulersCount] = useState<number>(0);
