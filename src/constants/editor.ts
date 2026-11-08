@@ -1,5 +1,5 @@
 export const NOTES = ['До', 'Ре', 'Мі', 'Фа', 'Соль', 'Ля', 'Сі'] as const;
-export const ACCIDENTALS = ['♭', '♯'] as const;
+export const ACCIDENTALS = ['♯', '♭'] as const;
 
 export const CHORD_ROOTS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
 export const CHORD_ACCIDENTALS = ['#', 'b'] as const;
