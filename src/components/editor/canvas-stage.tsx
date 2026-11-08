@@ -23,6 +23,8 @@ import {
 	HistoryItem,
 	Point,
 	RulerItem,
+	SelectionMode,
+	SelectionShape,
 	ShapeType,
 	StampDrawingPath,
 	StampItem,
@@ -35,6 +37,9 @@ import {
 	clampStampPosition,
 	drawRulers,
 	drawStamp,
+	drawAreaSelectionOverlay,
+	drawMultiSelectionBox,
+	isStampInSelection,
 	findRulerNearPoint,
 	getClosestRulerY,
 	drawSmartGuide,
@@ -86,6 +91,9 @@ interface CanvasStageProps {
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
+	selectionShape?: SelectionShape;
+	selectionMode?: SelectionMode;
+	onSelectedCountChange?: (count: number) => void;
 	hasCanvas: boolean;
 	onSelectStamp: (stamp: StampItem) => void;
 	onChangeSize?: (newSize: number) => void;
@@ -111,6 +119,8 @@ export interface CanvasStageHandle {
 	getRulersCount: () => number;
 	commitActiveStamp: (save?: boolean) => void;
 	duplicateActiveStamp: () => void;
+	deleteSelectedStamps: () => void;
+	clearSelection: () => void;
 	syncCategorySizes: (category: string, size: number) => void;
 	prepareExport: () => void;
 	getExportBlob: () => Promise<Blob | null>;
@@ -148,6 +158,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	rulersAttachContent = true,
 	rulersShowDistance = false,
 	rulersLockEqualDistance = false,
+	selectionShape = 'lasso',
+	selectionMode = 'inside',
 	hasCanvas,
 	onSelectStamp,
 	onChangeSize,
@@ -155,6 +167,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	onHistoryChange,
 	onScaleChange,
 	onRulersCountChange,
+	onSelectedCountChange,
 	onNotify,
 	onInitBlank,
 	onResetCanvas,
@@ -230,6 +243,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		mainColor: string;
 		strokeColor: string;
 	} | null>(null);
+
+	// Area and multi-selection refs
+	const selectedStampIdsRef = useRef<string[]>([]);
+	const isAreaSelectingRef = useRef<boolean>(false);
+	const areaSelectPointsRef = useRef<Point[]>([]);
+	const isDraggingMultiRef = useRef<boolean>(false);
+	const multiDragStartPtRef = useRef<Point | null>(null);
+	const multiDragOffsetsRef = useRef<
+		{ id: string; x: number; y: number; endX?: number; endY?: number }[]
+	>([]);
 
 	// Drawing mode within stamp
 	const isDrawingStampRef = useRef<boolean>(false);
@@ -404,6 +427,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			);
 		}
 
+		//! Малюємо спільну рамку групового виділення кількох об'єктів
+		if (selectedStampIdsRef.current.length > 1) {
+			const multiStamps = stampsListRef.current.filter((s) =>
+				selectedStampIdsRef.current.includes(s.id),
+			);
+			drawMultiSelectionBox(ctx, multiStamps, uRef.current);
+		}
+
+		//! Малюємо рамку або контур ласо виділення області під час протягування
+		if (isAreaSelectingRef.current && areaSelectPointsRef.current.length >= 2) {
+			drawAreaSelectionOverlay(
+				ctx,
+				selectionShape,
+				areaSelectPointsRef.current,
+				uRef.current,
+			);
+		}
+
 		//! Малюємо лінію розумного вирівнювання нот між лінійками
 		if (activeSnapGuideRef.current) {
 			drawSmartGuide(ctx, activeSnapGuideRef.current, uRef.current);
@@ -432,6 +473,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		rulersLockEqualDistance,
 		rulersShowDistance,
 		rulersVisible,
+		selectionShape,
 		strokeColor,
 	]);
 
@@ -1051,13 +1093,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		};
 	}, []);
 
-	const deleteActiveStamp = useCallback(() => {
-		const active = activeStampRef.current;
-		const wasNew = activeOrigRef.current === '';
-		if (active) {
-			layersRef.current = layersRef.current.filter((l) => !(l.type === 'stamp' && l.id === active.id));
-			stampsListRef.current = stampsListRef.current.filter((s) => s.id !== active.id);
+	const deleteSelectedStamps = useCallback(() => {
+		const ids = new Set<string>();
+		if (activeStampRef.current) {
+			ids.add(activeStampRef.current.id);
 		}
+		selectedStampIdsRef.current.forEach((id) => ids.add(id));
+		if (ids.size === 0) return;
+
+		layersRef.current = layersRef.current.filter(
+			(l) => !(l.type === 'stamp' && ids.has(l.id)),
+		);
+		stampsListRef.current = stampsListRef.current.filter((s) => !ids.has(s.id));
+		selectedStampIdsRef.current = [];
 		activeStampRef.current = null;
 		activeOrigRef.current = '';
 		isDraggingStampRef.current = false;
@@ -1065,12 +1113,23 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		isDraggingResizeRef.current = null;
 		isDraggingRotateRef.current = false;
 		isDraggingCornerRef.current = null;
-		isDraggingRotateRef.current = false;
-		isDraggingCornerRef.current = null;
+		isDraggingMultiRef.current = false;
+		onSelectedCountChange?.(0);
 		render();
-		if (!wasNew) saveHistory();
-		onNotify('Штамп видалено');
-	}, [onNotify, render, saveHistory]);
+		saveHistory();
+		onNotify(ids.size > 1 ? `Видалено ${ids.size} виділених об'єктів` : 'Штамп видалено');
+	}, [onNotify, onSelectedCountChange, render, saveHistory]);
+
+	const clearSelection = useCallback(() => {
+		selectedStampIdsRef.current = [];
+		commitActiveStamp(false);
+		onSelectedCountChange?.(0);
+		render();
+	}, [commitActiveStamp, onSelectedCountChange, render]);
+
+	const deleteActiveStamp = useCallback(() => {
+		deleteSelectedStamps();
+	}, [deleteSelectedStamps]);
 
 	const duplicateActiveStamp = useCallback(() => {
 		const active = activeStampRef.current;
@@ -1188,12 +1247,31 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				return;
 			}
 
+			// 2.5. Перетягування групи виділених елементів
+			if (selectedStampIdsRef.current.length > 1) {
+				const hitSelected = stampsListRef.current.find(
+					(s) => selectedStampIdsRef.current.includes(s.id) && isPointInStamp(pt, s, uRef.current, ctx),
+				);
+				if (hitSelected) {
+					isDraggingMultiRef.current = true;
+					multiDragStartPtRef.current = pt;
+					multiDragOffsetsRef.current = stampsListRef.current
+						.filter((s) => selectedStampIdsRef.current.includes(s.id))
+						.map((s) => ({ id: s.id, x: s.x, y: s.y, endX: s.endX, endY: s.endY }));
+					dragMovedRef.current = false;
+					return;
+				}
+			}
+
 			// 3. Selection of existing stamps from top to bottom
 			for (let i = layersRef.current.length - 1; i >= 0; i--) {
 				const l = layersRef.current[i];
 				if (l.type === 'stamp' && isPointInStamp(pt, l.stamp, uRef.current, ctx)) {
 					commitActiveStamp(false);
 					const selected = l.stamp;
+					selectedStampIdsRef.current = [selected.id];
+					onSelectedCountChange?.(1);
+
 					if (selected.category === 'shapes' && selected.shapeType) {
 						lastShapePresetRef.current = {
 							shapeType: selected.shapeType,
@@ -1218,6 +1296,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					onNotify('Штамп виділено');
 					return;
 				}
+			}
+
+			//! 3.5. Якщо ми в режимі 'select' (виділення/редагування) і клікнули мимо будь-якого об'єкта — починаємо рамку/ласо
+			if (currentMode === 'select') {
+				isAreaSelectingRef.current = true;
+				areaSelectPointsRef.current = [pt];
+				dragStartPtRef.current = pt;
+				dragMovedRef.current = false;
+				return;
 			}
 
 			//! 4. Якщо обрано режим малювання штампа
@@ -2030,7 +2117,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				return;
 			}
 
-			if (currentMode === 'stamp') {
+			if (currentMode === 'stamp' || currentMode === 'select') {
 				placeStamp(pt);
 				return;
 			}
@@ -2237,7 +2324,52 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					);
 				}
 				lastCoordsRef.current = finalPt;
-			} else if (currentMode === 'stamp') {
+			} else if (currentMode === 'stamp' || currentMode === 'select') {
+				//! 0. Виділення області (рамка або ласо)
+				if (isAreaSelectingRef.current) {
+					dragMovedRef.current = true;
+					const shape = selectionShape || 'rect';
+					if (shape === 'lasso') {
+						areaSelectPointsRef.current.push(pt);
+					} else {
+						const start = areaSelectPointsRef.current[0] || pt;
+						areaSelectPointsRef.current = [start, pt];
+					}
+					scheduleRender();
+					return;
+				}
+
+				//! 0.1. Переміщення групи виділених елементів
+				if (isDraggingMultiRef.current) {
+					dragMovedRef.current = true;
+					const start = multiDragStartPtRef.current;
+					if (start) {
+						const dx = pt.x - start.x;
+						const dy = pt.y - start.y;
+						const canvas = canvasRef.current;
+						const ctx = canvas?.getContext('2d');
+						multiDragOffsetsRef.current.forEach(({ id, x, y, endX, endY }) => {
+							const st = stampsListRef.current.find((s) => s.id === id);
+							if (!st) return;
+							let nextX = x + dx;
+							let nextY = y + dy;
+							if (ctx) {
+								const clamped = clampStampPosition(nextX, nextY, st, uRef.current, ctx);
+								nextX = clamped.x;
+								nextY = clamped.y;
+							}
+							st.x = nextX;
+							st.y = nextY;
+							if (st.shapeType === 'arrow' && endX !== undefined && endY !== undefined) {
+								st.endX = endX + (nextX - x);
+								st.endY = endY + (nextY - y);
+							}
+						});
+						scheduleRender();
+					}
+					return;
+				}
+
 				if (isCreatingShapeRef.current && activeStampRef.current && shapeStartPtRef.current) {
 					const active = activeStampRef.current;
 					const p1 = shapeStartPtRef.current;
@@ -2274,12 +2406,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		},
 		[
 			currentMode,
+			currentSize,
 			drawPencilStroke,
 			moveActive,
 			rulersAttachContent,
 			rulersLockEqualDistance,
 			rulersSnap,
 			scheduleRender,
+			selectionShape,
 			strokeSmooth,
 		],
 	);
@@ -2291,6 +2425,77 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			if (dragMovedRef.current) {
 				saveHistory();
 			}
+			return;
+		}
+
+		//! Завершення виділення області (рамка або ласо)
+		if (isAreaSelectingRef.current) {
+			isAreaSelectingRef.current = false;
+			const pts = [...areaSelectPointsRef.current];
+			areaSelectPointsRef.current = [];
+
+			const shape = selectionShape || 'rect';
+			const mode = selectionMode || 'inside';
+			let isDrag = false;
+			if (pts.length >= 2) {
+				const start = pts[0];
+				const end = pts[pts.length - 1];
+				if (
+					Math.hypot(end.x - start.x, end.y - start.y) >= 6 * uRef.current ||
+					(shape === 'lasso' && pts.length > 5)
+				) {
+					isDrag = true;
+				}
+			}
+
+			if (isDrag) {
+				const canvas = canvasRef.current;
+				const ctx = canvas?.getContext('2d');
+				if (ctx) {
+					const matchedIds: string[] = [];
+					stampsListRef.current.forEach((st) => {
+						if (isStampInSelection(st, shape, mode, pts, uRef.current, ctx)) {
+							matchedIds.push(st.id);
+						}
+					});
+
+					selectedStampIdsRef.current = matchedIds;
+					onSelectedCountChange?.(matchedIds.length);
+
+					if (matchedIds.length === 1) {
+						const single = stampsListRef.current.find((s) => s.id === matchedIds[0]);
+						if (single) {
+							commitActiveStamp(false);
+							activeStampRef.current = single;
+							activeOrigRef.current = JSON.stringify(single);
+							onSelectStamp(single);
+						}
+					} else {
+						commitActiveStamp(false);
+					}
+				}
+			} else {
+				//! Простий клік без перетягування — знімаємо будь-яке виділення
+				selectedStampIdsRef.current = [];
+				onSelectedCountChange?.(0);
+				commitActiveStamp(false);
+			}
+
+			dragMovedRef.current = false;
+			scheduleRender();
+			return;
+		}
+
+		//! Завершення переміщення групи виділених елементів
+		if (isDraggingMultiRef.current) {
+			isDraggingMultiRef.current = false;
+			multiDragStartPtRef.current = null;
+			multiDragOffsetsRef.current = [];
+			if (dragMovedRef.current) {
+				dragMovedRef.current = false;
+				saveHistory();
+			}
+			scheduleRender();
 			return;
 		}
 
@@ -2438,15 +2643,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			render();
 		}
 	}, [
+		commitActiveStamp,
 		currentMode,
 		currentSize,
 		finalizeDrawingStamp,
 		onNotify,
 		onSelectStamp,
+		onSelectedCountChange,
 		quadSegment,
 		render,
 		saveHistory,
 		scheduleRender,
+		selectionMode,
+		selectionShape,
 	]);
 
 	const buildExportCanvas = useCallback((): HTMLCanvasElement | null => {
@@ -2781,6 +2990,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			getRulersCount: () => rulersListRef.current.length,
 			commitActiveStamp,
 			duplicateActiveStamp,
+			deleteSelectedStamps,
+			clearSelection,
 			syncCategorySizes,
 			prepareExport,
 			getExportBlob: async () => {
@@ -2815,8 +3026,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		buildExportCanvas,
 		clearCanvas,
 		clearRulers,
+		clearSelection,
 		commitActiveStamp,
 		createBlank,
+		deleteSelectedStamps,
 		distributeRulers,
 		duplicateActiveStamp,
 		handleRedo,
@@ -3061,6 +3274,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				isDraggingRotateRef.current ||
 				isDraggingCornerRef.current ||
 				isCreatingShapeRef.current ||
+				isAreaSelectingRef.current ||
+				isDraggingMultiRef.current ||
 				isDraggingRulerRef.current
 			) {
 				pointerMove(pt);

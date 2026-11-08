@@ -28,7 +28,7 @@ import {
 	MIN_COUNT_PATTERN_LENGTH,
 	NOTES,
 } from '@/constants/editor';
-import { AutoCountItem, ShapeType, StampItem, ToolMode } from '@/types/editor';
+import { AutoCountItem, SelectionMode, SelectionShape, ShapeType, StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
 	clearAllStorage,
@@ -85,6 +85,7 @@ export const PhotoEditor: React.FC = () => {
 
 	// Independent tool sizes
 	const [toolSizes, setToolSizes] = useState<Record<ToolMode, number>>({
+		select: 8,
 		pencil: 2,
 		stamp: 8,
 		eraser: 24,
@@ -132,6 +133,9 @@ export const PhotoEditor: React.FC = () => {
 	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(true); //! За замовчуванням увімкнено спільний рух
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
 	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
+	const [selectionShape, setSelectionShape] = useState<SelectionShape>('rect');
+	const [selectionMode, setSelectionMode] = useState<SelectionMode>('inside');
+	const [selectedStampsCount, setSelectedStampsCount] = useState<number>(0);
 	const [rulersCount, setRulersCount] = useState<number>(0);
 	const [compactRulers, setCompactRulers] = useState<boolean>(false); //! Опція компактного вигляду лінійок у топбарі
 	const [visibleTools, setVisibleTools] =
@@ -257,6 +261,8 @@ export const PhotoEditor: React.FC = () => {
 				setRulersLockEqualDistance(savedSettings.rulersLockEqualDistance);
 			if (savedSettings.compactRulers !== undefined)
 				setCompactRulers(savedSettings.compactRulers);
+			if (savedSettings.selectionShape) setSelectionShape(savedSettings.selectionShape);
+			if (savedSettings.selectionMode) setSelectionMode(savedSettings.selectionMode);
 			if (savedSettings.customText) setCustomText(savedSettings.customText);
 			if (savedSettings.isAutoCountMode !== undefined)
 				setIsAutoCountMode(savedSettings.isAutoCountMode);
@@ -327,6 +333,8 @@ export const PhotoEditor: React.FC = () => {
 			rulersShowDistance,
 			rulersLockEqualDistance,
 			compactRulers,
+			selectionShape,
+			selectionMode,
 			customText,
 			isAutoCountMode,
 			countPattern: [...countPattern],
@@ -359,6 +367,8 @@ export const PhotoEditor: React.FC = () => {
 		selectedChordRoot,
 		selectedChordSlash,
 		selectedNote,
+		selectionMode,
+		selectionShape,
 		sizeLocked,
 		stampBadgeMode,
 		stampCategory,
@@ -369,14 +379,17 @@ export const PhotoEditor: React.FC = () => {
 	]);
 
 	const currentSize = useMemo(() => {
-		if (currentMode === 'stamp' && stampCategory === 'shapes') {
+		if ((currentMode === 'stamp' || currentMode === 'select') && stampCategory === 'shapes') {
 			return shapeSizes[selectedShape] ?? 2;
+		}
+		if (currentMode === 'select') {
+			return toolSizes.stamp ?? 24;
 		}
 		return toolSizes[currentMode] ?? 24;
 	}, [currentMode, selectedShape, shapeSizes, stampCategory, toolSizes]);
 
 	const currentMainColor = useMemo(() => {
-		if (currentMode !== 'stamp') return toolColors.pencil.main;
+		if (currentMode !== 'stamp' && currentMode !== 'select') return toolColors.pencil.main;
 		if (stampCategory === 'shapes') {
 			if (selectedShape === 'arrow') {
 				const arrowColor =
@@ -399,7 +412,7 @@ export const PhotoEditor: React.FC = () => {
 	]);
 
 	const currentStrokeColor = useMemo(() => {
-		if (currentMode !== 'stamp') return toolColors.pencil.stroke;
+		if (currentMode !== 'stamp' && currentMode !== 'select') return toolColors.pencil.stroke;
 		if (stampCategory === 'shapes') {
 			if (selectedShape === 'arrow') {
 				const arrowColor =
@@ -441,7 +454,9 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleSelectMode = useCallback(
 		(mode: ToolMode) => {
-			stageRef.current?.commitActiveStamp();
+			if (mode !== 'stamp' && mode !== 'select') {
+				stageRef.current?.commitActiveStamp();
+			}
 
 			if (autoSaveTimerRef.current && stageRef.current) {
 				clearTimeout(autoSaveTimerRef.current);
@@ -459,6 +474,11 @@ export const PhotoEditor: React.FC = () => {
 					...prev,
 					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
 				}));
+			}
+
+			if (currentMode === 'select' && mode !== 'select') {
+				stageRef.current?.clearSelection();
+				setSelectedStampsCount(0);
 			}
 
 			setCurrentMode(mode);
@@ -882,6 +902,8 @@ export const PhotoEditor: React.FC = () => {
 		selectedChordRoot,
 		selectedChordSlash,
 		selectedNote,
+		selectionMode,
+		selectionShape,
 		sizeLocked,
 		toolSizes.stamp,
 	]);
@@ -1301,7 +1323,7 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleChangeSize = useCallback(
 		(sz: number) => {
-			if (currentMode === 'stamp' && stampCategory === 'shapes') {
+			if ((currentMode === 'stamp' || currentMode === 'select') && stampCategory === 'shapes') {
 				setShapeSizes((prev) => ({
 					...prev,
 					[selectedShape]: sz,
@@ -1311,16 +1333,21 @@ export const PhotoEditor: React.FC = () => {
 			setToolSizes((prev) => ({
 				...prev,
 				[currentMode]: sz,
+				...(currentMode === 'select' ? { stamp: sz } : {}),
 			}));
 
-			if (!sizeLocked && currentMode === 'stamp' && stampCategory !== 'shapes') {
+			if (
+				!sizeLocked &&
+				(currentMode === 'stamp' || currentMode === 'select') &&
+				stampCategory !== 'shapes'
+			) {
 				setNoteSizes((prev) => ({
 					...prev,
 					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: sz,
 				}));
 			}
 
-			if (currentMode === 'stamp') {
+			if (currentMode === 'stamp' || currentMode === 'select') {
 				stageRef.current?.updateActiveStampProps(
 					sz,
 					activeStampText ||
@@ -1366,7 +1393,7 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleChangeMainColor = useCallback(
 		(color: string) => {
-			if (currentMode === 'stamp') {
+			if (currentMode === 'stamp' || currentMode === 'select') {
 				if (stampCategory === 'shapes' && selectedShape === 'arrow') {
 					setCategoryColors((prev) => ({
 						...prev,
@@ -1420,7 +1447,7 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleChangeStrokeColor = useCallback(
 		(color: string) => {
-			if (currentMode === 'stamp') {
+			if (currentMode === 'stamp' || currentMode === 'select') {
 				if (stampCategory === 'shapes' && selectedShape === 'arrow') {
 					setCategoryColors((prev) => ({
 						...prev,
@@ -1581,6 +1608,14 @@ export const PhotoEditor: React.FC = () => {
 		}
 	}, [rulersCount, showToast]);
 
+	const handleDeleteSelected = useCallback(() => {
+		stageRef.current?.deleteSelectedStamps();
+	}, []);
+
+	const handleClearSelection = useCallback(() => {
+		stageRef.current?.clearSelection();
+	}, []);
+
 	const handleToggleCompactRulers = useCallback(() => {
 		setCompactRulers((prev) => {
 			const next = !prev;
@@ -1595,7 +1630,7 @@ export const PhotoEditor: React.FC = () => {
 
 	//! Синхронізація розмірів усіх штампів вибраного розділу
 	const handleSyncCategorySizes = useCallback(() => {
-		if (currentMode !== 'stamp') return;
+		if (currentMode !== 'stamp' && currentMode !== 'select') return;
 		stageRef.current?.syncCategorySizes(stampCategory, currentSize);
 
 		if (stampCategory === 'notes') {
@@ -1716,7 +1751,7 @@ export const PhotoEditor: React.FC = () => {
 				}
 				const next = { ...prev, [tool]: !isCurrentlyEnabled };
 				if (!next[currentMode]) {
-					const firstAvailable = (['pencil', 'stamp', 'ruler', 'eraser'] as ToolMode[]).find(
+					const firstAvailable = (['select', 'pencil', 'stamp', 'ruler', 'eraser'] as ToolMode[]).find(
 						(t) => next[t],
 					);
 					if (firstAvailable) {
@@ -1762,6 +1797,7 @@ export const PhotoEditor: React.FC = () => {
 		setIsSideSliderOpen(false);
 		setCurrentMode('pencil');
 		setToolSizes({
+			select: 8,
 			pencil: 2,
 			stamp: 8,
 			eraser: 24,
@@ -1801,6 +1837,9 @@ export const PhotoEditor: React.FC = () => {
 		setRulersAttachContent(true);
 		setRulersShowDistance(false);
 		setRulersLockEqualDistance(false);
+		setSelectionShape('rect');
+		setSelectionMode('inside');
+		setSelectedStampsCount(0);
 		setCompactRulers(false);
 		setCustomText('Текст');
 		setIsAutoCountMode(false);
@@ -2033,6 +2072,13 @@ export const PhotoEditor: React.FC = () => {
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}
 				rulersCount={rulersCount}
+				selectionShape={selectionShape}
+				selectionMode={selectionMode}
+				selectedCount={selectedStampsCount}
+				onChangeSelectionShape={setSelectionShape}
+				onChangeSelectionMode={setSelectionMode}
+				onDeleteSelected={handleDeleteSelected}
+				onClearSelection={handleClearSelection}
 				onUndo={() => stageRef.current?.undo()}
 				onRedo={() => stageRef.current?.redo()}
 				onToggleMenu={handleToggleMenu}
@@ -2074,6 +2120,9 @@ export const PhotoEditor: React.FC = () => {
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}
+				selectionShape={selectionShape}
+				selectionMode={selectionMode}
+				onSelectedCountChange={setSelectedStampsCount}
 				hasCanvas={hasCanvas}
 				onSelectStamp={handleSelectStampFromCanvas}
 				onChangeSize={handleChangeSize}
