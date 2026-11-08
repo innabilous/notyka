@@ -4,7 +4,8 @@ import React from 'react';
 import { Menu, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { RulerSettings } from '@/components/settings/ruler-settings';
-import { StampCategory, ToolMode } from '@/types/editor';
+import { SelectSettings } from '@/components/settings/select-settings';
+import { SelectionMode, SelectionShape, StampCategory, ToolMode } from '@/types/editor';
 
 interface TopToolbarProps {
 	canUndo: boolean;
@@ -17,6 +18,9 @@ interface TopToolbarProps {
 	strokeColor: string;
 	isSideSliderOpen?: boolean;
 	compactRulers?: boolean;
+	selectionShape?: SelectionShape;
+	selectionMode?: SelectionMode;
+	selectedCount?: number;
 	rulersVisible?: boolean;
 	rulersSnap?: boolean;
 	rulersSnapItems?: boolean;
@@ -31,6 +35,10 @@ interface TopToolbarProps {
 	onToggleLock: (e: React.MouseEvent) => void;
 	onTogglePalette: (e: React.MouseEvent) => void;
 	onToggleSideSlider?: () => void;
+	onChangeSelectionShape?: (shape: SelectionShape) => void;
+	onChangeSelectionMode?: (mode: SelectionMode) => void;
+	onDeleteSelected?: () => void;
+	onClearSelection?: () => void;
 	onToggleRulersVisible?: () => void;
 	onToggleRulersSnap?: () => void;
 	onToggleRulersSnapItems?: () => void;
@@ -52,6 +60,9 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	strokeColor,
 	isSideSliderOpen,
 	compactRulers = false,
+	selectionShape = 'lasso',
+	selectionMode = 'inside',
+	selectedCount = 0,
 	rulersVisible = true,
 	rulersSnap = true,
 	rulersSnapItems = true,
@@ -66,6 +77,10 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	onToggleLock,
 	onTogglePalette,
 	onToggleSideSlider,
+	onChangeSelectionShape,
+	onChangeSelectionMode,
+	onDeleteSelected,
+	onClearSelection,
 	onSyncCategorySizes,
 	onToggleRulersVisible,
 	onToggleRulersSnap,
@@ -139,6 +154,16 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 							</button>
 						</div>
 					)
+				) : currentMode === 'select' ? (
+					<SelectSettings
+						selectionShape={selectionShape}
+						selectionMode={selectionMode}
+						selectedCount={selectedCount}
+						onChangeShape={(s) => onChangeSelectionShape?.(s)}
+						onChangeMode={(m) => onChangeSelectionMode?.(m)}
+						onDeleteSelected={() => onDeleteSelected?.()}
+						onClearSelection={() => onClearSelection?.()}
+					/>
 				) : (
 					<BrushSettings
 						currentMode={currentMode}

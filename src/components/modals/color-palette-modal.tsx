@@ -33,7 +33,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 }) => {
 	if (!opened) return null;
 
-	const isStamp = currentMode === 'stamp';
+	const isStamp = currentMode === 'stamp' || currentMode === 'select';
 	const isShapes = isStamp && stampCategory === 'shapes';
 
 	//! Для стрілки відображаємо тільки один колір стрілки (без заливок/прозоростей)

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Eraser, Pencil, Ruler, Stamp } from 'lucide-react';
+import { Eraser, MousePointer, Pencil, Ruler, Stamp } from 'lucide-react';
 import { ToolMode } from '@/types/editor';
 
 interface BottomToolbarProps {
@@ -19,6 +19,19 @@ export const BottomToolbar: React.FC<BottomToolbarProps> = ({
 
 	return (
 		<div id="toolbar">
+			{isVisible('select') && (
+				<button
+					id="btn-select"
+					type="button"
+					className={`tool ${currentMode === 'select' ? 'active' : ''}`}
+					aria-label="Виділення"
+					title="Виділення (редагування об'єктів)"
+					onClick={() => onSelectMode('select')}
+				>
+					<MousePointer className="icon lg" />
+				</button>
+			)}
+
 			{isVisible('pencil') && (
 				<button
 					id="btn-pencil"

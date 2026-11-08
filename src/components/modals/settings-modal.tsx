@@ -6,6 +6,7 @@ import {
 	Layers,
 	ListOrdered,
 	Maximize2,
+	MousePointer,
 	Music,
 	Pencil,
 	PenTool,
@@ -39,6 +40,7 @@ interface SettingsModalProps {
 }
 
 const TOOLS_CONFIG: { id: ToolMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+	{ id: 'select', label: 'Виділення', icon: MousePointer },
 	{ id: 'pencil', label: 'Олівець', icon: Pencil },
 	{ id: 'stamp', label: 'Штамп', icon: Stamp },
 	{ id: 'ruler', label: 'Лінійка', icon: Ruler },

@@ -102,7 +102,7 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 	}
 
 	const fillPercent = Math.max(0, Math.min(100, ((value - 1) / 99) * 100));
-	const isStamp = currentMode === 'stamp';
+	const isStamp = currentMode === 'stamp' || currentMode === 'select';
 	const showPreviewDot =
 		currentMode === 'pencil' ||
 		currentMode === 'eraser' ||
@@ -115,7 +115,12 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 		: 'transparent';
 
 	//! Реальний 1:1 розмір малювання на екрані з урахуванням зуму полотна
-	const basePx = currentMode === 'eraser' ? value * 1.5 : currentMode === 'stamp' ? value * 2 : value;
+	const basePx =
+		currentMode === 'eraser'
+			? value * 1.5
+			: currentMode === 'stamp' || currentMode === 'select'
+				? value * 2
+				: value;
 	const previewDiameter = Math.max(2, Math.round(basePx * canvasScale));
 
 	return (

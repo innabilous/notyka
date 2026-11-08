@@ -38,7 +38,7 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 		return null;
 	}
 
-	const isStamp = currentMode === 'stamp';
+	const isStamp = currentMode === 'stamp' || currentMode === 'select';
 	const isEraser = currentMode === 'eraser';
 	const isShapes = isStamp && stampCategory === 'shapes';
 	const isFillTransparent = isStamp && mainColor === 'transparent';
