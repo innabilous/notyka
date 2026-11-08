@@ -115,6 +115,7 @@ export const PhotoEditor: React.FC = () => {
 	const [resizeHandlesOn, setResizeHandlesOn] = useState<boolean>(true);
 	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
 	const [rulersSnap, setRulersSnap] = useState<boolean>(true);
+	const [rulersSnapItems, setRulersSnapItems] = useState<boolean>(true); //! За замовчуванням увімкнено прив'язку до нот на інших лінійках
 	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(true); //! За замовчуванням увімкнено спільний рух
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
 	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
@@ -232,6 +233,8 @@ export const PhotoEditor: React.FC = () => {
 				setRulersVisible(savedSettings.rulersVisible);
 			if (savedSettings.rulersSnap !== undefined)
 				setRulersSnap(savedSettings.rulersSnap);
+			if (savedSettings.rulersSnapItems !== undefined)
+				setRulersSnapItems(savedSettings.rulersSnapItems);
 			if (savedSettings.rulersAttachContent !== undefined)
 				setRulersAttachContent(savedSettings.rulersAttachContent);
 			if (savedSettings.rulersShowDistance !== undefined)
@@ -303,6 +306,7 @@ export const PhotoEditor: React.FC = () => {
 			visibleStampCategories,
 			rulersVisible,
 			rulersSnap,
+			rulersSnapItems,
 			rulersAttachContent,
 			rulersShowDistance,
 			rulersLockEqualDistance,
@@ -327,6 +331,7 @@ export const PhotoEditor: React.FC = () => {
 		rulersLockEqualDistance,
 		rulersShowDistance,
 		rulersSnap,
+		rulersSnapItems,
 		rulersVisible,
 		selectedAccidental,
 		selectedChordAccidental,
@@ -1573,6 +1578,7 @@ export const PhotoEditor: React.FC = () => {
 		setNoteSizes({});
 		setRulersVisible(true);
 		setRulersSnap(true);
+		setRulersSnapItems(true);
 		setRulersAttachContent(true);
 		setRulersShowDistance(false);
 		setRulersLockEqualDistance(false);
@@ -1799,6 +1805,7 @@ export const PhotoEditor: React.FC = () => {
 				strokeColor={currentStrokeColor}
 				rulersVisible={rulersVisible}
 				rulersSnap={rulersSnap}
+				rulersSnapItems={rulersSnapItems}
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}
@@ -1812,6 +1819,7 @@ export const PhotoEditor: React.FC = () => {
 				onSyncCategorySizes={handleSyncCategorySizes}
 				onToggleRulersVisible={handleToggleRulersVisible}
 				onToggleRulersSnap={() => setRulersSnap((prev) => !prev)}
+				onToggleRulersSnapItems={() => setRulersSnapItems((prev) => !prev)}
 				onToggleRulersAttachContent={handleToggleRulersAttachContent}
 				onToggleRulersShowDistance={() => setRulersShowDistance((prev) => !prev)}
 				onToggleRulersLockEqualDistance={() => setRulersLockEqualDistance((prev) => !prev)}
@@ -1837,6 +1845,7 @@ export const PhotoEditor: React.FC = () => {
 				resizeHandlesOn={resizeHandlesOn}
 				rulersVisible={rulersVisible}
 				rulersSnap={rulersSnap}
+				rulersSnapItems={rulersSnapItems}
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}

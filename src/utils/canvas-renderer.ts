@@ -595,6 +595,139 @@ export function getClosestRulerY(y: number, rulers: RulerItem[], threshold: numb
 	return closestY;
 }
 
+export interface SnapGuide {
+	x: number;
+	y1: number;
+	y2: number;
+}
+
+//! Розрахунок горизонтального магнітного снепу штампа до штампів на інших лінійках (Smart Guides)
+export function getStampItemHorizontalSnap(
+	targetX: number,
+	targetY: number,
+	activeStamp: StampItem,
+	allStamps: StampItem[],
+	rulers: RulerItem[],
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): { snappedX: number; guide: SnapGuide | null } {
+	if (rulers.length < 2) return { snappedX: targetX, guide: null };
+
+	// Перевіряємо, чи поточна координата targetY знаходиться біля або на лінійці
+	const nearThreshold = Math.max(16 * U, 14);
+	const activeRuler = rulers.find((r) => Math.abs(targetY - r.y) <= nearThreshold);
+	if (!activeRuler) return { snappedX: targetX, guide: null };
+
+	// Цільові штампи для снепу: штампи, прив'язані до інших лінійок
+	const otherRulers = rulers.filter((r) => r.id !== activeRuler.id);
+	const targetCandidates: { stamp: StampItem; ruler: RulerItem }[] = [];
+
+	for (const st of allStamps) {
+		if (st.id === activeStamp.id) continue;
+		for (const r of otherRulers) {
+			if (isStampAttachedToRuler(st, r, rulers, U)) {
+				targetCandidates.push({ stamp: st, ruler: r });
+				break;
+			}
+		}
+	}
+
+	if (targetCandidates.length === 0) return { snappedX: targetX, guide: null };
+
+	const activeOffsets = getStampBoxOffsets(activeStamp, U, ctx);
+	const snapThreshold = Math.max(8 * U, 7);
+
+	let bestDist = Infinity;
+	let bestSnappedX = targetX;
+	let bestGuideX = targetX;
+	let matchedRulers: RulerItem[] = [];
+
+	for (const { stamp: target, ruler: targetRuler } of targetCandidates) {
+		const targetOffsets = getStampBoxOffsets(target, U, ctx);
+		const targetLeft = target.x - targetOffsets.left;
+		const targetRight = target.x + targetOffsets.right;
+
+		// 1. Центр до центру (головний пріоритет для нот)
+		const dCenter = target.x - targetX;
+		const absCenter = Math.abs(dCenter);
+		if (absCenter <= snapThreshold && absCenter < bestDist) {
+			bestDist = absCenter;
+			bestSnappedX = target.x;
+			bestGuideX = target.x;
+			matchedRulers = [activeRuler, targetRuler];
+		}
+
+		// 2. Лівий край до лівого краю
+		const snappedFromLeft = targetLeft + activeOffsets.left;
+		const dLeft = snappedFromLeft - targetX;
+		const absLeft = Math.abs(dLeft);
+		if (absLeft <= snapThreshold && absLeft + 1 < bestDist) {
+			bestDist = absLeft + 1;
+			bestSnappedX = snappedFromLeft;
+			bestGuideX = targetLeft;
+			matchedRulers = [activeRuler, targetRuler];
+		}
+
+		// 3. Правий край до правого краю
+		const snappedFromRight = targetRight - activeOffsets.right;
+		const dRight = snappedFromRight - targetX;
+		const absRight = Math.abs(dRight);
+		if (absRight <= snapThreshold && absRight + 1 < bestDist) {
+			bestDist = absRight + 1;
+			bestSnappedX = snappedFromRight;
+			bestGuideX = targetRight;
+			matchedRulers = [activeRuler, targetRuler];
+		}
+	}
+
+	if (matchedRulers.length === 0) {
+		return { snappedX: targetX, guide: null };
+	}
+
+	const allYs = matchedRulers.map((r) => r.y);
+	for (const cand of targetCandidates) {
+		if (Math.abs(cand.stamp.x - bestSnappedX) <= 1.5) {
+			allYs.push(cand.ruler.y);
+		}
+	}
+	const minY = Math.min(...allYs);
+	const maxY = Math.max(...allYs);
+	const pad = 12 * U;
+
+	return {
+		snappedX: bestSnappedX,
+		guide: {
+			x: bestGuideX,
+			y1: minY - pad,
+			y2: maxY + pad,
+		},
+	};
+}
+
+//! Відображення вертикальної напрямної розумного снепу (Smart Guide)
+export function drawSmartGuide(
+	ctx: CanvasRenderingContext2D,
+	guide: SnapGuide,
+	U: number,
+): void {
+	ctx.save();
+	ctx.strokeStyle = '#0284c7';
+	ctx.lineWidth = 1.5 * U;
+	ctx.setLineDash([4 * U, 3 * U]);
+	ctx.beginPath();
+	ctx.moveTo(guide.x, guide.y1);
+	ctx.lineTo(guide.x, guide.y2);
+	ctx.stroke();
+
+	ctx.setLineDash([]);
+	ctx.fillStyle = '#0284c7';
+	ctx.beginPath();
+	ctx.arc(guide.x, guide.y1, 2.5 * U, 0, Math.PI * 2);
+	ctx.arc(guide.x, guide.y2, 2.5 * U, 0, Math.PI * 2);
+	ctx.fill();
+	ctx.restore();
+}
+
 export function drawRulers(
 	rulers: RulerItem[],
 	activeRulerId: string | null,

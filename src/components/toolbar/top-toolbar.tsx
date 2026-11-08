@@ -16,6 +16,7 @@ interface TopToolbarProps {
 	strokeColor: string;
 	rulersVisible?: boolean;
 	rulersSnap?: boolean;
+	rulersSnapItems?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
@@ -28,6 +29,7 @@ interface TopToolbarProps {
 	onTogglePalette: (e: React.MouseEvent) => void;
 	onToggleRulersVisible?: () => void;
 	onToggleRulersSnap?: () => void;
+	onToggleRulersSnapItems?: () => void;
 	onToggleRulersAttachContent?: () => void;
 	onToggleShowDistance?: () => void;
 	onToggleRulersShowDistance?: () => void;
@@ -46,6 +48,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	strokeColor,
 	rulersVisible = true,
 	rulersSnap = true,
+	rulersSnapItems = true,
 	rulersAttachContent = false,
 	rulersShowDistance = false,
 	rulersLockEqualDistance = false,
@@ -59,6 +62,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	onSyncCategorySizes,
 	onToggleRulersVisible,
 	onToggleRulersSnap,
+	onToggleRulersSnapItems,
 	onToggleRulersAttachContent,
 	onToggleRulersShowDistance,
 	onToggleRulersLockEqualDistance,
@@ -98,12 +102,14 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 					<RulerSettings
 						visible={rulersVisible}
 						snap={rulersSnap}
+						snapItems={rulersSnapItems}
 						attachContent={rulersAttachContent}
 						showDistance={rulersShowDistance}
 						lockEqualDistance={rulersLockEqualDistance}
 						rulersCount={rulersCount}
 						onToggleVisible={() => onToggleRulersVisible?.()}
 						onToggleSnap={() => onToggleRulersSnap?.()}
+						onToggleSnapItems={() => onToggleRulersSnapItems?.()}
 						onToggleAttachContent={() => onToggleRulersAttachContent?.()}
 						onToggleShowDistance={() => onToggleRulersShowDistance?.()}
 						onToggleLockEqualDistance={() => onToggleRulersLockEqualDistance?.()}

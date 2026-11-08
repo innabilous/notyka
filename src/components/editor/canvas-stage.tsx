@@ -32,15 +32,18 @@ import {
 	drawStamp,
 	findRulerNearPoint,
 	getClosestRulerY,
+	drawSmartGuide,
 	getDeleteCoords,
 	getHandleCoords,
 	getResizeHandleCoords,
+	getStampItemHorizontalSnap,
 	isPointInDelete,
 	isPointInHandle,
 	isPointInResizeHandle,
 	isPointInRulerDelete,
 	isPointInStamp,
 	isStampAttachedToRuler,
+	SnapGuide,
 } from '@/utils/canvas-renderer';
 
 export function getStampCategory(stamp: StampItem): string {
@@ -71,6 +74,7 @@ interface CanvasStageProps {
 	resizeHandlesOn?: boolean;
 	rulersVisible?: boolean;
 	rulersSnap?: boolean;
+	rulersSnapItems?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
@@ -130,6 +134,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	resizeHandlesOn = true,
 	rulersVisible = true,
 	rulersSnap = true,
+	rulersSnapItems = true,
 	rulersAttachContent = true,
 	rulersShowDistance = false,
 	rulersLockEqualDistance = false,
@@ -192,6 +197,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const dragOffsetRef = useRef<Point>({ x: 0, y: 0 });
 	const dragStartPtRef = useRef<Point | null>(null);
 	const dragMovedRef = useRef<boolean>(true);
+	const activeSnapGuideRef = useRef<SnapGuide | null>(null); //! Активна напрямна лінія для вирівнювання штампів
 
 	// Drawing mode within stamp
 	const isDrawingStampRef = useRef<boolean>(false);
@@ -363,6 +369,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				canvas.width,
 				rulersShowDistance,
 			);
+		}
+
+		//! Малюємо лінію розумного вирівнювання нот між лінійками
+		if (activeSnapGuideRef.current) {
+			drawSmartGuide(ctx, activeSnapGuideRef.current, uRef.current);
 		}
 
 		if (cursorPosRef.current && currentMode === 'eraser') {
@@ -597,6 +608,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 			activeStampRef.current = null;
 			activeOrigRef.current = '';
+			activeSnapGuideRef.current = null;
 			render();
 
 			if (changed && save) {
@@ -1120,10 +1132,33 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 							}))
 						: undefined;
 
+					let finalX = pt.x;
+					if (rulersSnapItems) {
+						const tempDrawStamp: StampItem = {
+							...active,
+							id: 'temp_draw_snap',
+							x: pt.x,
+							y: finalY,
+						};
+						const { snappedX, guide } = getStampItemHorizontalSnap(
+							pt.x,
+							finalY,
+							tempDrawStamp,
+							stampsListRef.current,
+							rulersListRef.current,
+							uRef.current,
+							ctx,
+						);
+						finalX = snappedX;
+						activeSnapGuideRef.current = guide;
+					} else {
+						activeSnapGuideRef.current = null;
+					}
+
 					const cloned: StampItem = {
 						...active,
 						id: `draw_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-						x: pt.x,
+						x: finalX,
 						y: finalY,
 						paths: clonedPaths,
 						rawBounds: active.rawBounds ? { ...active.rawBounds } : undefined,
@@ -1176,11 +1211,39 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				: null;
 			const finalY = snapY !== null ? snapY : pt.y;
 
+			let finalX = pt.x;
+			if (rulersSnapItems) {
+				const tempNewStamp: StampItem = {
+					id: 'temp_new_snap',
+					x: pt.x,
+					y: finalY,
+					size: currentSize,
+					category: stampCategory || 'custom',
+					text: stampText,
+					mainColor,
+					strokeColor,
+					badgeMode: stampBadgeMode,
+				};
+				const { snappedX, guide } = getStampItemHorizontalSnap(
+					pt.x,
+					finalY,
+					tempNewStamp,
+					stampsListRef.current,
+					rulersListRef.current,
+					uRef.current,
+					ctx,
+				);
+				finalX = snappedX;
+				activeSnapGuideRef.current = guide;
+			} else {
+				activeSnapGuideRef.current = null;
+			}
+
 			const isAuto = Boolean(isAutoCountMode && stampCategory === 'count');
 
 			const newStamp: StampItem = {
 				id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-				x: pt.x,
+				x: finalX,
 				y: finalY,
 				size: currentSize,
 				category: stampCategory || 'custom',
@@ -1231,6 +1294,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			render,
 			resizeHandlesOn,
 			rulersSnap,
+			rulersSnapItems,
 			saveHistory,
 			scheduleRender,
 			selectedAccidental,
@@ -1484,6 +1548,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					if (snapY !== null) {
 						targetY = snapY;
 					}
+					if (rulersSnapItems) {
+						const { snappedX, guide } = getStampItemHorizontalSnap(
+							targetX,
+							targetY,
+							active,
+							stampsListRef.current,
+							rulersListRef.current,
+							uRef.current,
+							ctx,
+						);
+						targetX = snappedX;
+						activeSnapGuideRef.current = guide;
+					} else {
+						activeSnapGuideRef.current = null;
+					}
 					const clamped = clampStampPosition(targetX, targetY, active, uRef.current, ctx);
 					active.x = clamped.x;
 					active.y = clamped.y;
@@ -1505,6 +1584,21 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					if (snapY !== null) {
 						targetY = snapY;
 					}
+					if (rulersSnapItems) {
+						const { snappedX, guide } = getStampItemHorizontalSnap(
+							targetX,
+							targetY,
+							active,
+							stampsListRef.current,
+							rulersListRef.current,
+							uRef.current,
+							ctx,
+						);
+						targetX = snappedX;
+						activeSnapGuideRef.current = guide;
+					} else {
+						activeSnapGuideRef.current = null;
+					}
 					const clamped = clampStampPosition(targetX, targetY, active, uRef.current, ctx);
 					active.x = clamped.x;
 					active.y = clamped.y;
@@ -1516,7 +1610,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 		},
-		[onChangeSize, render, rulersSnap],
+		[onChangeSize, render, rulersSnap, rulersSnapItems],
 	);
 
 	const pointerDown = useCallback(
@@ -1880,7 +1974,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		isDraggingStampRef.current = false;
 		isDraggingHandleRef.current = false;
 		isDraggingResizeRef.current = null;
-	}, [currentMode, finalizeDrawingStamp, quadSegment, saveHistory, scheduleRender]);
+		if (activeSnapGuideRef.current) {
+			activeSnapGuideRef.current = null;
+			render();
+		}
+	}, [currentMode, finalizeDrawingStamp, quadSegment, render, saveHistory, scheduleRender]);
 
 	const buildExportCanvas = useCallback((): HTMLCanvasElement | null => {
 		const base = baseCanvasRef.current;

@@ -25,6 +25,7 @@ export interface EditorSettings {
 	visibleStampCategories?: Record<StampCategory, boolean>;
 	rulersVisible?: boolean;
 	rulersSnap?: boolean;
+	rulersSnapItems?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;

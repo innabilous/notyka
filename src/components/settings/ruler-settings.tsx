@@ -3,6 +3,7 @@
 import React from 'react';
 import {
 	AlignVerticalDistributeCenter,
+	Columns3,
 	Eye,
 	EyeOff,
 	Link,
@@ -15,12 +16,14 @@ import {
 interface RulerSettingsProps {
 	visible: boolean;
 	snap: boolean;
+	snapItems: boolean;
 	attachContent: boolean;
 	showDistance: boolean;
 	lockEqualDistance: boolean;
 	rulersCount: number;
 	onToggleVisible: () => void;
 	onToggleSnap: () => void;
+	onToggleSnapItems: () => void;
 	onToggleAttachContent: () => void;
 	onToggleShowDistance: () => void;
 	onToggleLockEqualDistance: () => void;
@@ -30,12 +33,14 @@ interface RulerSettingsProps {
 export const RulerSettings: React.FC<RulerSettingsProps> = ({
 	visible,
 	snap,
+	snapItems,
 	attachContent,
 	showDistance,
 	lockEqualDistance,
 	rulersCount,
 	onToggleVisible,
 	onToggleSnap,
+	onToggleSnapItems,
 	onToggleAttachContent,
 	onToggleShowDistance,
 	onToggleLockEqualDistance,
@@ -65,6 +70,17 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			>
 				<Magnet className="icon" />
 				<span>Прив&apos;язка</span>
+			</button>
+
+			<button
+				type="button"
+				className={`ruler-setting-btn ${snapItems ? 'active' : ''}`}
+				onClick={onToggleSnapItems}
+				title="Прив'язка до нот на інших лінійках (Smart Guides)"
+				aria-label="Прив'язка до нот на інших лінійках"
+			>
+				<Columns3 className="icon" />
+				<span>Снеп нот</span>
 			</button>
 
 			<button
