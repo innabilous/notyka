@@ -537,6 +537,27 @@ export function isPointInRulerDelete(p: Point, ruler: RulerItem, U: number): boo
 	return dx * dx + dy * dy <= hitRadius * hitRadius;
 }
 
+//! Перевірка, чи штамп прикріплений/центрований саме на цій лінійці (а не просто торкається краями)
+export function isStampAttachedToRuler(
+	stamp: StampItem,
+	targetRuler: RulerItem,
+	allRulers: RulerItem[],
+	U: number,
+): boolean {
+	const distToTarget = Math.abs(stamp.y - targetRuler.y);
+	// Допуск центрованого розміщення: штамп має сидіти саме на осі лінійки
+	const maxCenterTolerance = Math.max(2 * U, 2.5);
+	if (distToTarget > maxCenterTolerance) return false;
+
+	// Ця лінійка має бути найближчою до центру штампа серед усіх лінійок
+	for (const r of allRulers) {
+		if (r.id !== targetRuler.id && Math.abs(stamp.y - r.y) < distToTarget) {
+			return false;
+		}
+	}
+	return true;
+}
+
 export function findRulerNearPoint(p: Point, rulers: RulerItem[], U: number): RulerItem | null {
 	const threshold = Math.max(16 * U, 14);
 	let closest: RulerItem | null = null;
