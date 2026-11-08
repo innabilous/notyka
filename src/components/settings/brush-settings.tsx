@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Slider } from '@mantine/core';
-import { Lock, Minus, Plus, RefreshCw, Unlock } from 'lucide-react';
+import { ArrowUpDown, Lock, Minus, Plus, Unlock } from 'lucide-react';
 import { ToolMode } from '@/types/editor';
 
 interface BrushSettingsProps {
@@ -89,11 +89,11 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 					id="btn-size-sync-category"
 					type="button"
 					className="btn-size-step"
-					aria-label="Синхронізувати розмір для розділу"
-					title="Синхронізувати розмір для розділу"
+					aria-label="Підлаштувати розмір решти елементів під поточний"
+					title="Підлаштувати розмір решти елементів розділу під поточний"
 					onClick={onSyncCategorySizes}
 				>
-					<RefreshCw className="icon" />
+					<ArrowUpDown className="icon" />
 				</button>
 			)}
 

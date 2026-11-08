@@ -29,6 +29,7 @@ import {
 import { AutoCountItem, StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
+	clearAllStorage,
 	deleteProject,
 	getProjectsList,
 	loadCurrentSession,
@@ -1532,7 +1533,8 @@ export const PhotoEditor: React.FC = () => {
 		[handleChangeStampCategory, showToast, stampCategory],
 	);
 
-	const handleResetSettingsToDefault = useCallback(() => {
+	//! Скидання тільки налаштувань (без видалення проектів чи очищення полотна)
+	const handleResetSettingsOnly = useCallback(() => {
 		setVisibleTools({ ...DEFAULT_VISIBLE_TOOLS });
 		setVisibleStampCategories({ ...DEFAULT_VISIBLE_STAMP_CATEGORIES });
 		setDeleteBtnOn(true);
@@ -1586,6 +1588,17 @@ export const PhotoEditor: React.FC = () => {
 		showToast('Налаштування скинуто до початкових');
 		setIsSettingsOpen(false);
 	}, [showToast]);
+
+	//! Повне очищення всіх даних (база проектів, активна сесія, налаштування та полотно)
+	const handleClearAllData = useCallback(async () => {
+		await clearAllStorage();
+		setProjectsList([]);
+		handleResetSettingsOnly();
+		stageRef.current?.clear();
+		setHasCanvas(false);
+		showToast('Всі дані додатку очищено');
+		setIsSettingsOpen(false);
+	}, [handleResetSettingsOnly, showToast]);
 
 	// Save / Share logic
 	const downloadBlob = useCallback((blob: Blob) => {
@@ -1886,7 +1899,8 @@ export const PhotoEditor: React.FC = () => {
 				onToggleStampCategory={handleToggleStampCategory}
 				onToggleDeleteBtn={handleToggleDeleteBtn}
 				onToggleResizeHandles={handleToggleResizeHandles}
-				onResetDefaults={handleResetSettingsToDefault}
+				onResetSettings={handleResetSettingsOnly}
+				onClearAllData={handleClearAllData}
 				onClose={() => setIsSettingsOpen(false)}
 			/>
 

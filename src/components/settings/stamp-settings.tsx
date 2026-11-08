@@ -542,22 +542,25 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							flexDirection: 'row',
 							alignItems: 'center',
 							justifyContent: 'space-between',
-							gap: '0.75rem',
+							gap: '0.5rem',
 							width: '100%',
-							padding: '0.15rem 0.25rem',
+							padding: '0.15rem 0.5rem',
+							boxSizing: 'border-box',
 						}}
 					>
 						<span
-							title="Малюйте, штрихи об'єднаються у штамп через 1 с"
+							title="Малюйте штрихи, вони автоматично об'єднаються у штамп через 1 секунду"
 							style={{
-								fontSize: '0.8rem',
+								fontSize: '0.75rem',
 								color: 'var(--mantine-color-dimmed)',
 								whiteSpace: 'nowrap',
 								overflow: 'hidden',
 								textOverflow: 'ellipsis',
+								flex: 1,
+								minWidth: 0,
 							}}
 						>
-							Малюйте, штрихи об&apos;єднаються через 1 с
+							Об&apos;єднується через 1 секунду
 						</span>
 						{onToggleDrawDuplicateMode && (
 							<button
@@ -575,9 +578,10 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 									justifyContent: 'center',
 									gap: '0.35rem',
 									flexShrink: 0,
+									padding: '0.3rem 0.65rem',
 								}}
 							>
-								<Copy className="icon" style={{ width: '0.9rem', height: '0.9rem' }} />
+								<Copy className="icon" style={{ width: '0.85rem', height: '0.85rem' }} />
 								<span>Дублювати</span>
 							</button>
 						)}

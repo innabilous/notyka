@@ -30,7 +30,8 @@ interface SettingsModalProps {
 	onToggleStampCategory: (category: StampCategory) => void;
 	onToggleDeleteBtn: () => void;
 	onToggleResizeHandles: () => void;
-	onResetDefaults: () => void;
+	onResetSettings: () => void;
+	onClearAllData: () => void;
 	onClose: () => void;
 }
 
@@ -64,24 +65,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 	onToggleStampCategory,
 	onToggleDeleteBtn,
 	onToggleResizeHandles,
-	onResetDefaults,
+	onResetSettings,
+	onClearAllData,
 	onClose,
 }) => {
-	const [confirmReset, setConfirmReset] = useState(false);
+	const [confirmModal, setConfirmModal] = useState<'settings' | 'all' | null>(null);
 
 	if (!opened) return null;
-
-	const handleResetClick = () => {
-		if (confirmReset) {
-			setConfirmReset(false);
-			onResetDefaults();
-		} else {
-			setConfirmReset(true);
-			setTimeout(() => {
-				setConfirmReset(false);
-			}, 4000);
-		}
-	};
 
 	return (
 		<div
@@ -100,6 +90,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 		>
 			<div
 				style={{
+					position: 'relative',
 					backgroundColor: 'rgba(22, 23, 27, 0.98)',
 					border: '1px solid var(--line-strong)',
 					borderRadius: '0.875rem',
@@ -316,8 +307,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 						</div>
 					</div>
 
-					{/* Група 4: Скидання до дефолтних налаштувань */}
-					<div style={{ paddingTop: '0.5rem', borderTop: '1px solid var(--line)' }}>
+					{/* Група 4: Скидання */}
+					<div
+						style={{
+							paddingTop: '0.65rem',
+							borderTop: '1px solid var(--line)',
+							display: 'flex',
+							flexDirection: 'column',
+							gap: '0.5rem',
+						}}
+					>
+						{/* Кнопка 1: скидання тільки налаштувань */}
+						<button
+							type="button"
+							style={{
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								gap: '0.5rem',
+								width: '100%',
+								padding: '0.55rem 0.75rem',
+								borderRadius: '0.5rem',
+								background: 'transparent',
+								border: '1px solid rgba(239, 68, 68, 0.25)',
+								color: '#ef4444',
+								cursor: 'pointer',
+								fontWeight: 500,
+								fontSize: '0.85rem',
+							}}
+							onClick={() => setConfirmModal('settings')}
+						>
+							<RotateCcw className="icon" style={{ width: '1rem', height: '1rem' }} />
+							<span>Скинути налаштування</span>
+						</button>
+
+						{/* Кнопка 2: повне очищення всіх даних */}
 						<button
 							type="button"
 							style={{
@@ -328,25 +352,124 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 								width: '100%',
 								padding: '0.65rem 0.75rem',
 								borderRadius: '0.5rem',
-								background: confirmReset ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.08)',
-								border: confirmReset ? '1px solid #ef4444' : '1px solid rgba(239, 68, 68, 0.25)',
+								background: 'rgba(239, 68, 68, 0.1)',
+								border: '1px solid rgba(239, 68, 68, 0.35)',
 								color: '#ef4444',
 								cursor: 'pointer',
 								fontWeight: 600,
 								fontSize: '0.875rem',
-								transition: 'all 0.15s ease',
 							}}
-							onClick={handleResetClick}
+							onClick={() => setConfirmModal('all')}
 						>
-							<RotateCcw className="icon" />
-							<span>
-								{confirmReset
-									? 'Підтвердити: скинути все до дефолтних?'
-									: 'Скинути налаштування до дефолтних'}
-							</span>
+							<Trash2 className="icon" style={{ width: '1rem', height: '1rem' }} />
+							<span>Очистити всі дані</span>
 						</button>
 					</div>
 				</div>
+
+				{/* Модальне вікно підтвердження */}
+				{confirmModal && (
+					<div
+						style={{
+							position: 'absolute',
+							inset: 0,
+							backgroundColor: 'rgba(0, 0, 0, 0.8)',
+							backdropFilter: 'blur(4px)',
+							zIndex: 20,
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							padding: '1rem',
+						}}
+						onClick={() => setConfirmModal(null)}
+					>
+						<div
+							style={{
+								backgroundColor: 'rgba(24, 25, 30, 0.99)',
+								border: '1px solid var(--line-strong)',
+								borderRadius: '0.75rem',
+								padding: '1.25rem',
+								width: '100%',
+								maxWidth: '320px',
+								boxShadow: '0 16px 36px rgba(0, 0, 0, 0.8)',
+							}}
+							onClick={(e) => e.stopPropagation()}
+						>
+							<div
+								style={{
+									fontWeight: 600,
+									fontSize: '0.95rem',
+									color: 'var(--text)',
+									marginBottom: '0.4rem',
+								}}
+							>
+								{confirmModal === 'settings'
+									? 'Скинути налаштування?'
+									: 'Очистити всі дані?'}
+							</div>
+							<div
+								style={{
+									fontSize: '0.825rem',
+									color: 'var(--muted)',
+									lineHeight: 1.4,
+									marginBottom: '1.25rem',
+								}}
+							>
+								{confirmModal === 'settings'
+									? 'Усі налаштування інструментів та штампів повернуться до початкових. Малюнок на полотні збережеться.'
+									: 'Буде повністю видалено історію проектів, сесію та налаштування. Додаток повернеться до початкового стану.'}
+							</div>
+							<div
+								style={{
+									display: 'flex',
+									gap: '0.5rem',
+									justifyContent: 'flex-end',
+								}}
+							>
+								<button
+									type="button"
+									style={{
+										padding: '0.45rem 0.85rem',
+										borderRadius: '0.375rem',
+										background: 'rgba(255, 255, 255, 0.08)',
+										border: '1px solid var(--line)',
+										color: 'var(--text)',
+										cursor: 'pointer',
+										fontSize: '0.825rem',
+										fontWeight: 500,
+									}}
+									onClick={() => setConfirmModal(null)}
+								>
+									Відміна
+								</button>
+								<button
+									type="button"
+									style={{
+										padding: '0.45rem 0.95rem',
+										borderRadius: '0.375rem',
+										background: '#dc2626',
+										border: 'none',
+										color: '#ffffff',
+										cursor: 'pointer',
+										fontSize: '0.825rem',
+										fontWeight: 600,
+									}}
+									onClick={() => {
+										const action = confirmModal;
+										setConfirmModal(null);
+										if (action === 'settings') {
+											onResetSettings();
+										} else {
+											onClearAllData();
+										}
+									}}
+								>
+									Так
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
 			</div>
 		</div>
 	);
