@@ -1044,7 +1044,7 @@ export const PhotoEditor: React.FC = () => {
 			if (nextText) {
 				setActiveStampText(nextText);
 			}
-			setSelectedStepIndex(nextIdx);
+			setSelectedStepIndex(prevIdx); //! Щойно поставлений на полотні штамп стає поточним (isCurrent)
 			return nextIdx;
 		});
 	}, [countPattern]);

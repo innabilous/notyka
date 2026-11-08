@@ -344,17 +344,27 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 								<div className="step-cubes-scroll">
 									<div className="step-cubes-grid">
 										{countPattern.map((token, idx) => {
-											const isActive = idx === currentAutoCountIndex || idx === selectedStepIndex;
+											const isCurrent = idx === selectedStepIndex;
+											const isNext = idx === currentAutoCountIndex;
 											const isFilled = Boolean(token && token.trim());
 											const isBeatStart = idx % 4 === 0;
+
+											let statusTitle = '';
+											if (isCurrent && isNext) {
+												statusTitle = ' — активний і наступний';
+											} else if (isCurrent) {
+												statusTitle = ' — активний на полотні';
+											} else if (isNext) {
+												statusTitle = ' — наступний для штампування (пунктир)';
+											}
 
 											return (
 												<button
 													key={idx}
 													type="button"
-													className={`step-cube ${isFilled ? 'filled' : 'empty'} ${isActive ? 'active' : ''} ${isBeatStart ? 'beat-start' : ''}`}
+													className={`step-cube ${isFilled ? 'filled' : 'empty'} ${isNext ? 'is-next' : ''} ${isCurrent ? 'is-current' : ''} ${isBeatStart ? 'beat-start' : ''}`}
 													onClick={() => onSelectStep?.(idx)}
-													title={`Крок ${idx + 1}: «${token || 'порожньо'}»${isActive ? ' — вибраний крок' : ''}`}
+													title={`Крок ${idx + 1}: «${token || 'порожньо'}»${statusTitle}`}
 												>
 													<span className="step-cube-num">{idx + 1}</span>
 													<span className="step-cube-val">{token || '·'}</span>
