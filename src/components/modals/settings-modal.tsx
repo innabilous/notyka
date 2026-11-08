@@ -26,10 +26,12 @@ interface SettingsModalProps {
 	visibleStampCategories: Record<StampCategory, boolean>;
 	deleteBtnOn: boolean;
 	resizeHandlesOn: boolean;
+	compactRulers?: boolean;
 	onToggleTool: (tool: ToolMode) => void;
 	onToggleStampCategory: (category: StampCategory) => void;
 	onToggleDeleteBtn: () => void;
 	onToggleResizeHandles: () => void;
+	onToggleCompactRulers?: () => void;
 	onResetSettings: () => void;
 	onClearAllData: () => void;
 	onClose: () => void;
@@ -61,10 +63,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 	visibleStampCategories,
 	deleteBtnOn,
 	resizeHandlesOn,
+	compactRulers = false,
 	onToggleTool,
 	onToggleStampCategory,
 	onToggleDeleteBtn,
 	onToggleResizeHandles,
+	onToggleCompactRulers,
 	onResetSettings,
 	onClearAllData,
 	onClose,
@@ -307,7 +311,55 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 						</div>
 					</div>
 
-					{/* Група 4: Скидання */}
+					{/* Група 4: Панель лінійок */}
+					<div>
+						<div
+							style={{
+								fontSize: '0.75rem',
+								fontWeight: 600,
+								color: 'var(--muted)',
+								textTransform: 'uppercase',
+								letterSpacing: '0.05em',
+								marginBottom: '0.5rem',
+							}}
+						>
+							Панель лінійок
+						</div>
+						<button
+							type="button"
+							style={{
+								display: 'flex',
+								alignItems: 'center',
+								justifyContent: 'space-between',
+								width: '100%',
+								padding: '0.6rem 0.75rem',
+								borderRadius: '0.5rem',
+								background: 'rgba(255, 255, 255, 0.03)',
+								border: '1px solid var(--line)',
+								cursor: 'pointer',
+								color: 'var(--text)',
+								textAlign: 'left',
+							}}
+							onClick={onToggleCompactRulers}
+						>
+							<div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+								<Ruler className="icon" />
+								<div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+									<span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
+										Компактний вигляд у топбарі
+									</span>
+									<span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
+										{compactRulers
+											? 'Усі кнопки лінійок розташовані зверху в один рядок'
+											: 'Основний вигляд: панель у 2 колонки над футером'}
+									</span>
+								</div>
+							</div>
+							<span className={`sw ${compactRulers ? 'on' : ''}`} />
+						</button>
+					</div>
+
+					{/* Група 5: Скидання */}
 					<div
 						style={{
 							paddingTop: '0.65rem',

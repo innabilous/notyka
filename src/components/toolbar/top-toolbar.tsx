@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Menu, Redo2, Undo2 } from 'lucide-react';
+import { Menu, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { RulerSettings } from '@/components/settings/ruler-settings';
 import { ToolMode } from '@/types/editor';
@@ -15,6 +15,7 @@ interface TopToolbarProps {
 	mainColor: string;
 	strokeColor: string;
 	isSideSliderOpen?: boolean;
+	compactRulers?: boolean;
 	rulersVisible?: boolean;
 	rulersSnap?: boolean;
 	rulersSnapItems?: boolean;
@@ -33,7 +34,6 @@ interface TopToolbarProps {
 	onToggleRulersSnap?: () => void;
 	onToggleRulersSnapItems?: () => void;
 	onToggleRulersAttachContent?: () => void;
-	onToggleShowDistance?: () => void;
 	onToggleRulersShowDistance?: () => void;
 	onToggleRulersLockEqualDistance?: () => void;
 	onClearRulers?: () => void;
@@ -49,6 +49,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	mainColor,
 	strokeColor,
 	isSideSliderOpen,
+	compactRulers = false,
 	rulersVisible = true,
 	rulersSnap = true,
 	rulersSnapItems = true,
@@ -103,22 +104,39 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 			{/* Центр: Панель налаштувань інструменту */}
 			<div className="top-center-settings">
 				{currentMode === 'ruler' ? (
-					<RulerSettings
-						visible={rulersVisible}
-						snap={rulersSnap}
-						snapItems={rulersSnapItems}
-						attachContent={rulersAttachContent}
-						showDistance={rulersShowDistance}
-						lockEqualDistance={rulersLockEqualDistance}
-						rulersCount={rulersCount}
-						onToggleVisible={() => onToggleRulersVisible?.()}
-						onToggleSnap={() => onToggleRulersSnap?.()}
-						onToggleSnapItems={() => onToggleRulersSnapItems?.()}
-						onToggleAttachContent={() => onToggleRulersAttachContent?.()}
-						onToggleShowDistance={() => onToggleRulersShowDistance?.()}
-						onToggleLockEqualDistance={() => onToggleRulersLockEqualDistance?.()}
-						onClearRulers={() => onClearRulers?.()}
-					/>
+					compactRulers ? (
+						<RulerSettings
+							compact
+							visible={rulersVisible}
+							snap={rulersSnap}
+							snapItems={rulersSnapItems}
+							attachContent={rulersAttachContent}
+							showDistance={rulersShowDistance}
+							lockEqualDistance={rulersLockEqualDistance}
+							rulersCount={rulersCount}
+							onToggleVisible={() => onToggleRulersVisible?.()}
+							onToggleSnap={() => onToggleRulersSnap?.()}
+							onToggleSnapItems={() => onToggleRulersSnapItems?.()}
+							onToggleAttachContent={() => onToggleRulersAttachContent?.()}
+							onToggleShowDistance={() => onToggleRulersShowDistance?.()}
+							onToggleLockEqualDistance={() => onToggleRulersLockEqualDistance?.()}
+							onClearRulers={onClearRulers}
+						/>
+					) : (
+						<div id="ruler-top-bar-action">
+							<button
+								type="button"
+								className="btn-clear-rulers"
+								onClick={onClearRulers}
+								disabled={!rulersCount || rulersCount === 0}
+								title="Очистити всі лінійки"
+								aria-label="Очистити всі лінійки"
+							>
+								<Trash2 className="icon" />
+								<span>Очистити всі лінійки{rulersCount && rulersCount > 0 ? ` (${rulersCount})` : ''}</span>
+							</button>
+						</div>
+					)
 				) : (
 					<BrushSettings
 						currentMode={currentMode}

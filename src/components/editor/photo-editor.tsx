@@ -9,6 +9,7 @@ import { ImageMenuModal } from '@/components/modals/image-menu-modal';
 import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal';
 import { SettingsModal } from '@/components/modals/settings-modal';
 import { BrushSettings } from '@/components/settings/brush-settings';
+import { RulerSettings } from '@/components/settings/ruler-settings';
 import { SideSizeSlider } from '@/components/settings/side-size-slider';
 import { StampCategory, StampSettings } from '@/components/settings/stamp-settings';
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
@@ -123,6 +124,7 @@ export const PhotoEditor: React.FC = () => {
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
 	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
 	const [rulersCount, setRulersCount] = useState<number>(0);
+	const [compactRulers, setCompactRulers] = useState<boolean>(false); //! Опція компактного вигляду лінійок у топбарі
 	const [visibleTools, setVisibleTools] =
 		useState<Record<ToolMode, boolean>>(DEFAULT_VISIBLE_TOOLS);
 	const [visibleStampCategories, setVisibleStampCategories] =
@@ -244,6 +246,8 @@ export const PhotoEditor: React.FC = () => {
 				setRulersShowDistance(savedSettings.rulersShowDistance);
 			if (savedSettings.rulersLockEqualDistance !== undefined)
 				setRulersLockEqualDistance(savedSettings.rulersLockEqualDistance);
+			if (savedSettings.compactRulers !== undefined)
+				setCompactRulers(savedSettings.compactRulers);
 			if (savedSettings.customText) setCustomText(savedSettings.customText);
 			if (savedSettings.isAutoCountMode !== undefined)
 				setIsAutoCountMode(savedSettings.isAutoCountMode);
@@ -313,6 +317,7 @@ export const PhotoEditor: React.FC = () => {
 			rulersAttachContent,
 			rulersShowDistance,
 			rulersLockEqualDistance,
+			compactRulers,
 			customText,
 			isAutoCountMode,
 			countPattern: [...countPattern],
@@ -322,6 +327,7 @@ export const PhotoEditor: React.FC = () => {
 		activeStampText,
 		autoCountSequence,
 		categoryColors,
+		compactRulers,
 		countPattern,
 		currentMode,
 		customStamps,
@@ -1384,6 +1390,30 @@ export const PhotoEditor: React.FC = () => {
 		});
 	}, [showToast]);
 
+	const handleToggleRulersSnap = useCallback(() => {
+		setRulersSnap((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? "Прив'язку до лінійок увімкнено"
+					: "Прив'язку до лінійок вимкнено",
+			);
+			return next;
+		});
+	}, [showToast]);
+
+	const handleToggleRulersSnapItems = useCallback(() => {
+		setRulersSnapItems((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Снеп нот між лінійками увімкнено'
+					: 'Снеп нот між лінійками вимкнено',
+			);
+			return next;
+		});
+	}, [showToast]);
+
 	const handleToggleRulersAttachContent = useCallback(() => {
 		setRulersAttachContent((prev) => {
 			const next = !prev;
@@ -1391,6 +1421,51 @@ export const PhotoEditor: React.FC = () => {
 				next
 					? 'Увімкнено спільний рух нот з лінійкою'
 					: 'Вимкнено спільний рух (рухається тільки лінійка)',
+			);
+			return next;
+		});
+	}, [showToast]);
+
+	const handleToggleRulersShowDistance = useCallback(() => {
+		setRulersShowDistance((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Відображення відстані між лінійками увімкнено'
+					: 'Відображення відстаней приховано',
+			);
+			return next;
+		});
+	}, [showToast]);
+
+	const handleToggleRulersLockEqualDistance = useCallback(() => {
+		setRulersLockEqualDistance((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Рівновіддаленість лінійок зафіксовано'
+					: 'Фіксацію рівної відстані вимкнено',
+			);
+			return next;
+		});
+	}, [showToast]);
+
+	const handleClearRulers = useCallback(() => {
+		if (rulersCount > 0) {
+			stageRef.current?.clearRulers();
+			showToast('Усі лінійки очищено');
+		} else {
+			showToast('Немає лінійок для очищення');
+		}
+	}, [rulersCount, showToast]);
+
+	const handleToggleCompactRulers = useCallback(() => {
+		setCompactRulers((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Увімкнено компактний вигляд лінійок у топбарі'
+					: 'Увімкнено основний вигляд лінійок знизу',
 			);
 			return next;
 		});
@@ -1586,6 +1661,7 @@ export const PhotoEditor: React.FC = () => {
 		setRulersAttachContent(true);
 		setRulersShowDistance(false);
 		setRulersLockEqualDistance(false);
+		setCompactRulers(false);
 		setCustomText('Текст');
 		setIsAutoCountMode(false);
 		setCountPattern(DEFAULT_COUNT_PATTERN);
@@ -1808,6 +1884,7 @@ export const PhotoEditor: React.FC = () => {
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
 				isSideSliderOpen={isSideSliderOpen}
+				compactRulers={compactRulers}
 				rulersVisible={rulersVisible}
 				rulersSnap={rulersSnap}
 				rulersSnapItems={rulersSnapItems}
@@ -1824,12 +1901,12 @@ export const PhotoEditor: React.FC = () => {
 				onToggleSideSlider={() => setIsSideSliderOpen((prev) => !prev)}
 				onSyncCategorySizes={handleSyncCategorySizes}
 				onToggleRulersVisible={handleToggleRulersVisible}
-				onToggleRulersSnap={() => setRulersSnap((prev) => !prev)}
-				onToggleRulersSnapItems={() => setRulersSnapItems((prev) => !prev)}
+				onToggleRulersSnap={handleToggleRulersSnap}
+				onToggleRulersSnapItems={handleToggleRulersSnapItems}
 				onToggleRulersAttachContent={handleToggleRulersAttachContent}
-				onToggleRulersShowDistance={() => setRulersShowDistance((prev) => !prev)}
-				onToggleRulersLockEqualDistance={() => setRulersLockEqualDistance((prev) => !prev)}
-				onClearRulers={() => stageRef.current?.clearRulers()}
+				onToggleRulersShowDistance={handleToggleRulersShowDistance}
+				onToggleRulersLockEqualDistance={handleToggleRulersLockEqualDistance}
+				onClearRulers={handleClearRulers}
 			/>
 
 			<CanvasStage
@@ -1911,10 +1988,12 @@ export const PhotoEditor: React.FC = () => {
 				visibleStampCategories={visibleStampCategories}
 				deleteBtnOn={deleteBtnOn}
 				resizeHandlesOn={resizeHandlesOn}
+				compactRulers={compactRulers}
 				onToggleTool={handleToggleTool}
 				onToggleStampCategory={handleToggleStampCategory}
 				onToggleDeleteBtn={handleToggleDeleteBtn}
 				onToggleResizeHandles={handleToggleResizeHandles}
+				onToggleCompactRulers={handleToggleCompactRulers}
 				onResetSettings={handleResetSettingsOnly}
 				onClearAllData={handleClearAllData}
 				onClose={() => setIsSettingsOpen(false)}
@@ -2009,6 +2088,24 @@ export const PhotoEditor: React.FC = () => {
 							onAddSteps={handleAddSteps}
 							onRemoveSteps={handleRemoveSteps}
 							onToggleAutoCount={handleToggleAutoCount}
+						/>
+					)}
+
+					{currentMode === 'ruler' && !compactRulers && (
+						<RulerSettings
+							visible={rulersVisible}
+							snap={rulersSnap}
+							snapItems={rulersSnapItems}
+							attachContent={rulersAttachContent}
+							showDistance={rulersShowDistance}
+							lockEqualDistance={rulersLockEqualDistance}
+							rulersCount={rulersCount}
+							onToggleVisible={handleToggleRulersVisible}
+							onToggleSnap={handleToggleRulersSnap}
+							onToggleSnapItems={handleToggleRulersSnapItems}
+							onToggleAttachContent={handleToggleRulersAttachContent}
+							onToggleShowDistance={handleToggleRulersShowDistance}
+							onToggleLockEqualDistance={handleToggleRulersLockEqualDistance}
 						/>
 					)}
 

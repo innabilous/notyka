@@ -29,6 +29,7 @@ export interface EditorSettings {
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
+	compactRulers?: boolean;
 	customText?: string;
 	isAutoCountMode?: boolean;
 	countPattern?: string[];
