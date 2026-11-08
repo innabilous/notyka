@@ -1,4 +1,12 @@
-import { AutoCountItem, RulerItem, StampItem, ToolMode } from './editor';
+import {
+	AutoCountItem,
+	RulerItem,
+	SelectionMode,
+	SelectionShape,
+	StampCategory,
+	StampItem,
+	ToolMode,
+} from './editor';
 
 export interface EditorSettings {
 	currentMode: ToolMode;
@@ -21,15 +29,34 @@ export interface EditorSettings {
 	noteSizes: Record<string, number>;
 	deleteBtnOn: boolean;
 	resizeHandlesOn?: boolean;
+	visibleTools?: Record<ToolMode, boolean>;
+	visibleStampCategories?: Record<StampCategory, boolean>;
 	rulersVisible?: boolean;
 	rulersSnap?: boolean;
+	rulersSnapItems?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
+	compactRulers?: boolean;
+	selectionShape?: SelectionShape;
+	selectionMode?: SelectionMode;
 	customText?: string;
 	isAutoCountMode?: boolean;
 	countPattern?: string[];
 	autoCountSequence?: AutoCountItem[];
+}
+
+export interface SerializedHistoryLayer {
+	type: 'stroke' | 'stamp';
+	id: string;
+	stamp?: StampItem;
+	strokeDataUrl?: string;
+}
+
+export interface SerializedHistoryItem {
+	stamps: StampItem[];
+	rulers?: RulerItem[];
+	layers?: SerializedHistoryLayer[];
 }
 
 export interface ProjectItem {
@@ -47,4 +74,6 @@ export interface ProjectItem {
 	cssW: number;
 	cssH: number;
 	countPattern?: string[];
+	history?: SerializedHistoryItem[];
+	historyStep?: number;
 }

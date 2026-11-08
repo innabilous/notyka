@@ -7,7 +7,10 @@ import { CustomStampModal } from '@/components/modals/custom-stamp-modal';
 import { ImageCropModal } from '@/components/modals/image-crop-modal';
 import { ImageMenuModal } from '@/components/modals/image-menu-modal';
 import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal';
+import { SettingsModal } from '@/components/modals/settings-modal';
 import { BrushSettings } from '@/components/settings/brush-settings';
+import { RulerSettings } from '@/components/settings/ruler-settings';
+import { SideSizeSlider } from '@/components/settings/side-size-slider';
 import { StampCategory, StampSettings } from '@/components/settings/stamp-settings';
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
 import { ToolbarSkeleton } from '@/components/toolbar/toolbar-skeleton';
@@ -19,13 +22,16 @@ import {
 	COUNT_PATTERN_STEP,
 	DEFAULT_AUTO_COUNT_SEQUENCE,
 	DEFAULT_COUNT_PATTERN,
+	DEFAULT_VISIBLE_STAMP_CATEGORIES,
+	DEFAULT_VISIBLE_TOOLS,
 	MAX_COUNT_PATTERN_LENGTH,
 	MIN_COUNT_PATTERN_LENGTH,
 	NOTES,
 } from '@/constants/editor';
-import { AutoCountItem, StampItem, ToolMode } from '@/types/editor';
+import { AutoCountItem, SelectionMode, SelectionShape, ShapeType, StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
+	clearAllStorage,
 	deleteProject,
 	getProjectsList,
 	loadCurrentSession,
@@ -66,10 +72,20 @@ export const PhotoEditor: React.FC = () => {
 		custom: { main: '#ed1c24', stroke: 'transparent' },
 		text: { main: '#ed1c24', stroke: 'transparent' },
 		draw: { main: '#ed1c24', stroke: 'transparent' },
+		shapes: { main: 'transparent', stroke: '#ed1c24' },
+	});
+
+	// Selected shape type and independent sizes for shapes stamp category
+	const [selectedShape, setSelectedShape] = useState<ShapeType>('rect');
+	const [shapeSizes, setShapeSizes] = useState<Record<ShapeType, number>>({
+		rect: 2,
+		circle: 2,
+		arrow: 2,
 	});
 
 	// Independent tool sizes
 	const [toolSizes, setToolSizes] = useState<Record<ToolMode, number>>({
+		select: 8,
 		pencil: 2,
 		stamp: 8,
 		eraser: 24,
@@ -109,12 +125,24 @@ export const PhotoEditor: React.FC = () => {
 
 	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(true);
 	const [resizeHandlesOn, setResizeHandlesOn] = useState<boolean>(true);
+	const [isSideSliderOpen, setIsSideSliderOpen] = useState<boolean>(false);
+	const [canvasScale, setCanvasScale] = useState<number>(1);
 	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
 	const [rulersSnap, setRulersSnap] = useState<boolean>(true);
-	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(false);
+	const [rulersSnapItems, setRulersSnapItems] = useState<boolean>(true); //! За замовчуванням увімкнено прив'язку до нот на інших лінійках
+	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(true); //! За замовчуванням увімкнено спільний рух
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
 	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
+	const [selectionShape, setSelectionShape] = useState<SelectionShape>('rect');
+	const [selectionMode, setSelectionMode] = useState<SelectionMode>('inside');
+	const [selectedStampsCount, setSelectedStampsCount] = useState<number>(0);
 	const [rulersCount, setRulersCount] = useState<number>(0);
+	const [compactRulers, setCompactRulers] = useState<boolean>(false); //! Опція компактного вигляду лінійок у топбарі
+	const [visibleTools, setVisibleTools] =
+		useState<Record<ToolMode, boolean>>(DEFAULT_VISIBLE_TOOLS);
+	const [visibleStampCategories, setVisibleStampCategories] =
+		useState<Record<StampCategory, boolean>>(DEFAULT_VISIBLE_STAMP_CATEGORIES);
+	const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
@@ -215,16 +243,26 @@ export const PhotoEditor: React.FC = () => {
 			if (savedSettings.deleteBtnOn !== undefined) setDeleteBtnOn(savedSettings.deleteBtnOn);
 			if (savedSettings.resizeHandlesOn !== undefined)
 				setResizeHandlesOn(savedSettings.resizeHandlesOn);
+			if (savedSettings.visibleTools)
+				setVisibleTools((prev) => ({ ...prev, ...savedSettings.visibleTools }));
+			if (savedSettings.visibleStampCategories)
+				setVisibleStampCategories((prev) => ({ ...prev, ...savedSettings.visibleStampCategories }));
 			if (savedSettings.rulersVisible !== undefined)
 				setRulersVisible(savedSettings.rulersVisible);
 			if (savedSettings.rulersSnap !== undefined)
 				setRulersSnap(savedSettings.rulersSnap);
+			if (savedSettings.rulersSnapItems !== undefined)
+				setRulersSnapItems(savedSettings.rulersSnapItems);
 			if (savedSettings.rulersAttachContent !== undefined)
 				setRulersAttachContent(savedSettings.rulersAttachContent);
 			if (savedSettings.rulersShowDistance !== undefined)
 				setRulersShowDistance(savedSettings.rulersShowDistance);
 			if (savedSettings.rulersLockEqualDistance !== undefined)
 				setRulersLockEqualDistance(savedSettings.rulersLockEqualDistance);
+			if (savedSettings.compactRulers !== undefined)
+				setCompactRulers(savedSettings.compactRulers);
+			if (savedSettings.selectionShape) setSelectionShape(savedSettings.selectionShape);
+			if (savedSettings.selectionMode) setSelectionMode(savedSettings.selectionMode);
 			if (savedSettings.customText) setCustomText(savedSettings.customText);
 			if (savedSettings.isAutoCountMode !== undefined)
 				setIsAutoCountMode(savedSettings.isAutoCountMode);
@@ -286,11 +324,17 @@ export const PhotoEditor: React.FC = () => {
 			noteSizes,
 			deleteBtnOn,
 			resizeHandlesOn,
+			visibleTools,
+			visibleStampCategories,
 			rulersVisible,
 			rulersSnap,
+			rulersSnapItems,
 			rulersAttachContent,
 			rulersShowDistance,
 			rulersLockEqualDistance,
+			compactRulers,
+			selectionShape,
+			selectionMode,
 			customText,
 			isAutoCountMode,
 			countPattern: [...countPattern],
@@ -300,6 +344,7 @@ export const PhotoEditor: React.FC = () => {
 		activeStampText,
 		autoCountSequence,
 		categoryColors,
+		compactRulers,
 		countPattern,
 		currentMode,
 		customStamps,
@@ -312,6 +357,7 @@ export const PhotoEditor: React.FC = () => {
 		rulersLockEqualDistance,
 		rulersShowDistance,
 		rulersSnap,
+		rulersSnapItems,
 		rulersVisible,
 		selectedAccidental,
 		selectedChordAccidental,
@@ -321,22 +367,72 @@ export const PhotoEditor: React.FC = () => {
 		selectedChordRoot,
 		selectedChordSlash,
 		selectedNote,
+		selectionMode,
+		selectionShape,
 		sizeLocked,
 		stampBadgeMode,
 		stampCategory,
 		toolColors,
 		toolSizes,
+		visibleStampCategories,
+		visibleTools,
 	]);
 
-	const currentSize = toolSizes[currentMode] ?? 24;
-	const currentMainColor =
-		currentMode === 'stamp'
-			? (categoryColors[stampCategory]?.main ?? '#ed1c24')
-			: toolColors.pencil.main;
-	const currentStrokeColor =
-		currentMode === 'stamp'
-			? (categoryColors[stampCategory]?.stroke ?? 'transparent')
-			: toolColors.pencil.stroke;
+	const currentSize = useMemo(() => {
+		if ((currentMode === 'stamp' || currentMode === 'select') && stampCategory === 'shapes') {
+			return shapeSizes[selectedShape] ?? 2;
+		}
+		if (currentMode === 'select') {
+			return toolSizes.stamp ?? 24;
+		}
+		return toolSizes[currentMode] ?? 24;
+	}, [currentMode, selectedShape, shapeSizes, stampCategory, toolSizes]);
+
+	const currentMainColor = useMemo(() => {
+		if (currentMode !== 'stamp' && currentMode !== 'select') return toolColors.pencil.main;
+		if (stampCategory === 'shapes') {
+			if (selectedShape === 'arrow') {
+				const arrowColor =
+					categoryColors.shapes?.stroke && categoryColors.shapes.stroke !== 'transparent'
+						? categoryColors.shapes.stroke
+						: categoryColors.shapes?.main && categoryColors.shapes.main !== 'transparent'
+							? categoryColors.shapes.main
+							: '#ed1c24';
+				return arrowColor;
+			}
+			return categoryColors.shapes?.main ?? 'transparent';
+		}
+		return categoryColors[stampCategory]?.main ?? '#ed1c24';
+	}, [
+		categoryColors,
+		currentMode,
+		selectedShape,
+		stampCategory,
+		toolColors.pencil.main,
+	]);
+
+	const currentStrokeColor = useMemo(() => {
+		if (currentMode !== 'stamp' && currentMode !== 'select') return toolColors.pencil.stroke;
+		if (stampCategory === 'shapes') {
+			if (selectedShape === 'arrow') {
+				const arrowColor =
+					categoryColors.shapes?.stroke && categoryColors.shapes.stroke !== 'transparent'
+						? categoryColors.shapes.stroke
+						: categoryColors.shapes?.main && categoryColors.shapes.main !== 'transparent'
+							? categoryColors.shapes.main
+							: '#ed1c24';
+				return arrowColor;
+			}
+			return categoryColors.shapes?.stroke ?? '#ed1c24';
+		}
+		return categoryColors[stampCategory]?.stroke ?? 'transparent';
+	}, [
+		categoryColors,
+		currentMode,
+		selectedShape,
+		stampCategory,
+		toolColors.pencil.stroke,
+	]);
 
 	const getStampKey = useCallback(
 		(note: string, acc: string, customText?: string) => customText || `${note}${acc}`,
@@ -358,7 +454,9 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleSelectMode = useCallback(
 		(mode: ToolMode) => {
-			stageRef.current?.commitActiveStamp();
+			if (mode !== 'stamp' && mode !== 'select') {
+				stageRef.current?.commitActiveStamp();
+			}
 
 			if (autoSaveTimerRef.current && stageRef.current) {
 				clearTimeout(autoSaveTimerRef.current);
@@ -376,6 +474,11 @@ export const PhotoEditor: React.FC = () => {
 					...prev,
 					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: toolSizes.stamp,
 				}));
+			}
+
+			if (currentMode === 'select' && mode !== 'select') {
+				stageRef.current?.clearSelection();
+				setSelectedStampsCount(0);
 			}
 
 			setCurrentMode(mode);
@@ -799,6 +902,8 @@ export const PhotoEditor: React.FC = () => {
 		selectedChordRoot,
 		selectedChordSlash,
 		selectedNote,
+		selectionMode,
+		selectionShape,
 		sizeLocked,
 		toolSizes.stamp,
 	]);
@@ -1044,7 +1149,7 @@ export const PhotoEditor: React.FC = () => {
 			if (nextText) {
 				setActiveStampText(nextText);
 			}
-			setSelectedStepIndex(nextIdx);
+			setSelectedStepIndex(prevIdx); //! Щойно поставлений на полотні штамп стає поточним (isCurrent)
 			return nextIdx;
 		});
 	}, [countPattern]);
@@ -1123,6 +1228,13 @@ export const PhotoEditor: React.FC = () => {
 				nextText = customText;
 			} else if (cat === 'draw') {
 				nextText = '';
+			} else if (cat === 'shapes') {
+				nextText = selectedShape;
+				const sz = shapeSizes[selectedShape] ?? 2;
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: sz,
+				}));
 			}
 			setActiveStampText(nextText);
 		},
@@ -1143,7 +1255,24 @@ export const PhotoEditor: React.FC = () => {
 			selectedCount,
 			selectedCustom,
 			selectedNote,
+			selectedShape,
+			shapeSizes,
 		],
+	);
+
+	//! Вибір типу фігури
+	const handleSelectShape = useCallback(
+		(shape: ShapeType) => {
+			stageRef.current?.commitActiveStamp();
+			setSelectedShape(shape);
+			setActiveStampText(shape);
+			const sz = shapeSizes[shape] ?? 2;
+			setToolSizes((prev) => ({
+				...prev,
+				stamp: sz,
+			}));
+		},
+		[shapeSizes],
 	);
 
 	//! Зміна користувацького тексту штампа
@@ -1194,22 +1323,37 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleChangeSize = useCallback(
 		(sz: number) => {
+			if ((currentMode === 'stamp' || currentMode === 'select') && stampCategory === 'shapes') {
+				setShapeSizes((prev) => ({
+					...prev,
+					[selectedShape]: sz,
+				}));
+			}
+
 			setToolSizes((prev) => ({
 				...prev,
 				[currentMode]: sz,
+				...(currentMode === 'select' ? { stamp: sz } : {}),
 			}));
 
-			if (!sizeLocked && currentMode === 'stamp') {
+			if (
+				!sizeLocked &&
+				(currentMode === 'stamp' || currentMode === 'select') &&
+				stampCategory !== 'shapes'
+			) {
 				setNoteSizes((prev) => ({
 					...prev,
 					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: sz,
 				}));
 			}
 
-			if (currentMode === 'stamp') {
+			if (currentMode === 'stamp' || currentMode === 'select') {
 				stageRef.current?.updateActiveStampProps(
 					sz,
-					activeStampText || `${selectedNote}${selectedAccidental}`,
+					activeStampText ||
+						(stampCategory === 'shapes'
+							? selectedShape
+							: `${selectedNote}${selectedAccidental}`),
 					currentMainColor,
 					currentStrokeColor,
 				);
@@ -1223,7 +1367,9 @@ export const PhotoEditor: React.FC = () => {
 			getStampKey,
 			selectedAccidental,
 			selectedNote,
+			selectedShape,
 			sizeLocked,
+			stampCategory,
 		],
 	);
 
@@ -1247,7 +1393,20 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleChangeMainColor = useCallback(
 		(color: string) => {
-			if (currentMode === 'stamp') {
+			if (currentMode === 'stamp' || currentMode === 'select') {
+				if (stampCategory === 'shapes' && selectedShape === 'arrow') {
+					setCategoryColors((prev) => ({
+						...prev,
+						shapes: { main: color, stroke: color },
+					}));
+					stageRef.current?.updateActiveStampProps(
+						currentSize,
+						activeStampText || selectedShape,
+						color,
+						color,
+					);
+					return;
+				}
 				setCategoryColors((prev) => ({
 					...prev,
 					[stampCategory]: {
@@ -1257,7 +1416,10 @@ export const PhotoEditor: React.FC = () => {
 				}));
 				stageRef.current?.updateActiveStampProps(
 					currentSize,
-					activeStampText || `${selectedNote}${selectedAccidental}`,
+					activeStampText ||
+						(stampCategory === 'shapes'
+							? selectedShape
+							: `${selectedNote}${selectedAccidental}`),
 					color,
 					currentStrokeColor,
 				);
@@ -1278,13 +1440,27 @@ export const PhotoEditor: React.FC = () => {
 			currentStrokeColor,
 			selectedAccidental,
 			selectedNote,
+			selectedShape,
 			stampCategory,
 		],
 	);
 
 	const handleChangeStrokeColor = useCallback(
 		(color: string) => {
-			if (currentMode === 'stamp') {
+			if (currentMode === 'stamp' || currentMode === 'select') {
+				if (stampCategory === 'shapes' && selectedShape === 'arrow') {
+					setCategoryColors((prev) => ({
+						...prev,
+						shapes: { main: color, stroke: color },
+					}));
+					stageRef.current?.updateActiveStampProps(
+						currentSize,
+						activeStampText || selectedShape,
+						color,
+						color,
+					);
+					return;
+				}
 				setCategoryColors((prev) => ({
 					...prev,
 					[stampCategory]: {
@@ -1299,7 +1475,10 @@ export const PhotoEditor: React.FC = () => {
 
 				stageRef.current?.updateActiveStampProps(
 					currentSize,
-					activeStampText || `${selectedNote}${selectedAccidental}`,
+					activeStampText ||
+						(stampCategory === 'shapes'
+							? selectedShape
+							: `${selectedNote}${selectedAccidental}`),
 					currentMainColor,
 					color,
 					stampBadgeMode,
@@ -1321,6 +1500,7 @@ export const PhotoEditor: React.FC = () => {
 			currentSize,
 			selectedAccidental,
 			selectedNote,
+			selectedShape,
 			showToast,
 			stampBadgeMode,
 			stampCategory,
@@ -1359,6 +1539,30 @@ export const PhotoEditor: React.FC = () => {
 		});
 	}, [showToast]);
 
+	const handleToggleRulersSnap = useCallback(() => {
+		setRulersSnap((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? "Прив'язку до лінійок увімкнено"
+					: "Прив'язку до лінійок вимкнено",
+			);
+			return next;
+		});
+	}, [showToast]);
+
+	const handleToggleRulersSnapItems = useCallback(() => {
+		setRulersSnapItems((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Снеп нот між лінійками увімкнено'
+					: 'Снеп нот між лінійками вимкнено',
+			);
+			return next;
+		});
+	}, [showToast]);
+
 	const handleToggleRulersAttachContent = useCallback(() => {
 		setRulersAttachContent((prev) => {
 			const next = !prev;
@@ -1371,9 +1575,62 @@ export const PhotoEditor: React.FC = () => {
 		});
 	}, [showToast]);
 
+	const handleToggleRulersShowDistance = useCallback(() => {
+		setRulersShowDistance((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Відображення відстані між лінійками увімкнено'
+					: 'Відображення відстаней приховано',
+			);
+			return next;
+		});
+	}, [showToast]);
+
+	const handleToggleRulersLockEqualDistance = useCallback(() => {
+		setRulersLockEqualDistance((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Рівновіддаленість лінійок зафіксовано'
+					: 'Фіксацію рівної відстані вимкнено',
+			);
+			return next;
+		});
+	}, [showToast]);
+
+	const handleClearRulers = useCallback(() => {
+		if (rulersCount > 0) {
+			stageRef.current?.clearRulers();
+			showToast('Усі лінійки очищено');
+		} else {
+			showToast('Немає лінійок для очищення');
+		}
+	}, [rulersCount, showToast]);
+
+	const handleDeleteSelected = useCallback(() => {
+		stageRef.current?.deleteSelectedStamps();
+	}, []);
+
+	const handleClearSelection = useCallback(() => {
+		stageRef.current?.clearSelection();
+	}, []);
+
+	const handleToggleCompactRulers = useCallback(() => {
+		setCompactRulers((prev) => {
+			const next = !prev;
+			showToast(
+				next
+					? 'Увімкнено компактний вигляд лінійок у топбарі'
+					: 'Увімкнено основний вигляд лінійок знизу',
+			);
+			return next;
+		});
+	}, [showToast]);
+
 	//! Синхронізація розмірів усіх штампів вибраного розділу
 	const handleSyncCategorySizes = useCallback(() => {
-		if (currentMode !== 'stamp') return;
+		if (currentMode !== 'stamp' && currentMode !== 'select') return;
 		stageRef.current?.syncCategorySizes(stampCategory, currentSize);
 
 		if (stampCategory === 'notes') {
@@ -1385,6 +1642,12 @@ export const PhotoEditor: React.FC = () => {
 				updated[note] = currentSize;
 			});
 			setNoteSizes(updated);
+		} else if (stampCategory === 'shapes') {
+			setShapeSizes({
+				rect: currentSize,
+				circle: currentSize,
+				arrow: currentSize,
+			});
 		}
 	}, [currentMode, currentSize, noteSizes, stampCategory]);
 
@@ -1427,6 +1690,15 @@ export const PhotoEditor: React.FC = () => {
 			if (root) {
 				setSelectedChordRoot(root);
 			}
+		} else if (cat === 'shapes') {
+			if (stamp.shapeType) {
+				setSelectedShape(stamp.shapeType);
+				const shapeSz = stamp.strokeWidth || stamp.size || 2;
+				setShapeSizes((prev) => ({
+					...prev,
+					[stamp.shapeType as ShapeType]: shapeSz,
+				}));
+			}
 		}
 
 		if (stamp.isAutoCount) {
@@ -1467,6 +1739,131 @@ export const PhotoEditor: React.FC = () => {
 			return next;
 		});
 	}, [showToast]);
+
+	const handleToggleTool = useCallback(
+		(tool: ToolMode) => {
+			setVisibleTools((prev) => {
+				const isCurrentlyEnabled = prev[tool] ?? true;
+				const currentlyEnabledCount = Object.values(prev).filter(Boolean).length;
+				if (isCurrentlyEnabled && currentlyEnabledCount <= 1) {
+					showToast('Щонайменше один інструмент має бути активним');
+					return prev;
+				}
+				const next = { ...prev, [tool]: !isCurrentlyEnabled };
+				if (!next[currentMode]) {
+					const firstAvailable = (['select', 'pencil', 'stamp', 'ruler', 'eraser'] as ToolMode[]).find(
+						(t) => next[t],
+					);
+					if (firstAvailable) {
+						handleSelectMode(firstAvailable);
+					}
+				}
+				return next;
+			});
+		},
+		[currentMode, handleSelectMode, showToast],
+	);
+
+	const handleToggleStampCategory = useCallback(
+		(category: StampCategory) => {
+			setVisibleStampCategories((prev) => {
+				const isCurrentlyEnabled = prev[category] ?? true;
+				const currentlyEnabledCount = Object.values(prev).filter(Boolean).length;
+				if (isCurrentlyEnabled && currentlyEnabledCount <= 1) {
+					showToast('Щонайменше один розділ має бути активним');
+					return prev;
+				}
+				const next = { ...prev, [category]: !isCurrentlyEnabled };
+				if (!next[stampCategory]) {
+					const firstAvailable = (
+						['notes', 'chords', 'count', 'custom', 'text', 'draw', 'shapes'] as StampCategory[]
+					).find((c) => next[c]);
+					if (firstAvailable) {
+						handleChangeStampCategory(firstAvailable);
+					}
+				}
+				return next;
+			});
+		},
+		[handleChangeStampCategory, showToast, stampCategory],
+	);
+
+	//! Скидання тільки налаштувань (без видалення проектів чи очищення полотна)
+	const handleResetSettingsOnly = useCallback(() => {
+		setVisibleTools({ ...DEFAULT_VISIBLE_TOOLS });
+		setVisibleStampCategories({ ...DEFAULT_VISIBLE_STAMP_CATEGORIES });
+		setDeleteBtnOn(true);
+		setResizeHandlesOn(true);
+		setIsSideSliderOpen(false);
+		setCurrentMode('pencil');
+		setToolSizes({
+			select: 8,
+			pencil: 2,
+			stamp: 8,
+			eraser: 24,
+			ruler: 24,
+		});
+		setToolColors({
+			pencil: { main: '#ed1c24', stroke: '#000000' },
+			stamp: { main: '#ed1c24', stroke: 'transparent' },
+		});
+		setCategoryColors({
+			notes: { main: '#ed1c24', stroke: 'transparent' },
+			chords: { main: '#ed1c24', stroke: 'transparent' },
+			count: { main: '#ed1c24', stroke: 'transparent' },
+			custom: { main: '#ed1c24', stroke: 'transparent' },
+			text: { main: '#ed1c24', stroke: 'transparent' },
+			draw: { main: '#ed1c24', stroke: 'transparent' },
+			shapes: { main: 'transparent', stroke: '#ed1c24' },
+		});
+		setSelectedShape('rect');
+		setShapeSizes({ rect: 2, circle: 2, arrow: 2 });
+		setSelectedNote('До');
+		setSelectedAccidental('');
+		setSelectedChordRoot('C');
+		setSelectedChordAccidental('');
+		setSelectedChordModifier('');
+		setSelectedChordSlash(false);
+		setSelectedChordBassRoot('');
+		setSelectedChordBassAccidental('');
+		setStampBadgeMode(false);
+		setActiveStampText('До');
+		setStampCategory('notes');
+		setSizeLocked(true);
+		setNoteSizes({});
+		setRulersVisible(true);
+		setRulersSnap(true);
+		setRulersSnapItems(true);
+		setRulersAttachContent(true);
+		setRulersShowDistance(false);
+		setRulersLockEqualDistance(false);
+		setSelectionShape('rect');
+		setSelectionMode('inside');
+		setSelectedStampsCount(0);
+		setCompactRulers(false);
+		setCustomText('Текст');
+		setIsAutoCountMode(false);
+		setCountPattern(DEFAULT_COUNT_PATTERN);
+		setAutoCountSequence(DEFAULT_AUTO_COUNT_SEQUENCE);
+		try {
+			localStorage.removeItem('notyka_editor_settings');
+		} catch {
+			// Ignore
+		}
+		showToast('Налаштування скинуто до початкових');
+		setIsSettingsOpen(false);
+	}, [showToast]);
+
+	//! Повне очищення всіх даних (база проектів, активна сесія, налаштування та полотно)
+	const handleClearAllData = useCallback(async () => {
+		await clearAllStorage();
+		setProjectsList([]);
+		handleResetSettingsOnly();
+		stageRef.current?.clear();
+		setHasCanvas(false);
+		showToast('Всі дані додатку очищено');
+		setIsSettingsOpen(false);
+	}, [handleResetSettingsOnly, showToast]);
 
 	// Save / Share logic
 	const downloadBlob = useCallback((blob: Blob) => {
@@ -1661,29 +2058,42 @@ export const PhotoEditor: React.FC = () => {
 				canUndo={canUndo}
 				canRedo={canRedo}
 				currentMode={currentMode}
+				stampCategory={stampCategory}
 				brushSize={currentSize}
 				sizeLocked={sizeLocked}
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
+				isSideSliderOpen={isSideSliderOpen}
+				compactRulers={compactRulers}
 				rulersVisible={rulersVisible}
 				rulersSnap={rulersSnap}
+				rulersSnapItems={rulersSnapItems}
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}
 				rulersCount={rulersCount}
+				selectionShape={selectionShape}
+				selectionMode={selectionMode}
+				selectedCount={selectedStampsCount}
+				onChangeSelectionShape={setSelectionShape}
+				onChangeSelectionMode={setSelectionMode}
+				onDeleteSelected={handleDeleteSelected}
+				onClearSelection={handleClearSelection}
 				onUndo={() => stageRef.current?.undo()}
 				onRedo={() => stageRef.current?.redo()}
 				onToggleMenu={handleToggleMenu}
 				onChangeSize={handleChangeSize}
 				onToggleLock={handleToggleLock}
 				onTogglePalette={handleTogglePalette}
+				onToggleSideSlider={() => setIsSideSliderOpen((prev) => !prev)}
 				onSyncCategorySizes={handleSyncCategorySizes}
 				onToggleRulersVisible={handleToggleRulersVisible}
-				onToggleRulersSnap={() => setRulersSnap((prev) => !prev)}
+				onToggleRulersSnap={handleToggleRulersSnap}
+				onToggleRulersSnapItems={handleToggleRulersSnapItems}
 				onToggleRulersAttachContent={handleToggleRulersAttachContent}
-				onToggleRulersShowDistance={() => setRulersShowDistance((prev) => !prev)}
-				onToggleRulersLockEqualDistance={() => setRulersLockEqualDistance((prev) => !prev)}
-				onClearRulers={() => stageRef.current?.clearRulers()}
+				onToggleRulersShowDistance={handleToggleRulersShowDistance}
+				onToggleRulersLockEqualDistance={handleToggleRulersLockEqualDistance}
+				onClearRulers={handleClearRulers}
 			/>
 
 			<CanvasStage
@@ -1693,6 +2103,7 @@ export const PhotoEditor: React.FC = () => {
 				currentSize={currentSize}
 				selectedNote={selectedNote}
 				selectedAccidental={selectedAccidental}
+				selectedShape={selectedShape}
 				activeStampText={activeStampText}
 				stampBadgeMode={stampBadgeMode}
 				stampCategory={stampCategory}
@@ -1705,9 +2116,13 @@ export const PhotoEditor: React.FC = () => {
 				resizeHandlesOn={resizeHandlesOn}
 				rulersVisible={rulersVisible}
 				rulersSnap={rulersSnap}
+				rulersSnapItems={rulersSnapItems}
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}
+				selectionShape={selectionShape}
+				selectionMode={selectionMode}
+				onSelectedCountChange={setSelectedStampsCount}
 				hasCanvas={hasCanvas}
 				onSelectStamp={handleSelectStampFromCanvas}
 				onChangeSize={handleChangeSize}
@@ -1715,6 +2130,7 @@ export const PhotoEditor: React.FC = () => {
 					setCanUndo(undo);
 					setCanRedo(redo);
 				}}
+				onScaleChange={setCanvasScale}
 				onRulersCountChange={setRulersCount}
 				onNotify={showToast}
 				onInitBlank={() => setHasCanvas(true)}
@@ -1734,8 +2150,6 @@ export const PhotoEditor: React.FC = () => {
 
 			<ImageMenuModal
 				opened={isMenuOpen}
-				deleteBtnOn={deleteBtnOn}
-				resizeHandlesOn={resizeHandlesOn}
 				onClose={() => setIsMenuOpen(false)}
 				onUploadClick={() => {
 					setIsMenuOpen(false);
@@ -1747,14 +2161,45 @@ export const PhotoEditor: React.FC = () => {
 					setHasCanvas(true);
 				}}
 				onOpenHistory={handleOpenHistory}
+				onOpenSettings={() => {
+					setIsMenuOpen(false);
+					setIsSettingsOpen(true);
+				}}
 				onClear={() => {
 					setIsMenuOpen(false);
 					stageRef.current?.clear();
 				}}
 				onSave={handleSave}
 				onShare={handleShare}
+			/>
+
+			<SettingsModal
+				opened={isSettingsOpen}
+				visibleTools={visibleTools}
+				visibleStampCategories={visibleStampCategories}
+				deleteBtnOn={deleteBtnOn}
+				resizeHandlesOn={resizeHandlesOn}
+				compactRulers={compactRulers}
+				onToggleTool={handleToggleTool}
+				onToggleStampCategory={handleToggleStampCategory}
 				onToggleDeleteBtn={handleToggleDeleteBtn}
 				onToggleResizeHandles={handleToggleResizeHandles}
+				onToggleCompactRulers={handleToggleCompactRulers}
+				onResetSettings={handleResetSettingsOnly}
+				onClearAllData={handleClearAllData}
+				onClose={() => setIsSettingsOpen(false)}
+			/>
+
+			<SideSizeSlider
+				value={currentSize}
+				onChange={handleChangeSize}
+				opened={isSideSliderOpen}
+				onClose={() => setIsSideSliderOpen(false)}
+				currentMode={currentMode}
+				stampCategory={stampCategory}
+				canvasScale={canvasScale}
+				mainColor={currentMainColor}
+				strokeColor={currentStrokeColor}
 			/>
 
 			<ImageCropModal
@@ -1776,6 +2221,8 @@ export const PhotoEditor: React.FC = () => {
 			<ColorPaletteModal
 				opened={isPaletteOpen}
 				currentMode={currentMode}
+				stampCategory={stampCategory}
+				selectedShape={selectedShape}
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
 				stampBadgeMode={stampBadgeMode}
@@ -1806,6 +2253,7 @@ export const PhotoEditor: React.FC = () => {
 							selectedChordBassAccidental={selectedChordBassAccidental}
 							activeStampText={activeStampText}
 							category={stampCategory}
+							visibleCategories={visibleStampCategories}
 							customStamps={customStamps}
 							customText={customText}
 							onChangeCategory={handleChangeStampCategory}
@@ -1823,6 +2271,8 @@ export const PhotoEditor: React.FC = () => {
 							onChangeCustomText={handleChangeCustomText}
 							isDrawDuplicateMode={drawDuplicateMode}
 							onToggleDrawDuplicateMode={() => setDrawDuplicateMode((prev) => !prev)}
+							selectedShape={selectedShape}
+							onSelectShape={handleSelectShape}
 							isAutoCountMode={isAutoCountMode}
 							countPattern={countPattern}
 							currentAutoCountIndex={autoCountIndex}
@@ -1837,7 +2287,29 @@ export const PhotoEditor: React.FC = () => {
 						/>
 					)}
 
-					<BottomToolbar currentMode={currentMode} onSelectMode={handleSelectMode} />
+					{currentMode === 'ruler' && !compactRulers && (
+						<RulerSettings
+							visible={rulersVisible}
+							snap={rulersSnap}
+							snapItems={rulersSnapItems}
+							attachContent={rulersAttachContent}
+							showDistance={rulersShowDistance}
+							lockEqualDistance={rulersLockEqualDistance}
+							rulersCount={rulersCount}
+							onToggleVisible={handleToggleRulersVisible}
+							onToggleSnap={handleToggleRulersSnap}
+							onToggleSnapItems={handleToggleRulersSnapItems}
+							onToggleAttachContent={handleToggleRulersAttachContent}
+							onToggleShowDistance={handleToggleRulersShowDistance}
+							onToggleLockEqualDistance={handleToggleRulersLockEqualDistance}
+						/>
+					)}
+
+					<BottomToolbar
+						currentMode={currentMode}
+						visibleTools={visibleTools}
+						onSelectMode={handleSelectMode}
+					/>
 				</footer>
 			)}
 

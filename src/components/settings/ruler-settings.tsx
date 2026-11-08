@@ -3,6 +3,7 @@
 import React from 'react';
 import {
 	AlignVerticalDistributeCenter,
+	Columns3,
 	Eye,
 	EyeOff,
 	Link,
@@ -15,27 +16,33 @@ import {
 interface RulerSettingsProps {
 	visible: boolean;
 	snap: boolean;
+	snapItems: boolean;
 	attachContent: boolean;
 	showDistance: boolean;
 	lockEqualDistance: boolean;
 	rulersCount: number;
+	compact?: boolean;
 	onToggleVisible: () => void;
 	onToggleSnap: () => void;
+	onToggleSnapItems: () => void;
 	onToggleAttachContent: () => void;
 	onToggleShowDistance: () => void;
 	onToggleLockEqualDistance: () => void;
-	onClearRulers: () => void;
+	onClearRulers?: () => void;
 }
 
 export const RulerSettings: React.FC<RulerSettingsProps> = ({
 	visible,
 	snap,
+	snapItems,
 	attachContent,
 	showDistance,
 	lockEqualDistance,
 	rulersCount,
+	compact = false,
 	onToggleVisible,
 	onToggleSnap,
+	onToggleSnapItems,
 	onToggleAttachContent,
 	onToggleShowDistance,
 	onToggleLockEqualDistance,
@@ -44,16 +51,20 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 	const canDistribute = rulersCount > 2;
 
 	return (
-		<div id="ruler-settings">
+		<div
+			id="ruler-settings"
+			className={compact ? 'compact' : ''}
+			aria-label="Панель налаштувань лінійок"
+		>
 			<button
 				type="button"
 				className={`ruler-setting-btn ${visible ? 'active' : ''}`}
 				onClick={onToggleVisible}
-				title="Показати"
-				aria-label="Показати"
+				title={visible ? 'Приховати лінійки' : 'Показати лінійки'}
+				aria-label="Показати/приховати лінійки"
 			>
 				{visible ? <Eye className="icon" /> : <EyeOff className="icon" />}
-				<span>Показати</span>
+				<span>{visible ? 'Показати' : 'Приховати'}</span>
 			</button>
 
 			<button
@@ -69,20 +80,31 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 
 			<button
 				type="button"
+				className={`ruler-setting-btn ${snapItems ? 'active' : ''}`}
+				onClick={onToggleSnapItems}
+				title="Снеп нот між лінійками (Smart Guides)"
+				aria-label="Снеп нот між лінійками"
+			>
+				<Columns3 className="icon" />
+				<span>Снеп нот</span>
+			</button>
+
+			<button
+				type="button"
 				className={`ruler-setting-btn ${attachContent ? 'active' : ''}`}
 				onClick={onToggleAttachContent}
-				title="Рухати з контентом"
-				aria-label="Рухати з контентом"
+				title="Рухати контент разом з лінійкою"
+				aria-label="Рухати контент разом з лінійкою"
 			>
 				{attachContent ? <Link className="icon" /> : <Unlink className="icon" />}
-				<span>Рухати з контентом</span>
+				<span>{compact ? 'З контентом' : 'Рух з контентом'}</span>
 			</button>
 
 			<button
 				type="button"
 				className={`ruler-setting-btn ${showDistance ? 'active' : ''}`}
 				onClick={onToggleShowDistance}
-				title="Відстань між лінійками"
+				title="Показувати відстань між лінійками"
 				aria-label="Відстань між лінійками"
 			>
 				<MoveVertical className="icon" />
@@ -101,27 +123,28 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 				aria-label="Зафіксувати рівну відстань між лінійками"
 				style={{
 					opacity: canDistribute || lockEqualDistance ? 1 : 0.65,
-					cursor: 'pointer',
 				}}
 			>
 				<AlignVerticalDistributeCenter className="icon" />
-				<span>Рівновіддаленість</span>
+				<span>Рівна відстань</span>
 			</button>
 
-			<button
-				type="button"
-				className="ruler-setting-btn"
-				onClick={onClearRulers}
-				title="Очистити всі лінійки"
-				aria-label="Очистити всі лінійки"
-				style={{
-					opacity: rulersCount > 0 ? 1 : 0.5,
-					cursor: rulersCount > 0 ? 'pointer' : 'default',
-				}}
-			>
-				<Trash2 className="icon" />
-				<span>Очистити</span>
-			</button>
+			{compact && onClearRulers && (
+				<button
+					type="button"
+					className="ruler-setting-btn ruler-clear-btn"
+					onClick={onClearRulers}
+					title="Очистити всі лінійки"
+					aria-label="Очистити всі лінійки"
+					style={{
+						opacity: rulersCount > 0 ? 1 : 0.5,
+						cursor: rulersCount > 0 ? 'pointer' : 'default',
+					}}
+				>
+					<Trash2 className="icon" />
+					<span>Очистити</span>
+				</button>
+			)}
 		</div>
 	);
 };

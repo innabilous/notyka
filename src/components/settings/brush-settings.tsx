@@ -1,65 +1,70 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Slider } from '@mantine/core';
-import { Lock, Minus, Plus, RefreshCw, Unlock } from 'lucide-react';
-import { ToolMode } from '@/types/editor';
+import React from 'react';
+import { ArrowUpDown, Lock, Minus, Plus, Unlock } from 'lucide-react';
+import { StampCategory, ToolMode } from '@/types/editor';
 
 interface BrushSettingsProps {
 	currentMode: ToolMode;
+	stampCategory?: StampCategory;
 	brushSize: number;
 	sizeLocked: boolean;
 	mainColor: string;
 	strokeColor: string;
+	isSideSliderOpen?: boolean;
 	onChangeSize: (size: number) => void;
 	onToggleLock: (e: React.MouseEvent) => void;
 	onTogglePalette: (e: React.MouseEvent) => void;
+	onToggleSideSlider?: () => void;
 	onSyncCategorySizes?: () => void;
 }
 
 export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	currentMode,
+	stampCategory,
 	brushSize,
 	sizeLocked,
 	mainColor,
 	strokeColor,
+	isSideSliderOpen,
 	onChangeSize,
 	onToggleLock,
 	onTogglePalette,
+	onToggleSideSlider,
 	onSyncCategorySizes,
 }) => {
-	//! Відображення лейблу з розміром під слайдером у момент зміни розміру
-	const [isChanging, setIsChanging] = useState<boolean>(false);
-	const timerRef = useRef<NodeJS.Timeout | null>(null);
-	const isMountedRef = useRef<boolean>(false);
-
-	useEffect(() => {
-		if (!isMountedRef.current) {
-			isMountedRef.current = true;
-			return;
-		}
-		setIsChanging(true);
-		if (timerRef.current) clearTimeout(timerRef.current);
-		timerRef.current = setTimeout(() => {
-			setIsChanging(false);
-		}, 1200);
-
-		return () => {
-			if (timerRef.current) clearTimeout(timerRef.current);
-		};
-	}, [brushSize]);
 
 	if (currentMode === 'ruler') {
 		return null;
 	}
 
-	const isStamp = currentMode === 'stamp';
+	const isStamp = currentMode === 'stamp' || currentMode === 'select';
 	const isEraser = currentMode === 'eraser';
+	const isShapes = isStamp && stampCategory === 'shapes';
+	const isFillTransparent = isStamp && mainColor === 'transparent';
 	const isStrokeTransparent = isStamp && strokeColor === 'transparent';
+
+	// Для фігур, якщо заливка прозора, а обводка кольорова — показуємо колір обводки як заливку для прев'ю
+	const previewBgColor =
+		isShapes && isFillTransparent && !isStrokeTransparent
+			? strokeColor
+			: isFillTransparent
+				? 'transparent'
+				: mainColor;
 
 	let previewBorderColor = 'rgba(255, 255, 255, 0.35)';
 	if (isStamp) {
-		previewBorderColor = isStrokeTransparent ? 'rgba(255, 255, 255, 0.4)' : strokeColor;
+		previewBorderColor = isShapes
+			? strokeColor !== 'transparent'
+				? strokeColor
+				: 'rgba(255, 255, 255, 0.4)'
+			: isFillTransparent
+				? isStrokeTransparent
+					? 'rgba(255, 255, 255, 0.4)'
+					: strokeColor
+				: isStrokeTransparent
+					? 'rgba(255, 255, 255, 0.4)'
+					: strokeColor;
 	}
 
 	const handleDecrease = () => {
@@ -89,51 +94,46 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 					id="btn-size-sync-category"
 					type="button"
 					className="btn-size-step"
-					aria-label="Синхронізувати розмір для розділу"
-					title="Синхронізувати розмір для розділу"
+					aria-label="Підлаштувати розмір решти елементів під поточний"
+					title="Підлаштувати розмір решти елементів розділу під поточний"
 					onClick={onSyncCategorySizes}
 				>
-					<RefreshCw className="icon" />
+					<ArrowUpDown className="icon" />
 				</button>
 			)}
 
-			<button
-				type="button"
-				className="btn-size-step"
-				aria-label="Зменшити розмір"
-				onClick={handleDecrease}
-			>
-				<Minus className="icon" />
-			</button>
+			<div className="size-stepper-wrap">
+				<button
+					type="button"
+					className="btn-size-step"
+					aria-label="Зменшити розмір"
+					title="Зменшити (-1)"
+					onClick={handleDecrease}
+				>
+					<Minus className="icon" />
+				</button>
 
-			<div className="brush-slider-wrap">
-				<Slider
-					size="xs"
-					color="indigo"
-					min={1}
-					max={100}
-					value={brushSize}
-					onChange={onChangeSize}
-					label={(val) => `${val} px`}
-					labelAlwaysOn={isChanging}
-					classNames={{
-						root: 'brush-slider-root',
-						track: 'brush-slider-track',
-						bar: 'brush-slider-bar',
-						thumb: 'brush-slider-thumb',
-						label: 'brush-slider-label',
-					}}
-				/>
+				<button
+					type="button"
+					className={`btn-size-value ${isSideSliderOpen ? 'active' : ''}`}
+					aria-label={`Розмір: ${brushSize}px. Натисніть для повзунка`}
+					title="Змінити розмір повзунком"
+					onClick={onToggleSideSlider}
+				>
+					<span>{brushSize}</span>
+					<span className="unit">px</span>
+				</button>
+
+				<button
+					type="button"
+					className="btn-size-step"
+					aria-label="Збільшити розмір"
+					title="Збільшити (+1)"
+					onClick={handleIncrease}
+				>
+					<Plus className="icon" />
+				</button>
 			</div>
-
-			<button
-				type="button"
-				className="btn-size-step"
-				aria-label="Збільшити розмір"
-				onClick={handleIncrease}
-			>
-				<Plus className="icon" />
-			</button>
 
 			<button
 				id="btn-toggle-palette"
@@ -145,11 +145,14 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				<div
 					id="color-preview"
 					style={{
-						backgroundColor: mainColor,
+						backgroundColor: previewBgColor,
 						borderColor: previewBorderColor,
 					}}
 				>
-					<span id="stroke-transparent-icon" className={!isStrokeTransparent ? 'hidden' : ''}>
+					<span
+						id="stroke-transparent-icon"
+						className={isShapes || !(isStrokeTransparent && !isFillTransparent) ? 'hidden' : ''}
+					>
 						✕
 					</span>
 				</div>

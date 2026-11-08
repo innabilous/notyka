@@ -2,7 +2,18 @@
 
 import React, { useState } from 'react';
 import { SegmentedControl, Textarea } from '@mantine/core';
-import { Copy, Eraser, ListOrdered, Plus, RotateCcw, Trash2, X } from 'lucide-react';
+import {
+	Circle,
+	Copy,
+	Eraser,
+	ListOrdered,
+	MoveRight,
+	Plus,
+	RotateCcw,
+	Square,
+	Trash2,
+	X,
+} from 'lucide-react';
 import {
 	ACCIDENTALS,
 	CHORD_ACCIDENTALS,
@@ -12,9 +23,9 @@ import {
 	COUNT_ITEMS,
 	NOTES,
 } from '@/constants/editor';
-import { AutoCountItem } from '@/types/editor';
+import { AutoCountItem, ShapeType, StampCategory } from '@/types/editor';
 
-export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw';
+export type { StampCategory };
 
 interface StampSettingsProps {
 	selectedNote: string;
@@ -27,8 +38,10 @@ interface StampSettingsProps {
 	selectedChordBassAccidental: string;
 	activeStampText: string;
 	category: StampCategory;
+	selectedShape?: ShapeType;
 	customStamps: string[];
 	customText?: string;
+	visibleCategories?: Record<StampCategory, boolean>;
 	isAutoCountMode?: boolean;
 	countPattern?: readonly string[];
 	currentAutoCountIndex?: number;
@@ -36,6 +49,7 @@ interface StampSettingsProps {
 	autoCountSequence?: AutoCountItem[];
 	currentAutoCountItemId?: string;
 	onChangeCategory: (cat: StampCategory) => void;
+	onSelectShape?: (shape: ShapeType) => void;
 	onSelectNote: (note: string) => void;
 	onSelectAccidental: (acc: string) => void;
 	onSelectChordRoot: (root: string) => void;
@@ -76,9 +90,12 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 	selectedChordBassAccidental,
 	activeStampText,
 	category,
+	selectedShape = 'rect',
 	customStamps,
 	customText = '',
+	visibleCategories,
 	onChangeCategory,
+	onSelectShape,
 	onSelectNote,
 	onSelectAccidental,
 	onSelectChordRoot,
@@ -115,6 +132,21 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 }) => {
 	const [isDeleteMode, setIsDeleteMode] = useState<boolean>(false);
 
+	const allCategories = [
+		{ label: 'Ноти', value: 'notes' },
+		{ label: 'Акорди', value: 'chords' },
+		{ label: 'Рахунок', value: 'count' },
+		{ label: 'Власні', value: 'custom' },
+		{ label: 'Текст', value: 'text' },
+		{ label: 'Малюнок', value: 'draw' },
+		{ label: 'Фігури', value: 'shapes' },
+	];
+
+	const availableCategories = allCategories.filter(
+		(c) => visibleCategories?.[c.value as StampCategory] ?? true,
+	);
+	const displayedCategories = availableCategories.length > 0 ? availableCategories : allCategories;
+
 	return (
 		<div id="stamp-settings">
 			{/* Рівень 1: Mantine SegmentedControl для категорій */}
@@ -131,14 +163,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							setIsDeleteMode(false);
 						}
 					}}
-					data={[
-						{ label: 'Ноти', value: 'notes' },
-						{ label: 'Акорди', value: 'chords' },
-						{ label: 'Рахунок', value: 'count' },
-						{ label: 'Власні', value: 'custom' },
-						{ label: 'Текст', value: 'text' },
-						{ label: 'Малюнок', value: 'draw' },
-					]}
+					data={displayedCategories}
 					classNames={{
 						root: 'stamp-segmented-root',
 						indicator: 'stamp-segmented-indicator',
@@ -344,17 +369,27 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 								<div className="step-cubes-scroll">
 									<div className="step-cubes-grid">
 										{countPattern.map((token, idx) => {
-											const isActive = idx === currentAutoCountIndex || idx === selectedStepIndex;
+											const isCurrent = idx === selectedStepIndex;
+											const isNext = idx === currentAutoCountIndex;
 											const isFilled = Boolean(token && token.trim());
 											const isBeatStart = idx % 4 === 0;
+
+											let statusTitle = '';
+											if (isCurrent && isNext) {
+												statusTitle = ' — активний і наступний';
+											} else if (isCurrent) {
+												statusTitle = ' — активний на полотні';
+											} else if (isNext) {
+												statusTitle = ' — наступний для штампування (пунктир)';
+											}
 
 											return (
 												<button
 													key={idx}
 													type="button"
-													className={`step-cube ${isFilled ? 'filled' : 'empty'} ${isActive ? 'active' : ''} ${isBeatStart ? 'beat-start' : ''}`}
+													className={`step-cube ${isFilled ? 'filled' : 'empty'} ${isNext ? 'is-next' : ''} ${isCurrent ? 'is-current' : ''} ${isBeatStart ? 'beat-start' : ''}`}
 													onClick={() => onSelectStep?.(idx)}
-													title={`Крок ${idx + 1}: «${token || 'порожньо'}»${isActive ? ' — вибраний крок' : ''}`}
+													title={`Крок ${idx + 1}: «${token || 'порожньо'}»${statusTitle}`}
 												>
 													<span className="step-cube-num">{idx + 1}</span>
 													<span className="step-cube-val">{token || '·'}</span>
@@ -523,22 +558,25 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							flexDirection: 'row',
 							alignItems: 'center',
 							justifyContent: 'space-between',
-							gap: '0.75rem',
+							gap: '0.5rem',
 							width: '100%',
-							padding: '0.15rem 0.25rem',
+							padding: '0.15rem 0.5rem',
+							boxSizing: 'border-box',
 						}}
 					>
 						<span
-							title="Малюйте, штрихи об'єднаються у штамп через 1 с"
+							title="Малюйте штрихи, вони автоматично об'єднаються у штамп через 1 секунду"
 							style={{
-								fontSize: '0.8rem',
+								fontSize: '0.75rem',
 								color: 'var(--mantine-color-dimmed)',
 								whiteSpace: 'nowrap',
 								overflow: 'hidden',
 								textOverflow: 'ellipsis',
+								flex: 1,
+								minWidth: 0,
 							}}
 						>
-							Малюйте, штрихи об&apos;єднаються через 1 с
+							Об&apos;єднується через 1 секунду
 						</span>
 						{onToggleDrawDuplicateMode && (
 							<button
@@ -556,12 +594,74 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 									justifyContent: 'center',
 									gap: '0.35rem',
 									flexShrink: 0,
+									padding: '0.3rem 0.65rem',
 								}}
 							>
-								<Copy className="icon" style={{ width: '0.9rem', height: '0.9rem' }} />
+								<Copy className="icon" style={{ width: '0.85rem', height: '0.85rem' }} />
 								<span>Дублювати</span>
 							</button>
 						)}
+					</div>
+				)}
+				{/* 7. Фігури (прямокутник, коло, стрілка) */}
+				{category === 'shapes' && (
+					<div
+						className="stamp-chips-row fit-width"
+						style={{
+							display: 'flex',
+							alignItems: 'center',
+							gap: '0.45rem',
+							width: '100%',
+							justifyContent: 'center',
+						}}
+					>
+						<button
+							type="button"
+							className={`chip shape-chip ${selectedShape === 'rect' ? 'active' : ''}`}
+							onClick={() => onSelectShape?.('rect')}
+							title="Прямокутник"
+							aria-label="Прямокутник"
+							style={{
+								display: 'inline-flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								padding: '0.4rem 0.85rem',
+							}}
+						>
+							<Square className="icon" style={{ width: '1rem', height: '1rem' }} />
+						</button>
+
+						<button
+							type="button"
+							className={`chip shape-chip ${selectedShape === 'circle' ? 'active' : ''}`}
+							onClick={() => onSelectShape?.('circle')}
+							title="Коло / Овал"
+							aria-label="Коло / Овал"
+							style={{
+								display: 'inline-flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								padding: '0.4rem 0.85rem',
+							}}
+						>
+							<Circle className="icon" style={{ width: '1rem', height: '1rem' }} />
+						</button>
+
+						<button
+							type="button"
+							className={`chip shape-chip ${selectedShape === 'arrow' ? 'active' : ''}`}
+							onClick={() => onSelectShape?.('arrow')}
+							title="Стрілка"
+							aria-label="Стрілка"
+							style={{
+								display: 'inline-flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								padding: '0.4rem 0.85rem',
+							}}
+						>
+							<MoveRight className="icon" style={{ width: '1rem', height: '1rem' }} />
+						</button>
 					</div>
 				)}
 			</div>

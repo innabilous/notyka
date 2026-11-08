@@ -150,3 +150,24 @@ export async function deleteProject(id: string): Promise<void> {
 		// Ignore
 	}
 }
+
+export async function clearAllStorage(): Promise<void> {
+	if (typeof window === 'undefined') return;
+	try {
+		localStorage.clear();
+	} catch {
+		// Ignore
+	}
+	try {
+		if (window.indexedDB) {
+			const req = window.indexedDB.deleteDatabase(DB_NAME);
+			await new Promise<void>((resolve) => {
+				req.onsuccess = () => resolve();
+				req.onerror = () => resolve();
+				req.onblocked = () => resolve();
+			});
+		}
+	} catch {
+		// Ignore
+	}
+}

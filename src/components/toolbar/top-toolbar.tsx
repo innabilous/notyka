@@ -1,21 +1,29 @@
 'use client';
 
 import React from 'react';
-import { Menu, Redo2, Undo2 } from 'lucide-react';
+import { Menu, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { RulerSettings } from '@/components/settings/ruler-settings';
-import { ToolMode } from '@/types/editor';
+import { SelectSettings } from '@/components/settings/select-settings';
+import { SelectionMode, SelectionShape, StampCategory, ToolMode } from '@/types/editor';
 
 interface TopToolbarProps {
 	canUndo: boolean;
 	canRedo: boolean;
 	currentMode: ToolMode;
+	stampCategory?: StampCategory;
 	brushSize: number;
 	sizeLocked: boolean;
 	mainColor: string;
 	strokeColor: string;
+	isSideSliderOpen?: boolean;
+	compactRulers?: boolean;
+	selectionShape?: SelectionShape;
+	selectionMode?: SelectionMode;
+	selectedCount?: number;
 	rulersVisible?: boolean;
 	rulersSnap?: boolean;
+	rulersSnapItems?: boolean;
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
@@ -26,10 +34,15 @@ interface TopToolbarProps {
 	onChangeSize: (size: number) => void;
 	onToggleLock: (e: React.MouseEvent) => void;
 	onTogglePalette: (e: React.MouseEvent) => void;
+	onToggleSideSlider?: () => void;
+	onChangeSelectionShape?: (shape: SelectionShape) => void;
+	onChangeSelectionMode?: (mode: SelectionMode) => void;
+	onDeleteSelected?: () => void;
+	onClearSelection?: () => void;
 	onToggleRulersVisible?: () => void;
 	onToggleRulersSnap?: () => void;
+	onToggleRulersSnapItems?: () => void;
 	onToggleRulersAttachContent?: () => void;
-	onToggleShowDistance?: () => void;
 	onToggleRulersShowDistance?: () => void;
 	onToggleRulersLockEqualDistance?: () => void;
 	onClearRulers?: () => void;
@@ -40,12 +53,19 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	canUndo,
 	canRedo,
 	currentMode,
+	stampCategory,
 	brushSize,
 	sizeLocked,
 	mainColor,
 	strokeColor,
+	isSideSliderOpen,
+	compactRulers = false,
+	selectionShape = 'lasso',
+	selectionMode = 'inside',
+	selectedCount = 0,
 	rulersVisible = true,
 	rulersSnap = true,
+	rulersSnapItems = true,
 	rulersAttachContent = false,
 	rulersShowDistance = false,
 	rulersLockEqualDistance = false,
@@ -56,9 +76,15 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	onChangeSize,
 	onToggleLock,
 	onTogglePalette,
+	onToggleSideSlider,
+	onChangeSelectionShape,
+	onChangeSelectionMode,
+	onDeleteSelected,
+	onClearSelection,
 	onSyncCategorySizes,
 	onToggleRulersVisible,
 	onToggleRulersSnap,
+	onToggleRulersSnapItems,
 	onToggleRulersAttachContent,
 	onToggleRulersShowDistance,
 	onToggleRulersLockEqualDistance,
@@ -95,30 +121,62 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 			{/* Центр: Панель налаштувань інструменту */}
 			<div className="top-center-settings">
 				{currentMode === 'ruler' ? (
-					<RulerSettings
-						visible={rulersVisible}
-						snap={rulersSnap}
-						attachContent={rulersAttachContent}
-						showDistance={rulersShowDistance}
-						lockEqualDistance={rulersLockEqualDistance}
-						rulersCount={rulersCount}
-						onToggleVisible={() => onToggleRulersVisible?.()}
-						onToggleSnap={() => onToggleRulersSnap?.()}
-						onToggleAttachContent={() => onToggleRulersAttachContent?.()}
-						onToggleShowDistance={() => onToggleRulersShowDistance?.()}
-						onToggleLockEqualDistance={() => onToggleRulersLockEqualDistance?.()}
-						onClearRulers={() => onClearRulers?.()}
+					compactRulers ? (
+						<RulerSettings
+							compact
+							visible={rulersVisible}
+							snap={rulersSnap}
+							snapItems={rulersSnapItems}
+							attachContent={rulersAttachContent}
+							showDistance={rulersShowDistance}
+							lockEqualDistance={rulersLockEqualDistance}
+							rulersCount={rulersCount}
+							onToggleVisible={() => onToggleRulersVisible?.()}
+							onToggleSnap={() => onToggleRulersSnap?.()}
+							onToggleSnapItems={() => onToggleRulersSnapItems?.()}
+							onToggleAttachContent={() => onToggleRulersAttachContent?.()}
+							onToggleShowDistance={() => onToggleRulersShowDistance?.()}
+							onToggleLockEqualDistance={() => onToggleRulersLockEqualDistance?.()}
+							onClearRulers={onClearRulers}
+						/>
+					) : (
+						<div id="ruler-top-bar-action">
+							<button
+								type="button"
+								className="btn-clear-rulers"
+								onClick={onClearRulers}
+								disabled={!rulersCount || rulersCount === 0}
+								title="Очистити всі лінійки"
+								aria-label="Очистити всі лінійки"
+							>
+								<Trash2 className="icon" />
+								<span>Очистити всі лінійки{rulersCount && rulersCount > 0 ? ` (${rulersCount})` : ''}</span>
+							</button>
+						</div>
+					)
+				) : currentMode === 'select' ? (
+					<SelectSettings
+						selectionShape={selectionShape}
+						selectionMode={selectionMode}
+						selectedCount={selectedCount}
+						onChangeShape={(s) => onChangeSelectionShape?.(s)}
+						onChangeMode={(m) => onChangeSelectionMode?.(m)}
+						onDeleteSelected={() => onDeleteSelected?.()}
+						onClearSelection={() => onClearSelection?.()}
 					/>
 				) : (
 					<BrushSettings
 						currentMode={currentMode}
+						stampCategory={stampCategory}
 						brushSize={brushSize}
 						sizeLocked={sizeLocked}
 						mainColor={mainColor}
 						strokeColor={strokeColor}
+						isSideSliderOpen={isSideSliderOpen}
 						onChangeSize={onChangeSize}
 						onToggleLock={onToggleLock}
 						onTogglePalette={onTogglePalette}
+						onToggleSideSlider={onToggleSideSlider}
 						onSyncCategorySizes={onSyncCategorySizes}
 					/>
 				)}

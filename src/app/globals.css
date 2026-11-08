@@ -383,8 +383,8 @@ button {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 0.5rem;
-	padding: 0.45rem 0.85rem;
+	gap: 0.25rem;
+	padding: 0.45rem;
 	padding-top: max(0.45rem, env(safe-area-inset-top, 0px));
 	background: linear-gradient(
 		180deg,
@@ -402,7 +402,7 @@ button {
 .top-action-group {
 	display: flex;
 	align-items: center;
-	gap: 0.35rem;
+	gap: 0;
 	flex-shrink: 0;
 }
 
@@ -413,12 +413,12 @@ button {
 	flex: 1 1 auto;
 	min-width: 0;
 	width: 100%;
-	padding: 0 0.5rem;
+	padding: 0;
 }
 
 .top-btn {
-	width: 2.35rem;
-	height: 2.35rem;
+	width: 2.15rem;
+	height: 2.15rem;
 	border-radius: 50%;
 	background: transparent;
 	border: none;
@@ -480,29 +480,88 @@ footer {
 	font-size: 0.75rem;
 }
 
-#ruler-settings {
-	pointer-events: auto;
+/* Кнопка очищення лінійок у центрі топбару */
+#ruler-top-bar-action {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 0.45rem;
+}
+
+.btn-clear-rulers {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	height: 1.85rem;
+	padding: 0 0.75rem;
+	border-radius: 9999px;
+	border: 1px solid rgba(239, 68, 68, 0.35);
+	background: rgba(239, 68, 68, 0.1);
+	color: #ef4444;
+	font-size: 0.75rem;
+	font-weight: 600;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: all 0.15s ease;
+}
+
+.btn-clear-rulers:hover:not(:disabled) {
+	background: rgba(239, 68, 68, 0.22);
+	border-color: rgba(239, 68, 68, 0.6);
+	color: #f87171;
+}
+
+.btn-clear-rulers:active:not(:disabled) {
+	transform: scale(0.96);
+}
+
+.btn-clear-rulers:disabled {
+	opacity: 0.45;
+	cursor: default;
+	background: rgba(255, 255, 255, 0.04);
+	border-color: var(--line-strong);
+	color: var(--muted);
+}
+
+.btn-clear-rulers .icon {
+	width: 0.85rem;
+	height: 0.85rem;
+}
+
+/* Спливаюча нижня панель лінійок у 2 колонки */
+#ruler-settings {
+	pointer-events: auto;
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 0.35rem;
+	width: min(440px, calc(100vw - 1rem));
+	padding: 0.45rem;
+	background: rgba(22, 23, 27, 0.94);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid var(--line-strong);
+	border-radius: 1.15rem;
+	box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+	animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ruler-setting-btn {
 	display: inline-flex;
 	align-items: center;
-	gap: 0.35rem;
-	height: 1.85rem;
-	padding: 0 0.65rem;
-	border-radius: 9999px;
+	justify-content: flex-start;
+	gap: 0.4rem;
+	height: 2rem;
+	padding: 0 0.55rem;
+	border-radius: 0.65rem;
 	border: 1px solid var(--line-strong);
 	background: rgba(255, 255, 255, 0.05);
 	color: var(--muted);
-	font-size: 0.75rem;
+	font-size: 0.72rem;
 	font-weight: 500;
 	cursor: pointer;
 	white-space: nowrap;
-	transition: all 0.15s ease;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	transition: all 0.12s ease;
 }
 
 .ruler-setting-btn:hover {
@@ -511,7 +570,7 @@ footer {
 }
 
 .ruler-setting-btn:active {
-	transform: scale(0.95);
+	transform: scale(0.97);
 }
 
 .ruler-setting-btn.active {
@@ -524,16 +583,155 @@ footer {
 .ruler-setting-btn .icon {
 	width: 0.85rem;
 	height: 0.85rem;
+	flex-shrink: 0;
+}
+
+.ruler-setting-btn span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Компактний вигляд лінійок у топбарі (опція в налаштуваннях) */
+#ruler-settings.compact {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.25rem;
+	max-width: 100%;
+	width: auto;
+	padding: 0;
+	background: transparent;
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	overflow-x: auto;
+	scrollbar-width: none;
+	animation: none;
+}
+
+#ruler-settings.compact::-webkit-scrollbar {
+	display: none;
+}
+
+#ruler-settings.compact .ruler-setting-btn {
+	height: 1.85rem;
+	padding: 0 0.55rem;
+	border-radius: 9999px;
+	flex-shrink: 0;
+	width: auto;
 }
 
 @media (max-width: 860px) {
-	.ruler-setting-btn span {
+	#ruler-settings.compact .ruler-setting-btn span {
 		display: none;
 	}
-	.ruler-setting-btn {
+	#ruler-settings.compact .ruler-setting-btn {
 		padding: 0;
-		width: 1.85rem;
+		width: 1.8rem;
+		height: 1.8rem;
 		justify-content: center;
+	}
+}
+
+/* Налаштування інструменту виділення у топбарі */
+#select-settings {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+	max-width: 100%;
+	width: auto;
+	height: 100%;
+}
+
+.select-setting-group {
+	display: flex;
+	align-items: center;
+	gap: 0.15rem;
+	background: rgba(255, 255, 255, 0.05);
+	padding: 0.15rem;
+	border-radius: 9999px;
+	border: 1px solid var(--line);
+}
+
+.select-setting-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.3rem;
+	height: 1.85rem;
+	padding: 0 0.55rem;
+	border-radius: 9999px;
+	border: none;
+	background: transparent;
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.12s;
+	flex-shrink: 0;
+}
+
+.select-setting-btn:hover {
+	color: var(--text);
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.select-setting-btn.active {
+	background: var(--accent-gradient);
+	color: #ffffff;
+	font-weight: 600;
+	box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
+}
+
+.select-setting-btn.danger {
+	color: #ef4444;
+	background: rgba(239, 68, 68, 0.12);
+	border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.select-setting-btn.danger:hover {
+	background: #ef4444;
+	color: #ffffff;
+}
+
+.select-setting-btn .icon {
+	width: 0.9rem;
+	height: 0.9rem;
+	flex-shrink: 0;
+}
+
+.select-settings-divider {
+	width: 1px;
+	height: 1.25rem;
+	background: var(--line);
+	margin: 0 0.15rem;
+	flex-shrink: 0;
+}
+
+.select-count-badge {
+	display: flex;
+	align-items: center;
+	padding: 0 0.55rem;
+	height: 1.85rem;
+	border-radius: 9999px;
+	background: rgba(14, 165, 233, 0.15);
+	border: 1px solid rgba(14, 165, 233, 0.35);
+	color: var(--accent-text);
+	font-size: 0.75rem;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+	.select-setting-btn span.btn-label {
+		display: none;
+	}
+	.select-setting-btn {
+		padding: 0 0.4rem;
 	}
 }
 
@@ -622,63 +820,187 @@ footer {
 	height: 0.9rem;
 }
 
-.brush-slider-wrap {
-	position: relative;
-	flex: 1 1 0;
-	min-width: 0;
-	width: 100%;
+.size-stepper-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.15rem;
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid var(--line-strong);
+	border-radius: 9999px;
+	padding: 0.1rem 0.2rem;
+	flex-shrink: 0;
+}
+
+.btn-size-value {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1px;
+	padding: 0 0.35rem;
+	min-width: 3.25rem;
+	height: 1.55rem;
+	border-radius: 9999px;
+	background: transparent;
+	border: none;
+	color: var(--text);
+	font-size: 0.75rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: all 0.12s ease;
+}
+
+.btn-size-value span.unit {
+	font-size: 0.62rem;
+	color: var(--muted);
+	margin-left: 1px;
+}
+
+.btn-size-value:hover {
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-size-value:active,
+.btn-size-value.active {
+	background: var(--accent-gradient);
+	color: #ffffff;
+}
+
+.btn-size-value:active span.unit,
+.btn-size-value.active span.unit {
+	color: rgba(255, 255, 255, 0.8);
+}
+
+/* Бічний слайдер розміру (відкривається по кліку на цифру) */
+#side-size-slider {
+	position: fixed;
+	left: 0.65rem;
+	top: 48%;
+	transform: translateY(-50%);
+	z-index: 40;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 0.45rem 0.2rem;
+	width: 2.25rem;
+	border-radius: 9999px;
+	background: rgba(18, 20, 26, 0.88);
+	backdrop-filter: blur(14px);
+	-webkit-backdrop-filter: blur(14px);
+	border: 1px solid var(--line-strong);
+	box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+	touch-action: none;
+	user-select: none;
+	animation: sideSliderPop 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes sideSliderPop {
+	from {
+		opacity: 0;
+		transform: translateY(-50%) scale(0.9);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(-50%) scale(1);
+	}
+}
+
+.side-slider-step-btn {
+	width: 1.6rem;
+	height: 1.6rem;
+	border-radius: 50%;
+	background: transparent;
+	border: none;
+	color: var(--muted);
 	display: flex;
 	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.12s ease;
 }
 
-.brush-slider-root {
-	width: 100%;
+.side-slider-step-btn:hover {
+	color: var(--text);
+	background: rgba(255, 255, 255, 0.1);
 }
 
-.brush-slider-track {
-	background: rgba(255, 255, 255, 0.12) !important;
-	height: 4px !important;
+.side-slider-step-btn:active {
+	transform: scale(0.88);
 }
 
-.brush-slider-bar {
-	background: var(--accent-gradient) !important;
+.side-slider-step-btn .icon {
+	width: 0.85rem;
+	height: 0.85rem;
 }
 
-.brush-slider-thumb {
-	width: 13px !important;
-	height: 13px !important;
-	background: #ffffff !important;
-	border: 2px solid #6366f1 !important;
-	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
-	transition: transform 0.1s ease !important;
+.side-slider-track {
+	position: relative;
+	width: 6px;
+	height: 130px;
+	background: rgba(255, 255, 255, 0.14);
+	border-radius: 9999px;
+	cursor: pointer;
+	touch-action: none;
+	margin: 0.2rem 0;
 }
 
-.brush-slider-thumb:hover {
-	transform: scale(1.15) !important;
+.side-slider-bar {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	background: var(--accent-gradient);
+	border-radius: 9999px;
 }
 
-/* Лейбл розміру розташовується суворо під слайдером */
-.brush-slider-label {
-	top: calc(100% + 8px) !important;
-	bottom: auto !important;
-	left: 50% !important;
-	transform: translateX(-50%) !important;
-	font-size: 0.72rem !important;
-	font-weight: 600 !important;
-	font-variant-numeric: tabular-nums !important;
-	padding: 0.15rem 0.45rem !important;
-	border-radius: 9999px !important;
-	background: rgba(22, 23, 27, 0.96) !important;
-	border: 1px solid var(--line-strong) !important;
-	color: #ffffff !important;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
-	pointer-events: none !important;
-	white-space: nowrap !important;
-	z-index: 50 !important;
+.side-slider-thumb {
+	position: absolute;
+	left: 50%;
+	transform: translate(-50%, 50%);
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #ffffff;
+	border: 2px solid #6366f1;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	pointer-events: none;
 }
 
-.brush-slider-label::before {
-	display: none !important;
+.side-slider-bubble {
+	position: absolute;
+	left: calc(100% + 10px);
+	top: 50%;
+	transform: translateY(-50%);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+	padding: 0.45rem 0.65rem;
+	border-radius: 1rem;
+	background: rgba(18, 20, 26, 0.96);
+	border: 1px solid var(--line-strong);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+	pointer-events: none;
+	white-space: nowrap;
+	backdrop-filter: blur(12px);
+	z-index: 50;
+	min-width: 3.5rem;
+}
+
+.side-slider-preview-dot {
+	border-radius: 50%;
+	flex-shrink: 0;
+	transition: width 0.08s, height 0.08s;
+}
+
+.side-slider-bubble-text {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: #ffffff;
+	font-variant-numeric: tabular-nums;
 }
 
 #btn-toggle-palette {
@@ -737,11 +1059,21 @@ footer {
 .stamp-category-tabs {
 	display: flex;
 	align-items: center;
-	justify-content: center;
 	width: 100%;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	padding: 1px 0;
+}
+
+.stamp-category-tabs::-webkit-scrollbar {
+	display: none;
 }
 
 .stamp-segmented-root {
+	width: 100%;
+	min-width: max-content;
 	background: rgba(255, 255, 255, 0.06) !important;
 	border: 1px solid rgba(255, 255, 255, 0.08) !important;
 	padding: 2px !important;
@@ -766,6 +1098,7 @@ footer {
 	font-weight: 600 !important;
 	color: var(--text-secondary) !important;
 	padding: 0.2rem 0.6rem !important;
+	white-space: nowrap !important;
 	transition: color 0.12s !important;
 }
 
@@ -978,17 +1311,48 @@ footer {
 	border-color: rgba(56, 189, 248, 0.4);
 }
 
+.step-cube.is-next {
+	border: 2px dashed #38bdf8;
+	background: rgba(14, 165, 233, 0.25);
+	box-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
+}
+
+.step-cube.is-next .step-cube-num {
+	color: #bae6fd;
+}
+
+.step-cube.is-next .step-cube-val {
+	font-weight: 700;
+	color: #e0f2fe;
+}
+
+.step-cube.is-current,
 .step-cube.active,
 .step-cube.selected,
 .step-cube.active-target {
 	border-color: transparent;
-	box-shadow: 0 0 0 2px #38bdf8;
-	background: rgba(14, 165, 233, 0.32);
+	background: #0284c7;
+	box-shadow: 0 0 0 2px #38bdf8, 0 2px 8px rgba(14, 165, 233, 0.5);
 }
 
+.step-cube.is-current .step-cube-num,
+.step-cube.active .step-cube-num,
+.step-cube.selected .step-cube-num,
+.step-cube.active-target .step-cube-num {
+	color: rgba(255, 255, 255, 0.85);
+}
+
+.step-cube.is-current.is-next {
+	border-color: transparent;
+	background: #0284c7;
+	box-shadow: 0 0 0 2px #ffffff, 0 0 12px rgba(56, 189, 248, 0.85);
+}
+
+.step-cube.is-current .step-cube-val,
 .step-cube.active .step-cube-val,
 .step-cube.selected .step-cube-val,
 .step-cube.active-target .step-cube-val {
+	font-weight: 700;
 	color: #ffffff;
 }
 
@@ -1429,7 +1793,7 @@ footer {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 2.25rem;
+	gap: clamp(0.75rem, 4vw, 2.25rem);
 	width: 100%;
 	padding: 0.45rem 1rem;
 	padding-bottom: max(0.45rem, env(safe-area-inset-bottom, 0px));
