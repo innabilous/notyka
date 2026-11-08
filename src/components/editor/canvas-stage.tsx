@@ -1958,7 +1958,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			currentProjectIdRef.current = project.id;
 			currentProjectTitleRef.current = project.title;
 
-			initCanvas(project.width, project.height, project.cssW, project.cssH);
+			//! Адаптуємо CSS розміри полотна до поточного контейнера, щоб не обрізалися краї на мобілці
+			const maxW = Math.max(280, container.clientWidth - 20);
+			const maxH = Math.max(280, container.clientHeight - 130);
+			let targetCssW = project.cssW;
+			let targetCssH = project.cssH;
+			if (targetCssW > maxW || targetCssH > maxH) {
+				const fitScale = Math.min(maxW / targetCssW, maxH / targetCssH);
+				targetCssW = Math.max(200, Math.round(targetCssW * fitScale));
+				targetCssH = Math.max(200, Math.round(targetCssH * fitScale));
+			}
+
+			initCanvas(project.width, project.height, targetCssW, targetCssH);
 			const canvas = canvasRef.current;
 			const base = baseCanvasRef.current;
 			const bg = bgCanvasRef.current;

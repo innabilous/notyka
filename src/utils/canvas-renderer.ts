@@ -521,11 +521,12 @@ export function drawStamp(
 	ctx.restore();
 }
 
+//! Координати кошика видалення лінійки (18px від лівого краю)
 export function getRulerDeleteCoords(
 	ruler: RulerItem,
 	U: number,
 ): { x: number; y: number; radius: number } {
-	return { x: Math.max(24 * U, 24), y: ruler.y, radius: 9 * U };
+	return { x: Math.max(18 * U, 18), y: ruler.y, radius: 9 * U };
 }
 
 export function isPointInRulerDelete(p: Point, ruler: RulerItem, U: number): boolean {
@@ -622,10 +623,10 @@ export function drawRulers(
 		ctx.restore();
 	}
 
-	//! Відображення дистанції між сусідніми лінійками в пікселях
+	//! Відображення дистанції між сусідніми лінійками в пікселях (36px від краю, компактно біля кошика)
 	if (showDistance && rulers.length >= 2) {
 		const sorted = [...rulers].sort((a, b) => a.y - b.y);
-		const dimX = canvasWidth - 55 * U;
+		const dimX = Math.max(36 * U, 36);
 
 		for (let i = 0; i < sorted.length - 1; i++) {
 			const r1 = sorted[i];
