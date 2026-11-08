@@ -108,4 +108,4 @@ export const MAX_PIXELS = 36e6;
 export const MAX_SIDE = 8192;
 export const DRAG_SLOP = 8;
 export const SMOOTH = 0.35;
-export const MAX_HISTORY = 20;
+export const MAX_HISTORY = 150;

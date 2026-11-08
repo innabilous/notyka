@@ -32,6 +32,19 @@ export interface EditorSettings {
 	autoCountSequence?: AutoCountItem[];
 }
 
+export interface SerializedHistoryLayer {
+	type: 'stroke' | 'stamp';
+	id: string;
+	stamp?: StampItem;
+	strokeDataUrl?: string;
+}
+
+export interface SerializedHistoryItem {
+	stamps: StampItem[];
+	rulers?: RulerItem[];
+	layers?: SerializedHistoryLayer[];
+}
+
 export interface ProjectItem {
 	id: string;
 	title: string;
@@ -47,4 +60,6 @@ export interface ProjectItem {
 	cssW: number;
 	cssH: number;
 	countPattern?: string[];
+	history?: SerializedHistoryItem[];
+	historyStep?: number;
 }

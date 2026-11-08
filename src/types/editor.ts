@@ -39,11 +39,13 @@ export interface CanvasLayerItem {
 	type: 'stroke' | 'stamp';
 	id: string;
 	imageData?: ImageData;
+	strokeDataUrl?: string;
 	stamp?: StampItem;
 }
 
 export interface HistoryItem {
 	imageData?: ImageData;
+	strokeDataUrl?: string;
 	stamps: StampItem[];
 	rulers?: RulerItem[];
 	layers?: CanvasLayerItem[];

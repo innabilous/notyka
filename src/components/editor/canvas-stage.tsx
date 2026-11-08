@@ -24,7 +24,7 @@ import {
 	StampItem,
 	ToolMode,
 } from '@/types/editor';
-import { ProjectItem } from '@/types/storage';
+import { ProjectItem, SerializedHistoryItem } from '@/types/storage';
 import {
 	calculateStampBox,
 	clampStampPosition,
@@ -96,7 +96,7 @@ export interface CanvasStageHandle {
 	redo: () => void;
 	distributeRulers: () => void;
 	getRulersCount: () => number;
-	commitActiveStamp: () => void;
+	commitActiveStamp: (save?: boolean) => void;
 	duplicateActiveStamp: () => void;
 	syncCategorySizes: (category: string, size: number) => void;
 	prepareExport: () => void;
@@ -222,6 +222,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	// History stack
 	const historyStackRef = useRef<HistoryItem[]>([]);
 	const historyStepRef = useRef<number>(-1);
+	const strokeRevisionRef = useRef<number>(0);
+	const lastSavedStrokeRevisionRef = useRef<number>(-1);
+	const cachedLayerSnapshotsRef = useRef<CanvasLayerItem[] | null>(null);
 
 	// Export cache
 	const exportBlobRef = useRef<Blob | null>(null);
@@ -399,42 +402,66 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const saveHistory = useCallback(() => {
 		const baseCanvas = baseCanvasRef.current;
 		if (!baseCanvas) return;
-		const bctx = baseCanvas.getContext('2d');
-		if (!bctx) return;
 
 		const currentStack = historyStackRef.current.slice(0, historyStepRef.current + 1);
 
-		//! Зберігаємо снепшот шарів із порядком штрихів та штампів
-		const layerSnapshots: CanvasLayerItem[] = layersRef.current.map((layer) => {
-			if (layer.type === 'stroke') {
-				const ctx = layer.canvas.getContext('2d');
+		//! Перевіряємо, чи змінилися штрихові шари від останнього збереження
+		const strokesChanged = strokeRevisionRef.current !== lastSavedStrokeRevisionRef.current;
+		let layerSnapshots: CanvasLayerItem[];
+
+		if (strokesChanged || !cachedLayerSnapshotsRef.current) {
+			layerSnapshots = layersRef.current.map((layer) => {
+				if (layer.type === 'stroke') {
+					const ctx = layer.canvas.getContext('2d');
+					const strokeDataUrl = layer.canvas.toDataURL('image/png');
+					return {
+						type: 'stroke',
+						id: layer.id,
+						imageData: ctx
+							? ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height)
+							: undefined,
+						strokeDataUrl,
+					};
+				}
 				return {
-					type: 'stroke',
+					type: 'stamp',
 					id: layer.id,
-					imageData: ctx
-						? ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height)
-						: undefined,
+					stamp: JSON.parse(JSON.stringify(layer.stamp)),
 				};
-			}
-			return {
-				type: 'stamp',
-				id: layer.id,
-				stamp: JSON.parse(JSON.stringify(layer.stamp)),
-			};
-		});
+			});
+			cachedLayerSnapshotsRef.current = layerSnapshots;
+			lastSavedStrokeRevisionRef.current = strokeRevisionRef.current;
+		} else {
+			//! Штрихи не змінювалися: перевикористовуємо кешовані штрихові шари для економії пам'яті
+			layerSnapshots = layersRef.current.map((layer) => {
+				if (layer.type === 'stroke') {
+					const cached = cachedLayerSnapshotsRef.current?.find((c) => c.id === layer.id);
+					if (cached) return cached;
+					const ctx = layer.canvas.getContext('2d');
+					return {
+						type: 'stroke',
+						id: layer.id,
+						imageData: ctx
+							? ctx.getImageData(0, 0, layer.canvas.width, layer.canvas.height)
+							: undefined,
+						strokeDataUrl: layer.canvas.toDataURL('image/png'),
+					};
+				}
+				return {
+					type: 'stamp',
+					id: layer.id,
+					stamp: JSON.parse(JSON.stringify(layer.stamp)),
+				};
+			});
+		}
 
 		currentStack.push({
-			imageData: bctx.getImageData(0, 0, baseCanvas.width, baseCanvas.height),
 			stamps: JSON.parse(JSON.stringify(stampsListRef.current)),
 			rulers: JSON.parse(JSON.stringify(rulersListRef.current)),
 			layers: layerSnapshots,
 		});
 
-		const maxH = Math.max(
-			5,
-			Math.min(MAX_HISTORY, Math.floor(250e6 / (baseCanvas.width * baseCanvas.height * 4))),
-		);
-		while (currentStack.length > maxH) {
+		while (currentStack.length > MAX_HISTORY) {
 			currentStack.shift();
 		}
 
@@ -543,38 +570,41 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		strokeColor,
 	]);
 
-	const commitActiveStamp = useCallback(() => {
-		if (drawDebounceTimerRef.current) {
-			clearTimeout(drawDebounceTimerRef.current);
-			drawDebounceTimerRef.current = null;
-			finalizeDrawingStamp();
-		}
+	const commitActiveStamp = useCallback(
+		(save: boolean = true) => {
+			if (drawDebounceTimerRef.current) {
+				clearTimeout(drawDebounceTimerRef.current);
+				drawDebounceTimerRef.current = null;
+				finalizeDrawingStamp();
+			}
 
-		const active = activeStampRef.current;
-		if (!active) return;
+			const active = activeStampRef.current;
+			if (!active) return;
 
-		const changed = JSON.stringify(active) !== activeOrigRef.current;
-		const existingIdx = layersRef.current.findIndex(
-			(l) => l.type === 'stamp' && l.id === active.id,
-		);
-		if (existingIdx !== -1) {
-			layersRef.current[existingIdx] = { type: 'stamp', id: active.id, stamp: active };
-		} else {
-			layersRef.current.push({ type: 'stamp', id: active.id, stamp: active });
-		}
+			const changed = JSON.stringify(active) !== activeOrigRef.current;
+			const existingIdx = layersRef.current.findIndex(
+				(l) => l.type === 'stamp' && l.id === active.id,
+			);
+			if (existingIdx !== -1) {
+				layersRef.current[existingIdx] = { type: 'stamp', id: active.id, stamp: active };
+			} else {
+				layersRef.current.push({ type: 'stamp', id: active.id, stamp: active });
+			}
 
-		stampsListRef.current = layersRef.current
-			.filter((l): l is { type: 'stamp'; id: string; stamp: StampItem } => l.type === 'stamp')
-			.map((l) => l.stamp);
+			stampsListRef.current = layersRef.current
+				.filter((l): l is { type: 'stamp'; id: string; stamp: StampItem } => l.type === 'stamp')
+				.map((l) => l.stamp);
 
-		activeStampRef.current = null;
-		activeOrigRef.current = '';
-		render();
+			activeStampRef.current = null;
+			activeOrigRef.current = '';
+			render();
 
-		if (changed) {
-			saveHistory();
-		}
-	}, [finalizeDrawingStamp, render, saveHistory]);
+			if (changed && save) {
+				saveHistory();
+			}
+		},
+		[finalizeDrawingStamp, render, saveHistory],
+	);
 
 	const syncCategorySizes = useCallback(
 		(category: string, size: number) => {
@@ -796,6 +826,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			if (bctx) bctx.clearRect(0, 0, base.width, base.height);
 			layersRef.current = [{ type: 'stroke', id: 'base', canvas: base }];
 			activeStrokeCanvasRef.current = base;
+			strokeRevisionRef.current++;
+			cachedLayerSnapshotsRef.current = null;
 		}
 
 		if (currentImageRef.current) {
@@ -827,6 +859,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const base = baseCanvasRef.current;
 			if (!item || !base) return;
 
+			//! Скидаємо кеш штрихів при переході по історії
+			strokeRevisionRef.current++;
+			cachedLayerSnapshotsRef.current = null;
+			lastSavedStrokeRevisionRef.current = -1;
+
 			if (item.layers && item.layers.length > 0) {
 				layersRef.current = item.layers.map((l) => {
 					if (l.type === 'stroke') {
@@ -835,11 +872,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 						sc.height = base.height;
 						if (l.imageData) {
 							sc.getContext('2d')?.putImageData(l.imageData, 0, 0);
+						} else if (l.strokeDataUrl) {
+							const img = new Image();
+							img.onload = () => {
+								sc.getContext('2d')?.drawImage(img, 0, 0);
+								render();
+							};
+							img.src = l.strokeDataUrl;
 						}
 						return {
 							type: 'stroke',
 							id: l.id,
 							canvas: sc,
+							strokeDataUrl: l.strokeDataUrl,
 						};
 					}
 					return {
@@ -1045,7 +1090,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			for (let i = layersRef.current.length - 1; i >= 0; i--) {
 				const l = layersRef.current[i];
 				if (l.type === 'stamp' && isPointInStamp(pt, l.stamp, uRef.current, ctx)) {
-					commitActiveStamp();
+					commitActiveStamp(false);
 					const selected = l.stamp;
 					activeStampRef.current = selected;
 					activeOrigRef.current = JSON.stringify(selected);
@@ -1063,7 +1108,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			//! 4. Якщо обрано режим малювання штампа
 			if (stampCategory === 'draw') {
 				if (drawDuplicateMode && active && active.isDrawing) {
-					commitActiveStamp();
+					commitActiveStamp(false);
 					const snapY = rulersSnap
 						? getClosestRulerY(pt.y, rulersListRef.current, 16 * uRef.current)
 						: null;
@@ -1112,7 +1157,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					clearTimeout(drawDebounceTimerRef.current);
 					drawDebounceTimerRef.current = null;
 				} else {
-					commitActiveStamp();
+					commitActiveStamp(false);
 				}
 				isDrawingStampRef.current = true;
 				currentDrawingPathRef.current = [pt];
@@ -1121,7 +1166,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			}
 
 			// 5. Create new stamp at clicked position
-			commitActiveStamp();
+			commitActiveStamp(false);
 			const stampText = activeStampText ?? '';
 			if (!stampText.trim()) {
 				return;
@@ -1160,6 +1205,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			});
 			stampsListRef.current.push(newStamp);
 			isDraggingStampRef.current = true;
+			dragMovedRef.current = false;
 			dragOffsetRef.current = { x: 0, y: 0 };
 			if (isAuto) {
 				onAdvanceAutoCount?.();
@@ -1197,6 +1243,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 	const drawPencilStroke = useCallback(
 		(fx: number, fy: number, tx: number, ty: number) => {
+			strokeRevisionRef.current++;
 			const targetCanvas = activeStrokeCanvasRef.current || baseCanvasRef.current;
 			if (!targetCanvas) return;
 			const bctx = targetCanvas.getContext('2d');
@@ -1269,6 +1316,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 	const quadSegment = useCallback(
 		(a: Point, ctrl: Point, b: Point) => {
+			strokeRevisionRef.current++;
 			const targetCanvas = activeStrokeCanvasRef.current || baseCanvasRef.current;
 			if (!targetCanvas) return;
 			const bctx = targetCanvas.getContext('2d');
@@ -1823,9 +1871,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			lastCoordsRef.current = null;
 			smoothPosRef.current = null;
 			lastMidRef.current = null;
+			dragMovedRef.current = false;
 			saveHistory();
-		}
-		if (dragMovedRef.current) {
+		} else if (dragMovedRef.current) {
 			dragMovedRef.current = false;
 			saveHistory();
 		}
@@ -1931,6 +1979,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const baseDataUrl = compBase.toDataURL('image/png');
 			const bgDataUrl = currentImageRef.current ? bg.toDataURL('image/png') : null;
 
+			const serializedHistory: SerializedHistoryItem[] = historyStackRef.current.map((item) => ({
+				stamps: JSON.parse(JSON.stringify(item.stamps || [])),
+				rulers: JSON.parse(JSON.stringify(item.rulers || [])),
+				layers: (item.layers || []).map((l) => ({
+					type: l.type,
+					id: l.id,
+					stamp: l.stamp ? JSON.parse(JSON.stringify(l.stamp)) : undefined,
+					strokeDataUrl: l.strokeDataUrl,
+				})),
+			}));
+
 			const project: ProjectItem = {
 				id:
 					currentProjectIdRef.current ||
@@ -1946,6 +2005,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				baseDataUrl,
 				stamps: currentStamps,
 				rulers: JSON.parse(JSON.stringify(rulersListRef.current)),
+				history: serializedHistory,
+				historyStep: historyStepRef.current,
 				width: canvas.width,
 				height: canvas.height,
 				cssW: parseFloat(canvas.style.width) || canvas.width,
@@ -2041,11 +2102,33 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			render();
 			onRulersCountChange?.(rulersListRef.current.length);
 
-			historyStackRef.current = [];
-			historyStepRef.current = -1;
-			saveHistory();
+			//! Якщо в проекті збережена історія undo/redo, відновлюємо її повністю
+			if (project.history && project.history.length > 0) {
+				historyStackRef.current = project.history.map((item) => ({
+					stamps: item.stamps || [],
+					rulers: item.rulers || [],
+					layers: (item.layers || []).map((l) => ({
+						type: l.type,
+						id: l.id,
+						stamp: l.stamp,
+						strokeDataUrl: l.strokeDataUrl,
+					})),
+				}));
+				const restoredStep =
+					typeof project.historyStep === 'number' &&
+					project.historyStep >= 0 &&
+					project.historyStep < historyStackRef.current.length
+						? project.historyStep
+						: historyStackRef.current.length - 1;
+				historyStepRef.current = restoredStep;
+				restoreHistory(restoredStep);
+			} else {
+				historyStackRef.current = [];
+				historyStepRef.current = -1;
+				saveHistory();
+			}
 		},
-		[initCanvas, onInitBlank, onRulersCountChange, render, resetTransform, saveHistory],
+		[initCanvas, onInitBlank, onRulersCountChange, render, resetTransform, restoreHistory, saveHistory],
 	);
 
 	const distributeRulers = useCallback(
