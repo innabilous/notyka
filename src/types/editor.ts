@@ -1,5 +1,6 @@
 export type ToolMode = 'pencil' | 'stamp' | 'eraser' | 'ruler';
-export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw';
+export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw' | 'shapes';
+export type ShapeType = 'rect' | 'circle' | 'arrow';
 
 export interface RulerItem {
 	id: string;
@@ -34,6 +35,12 @@ export interface StampItem {
 	isAutoCount?: boolean;
 	autoCountIndex?: number;
 	autoCountSeqId?: string;
+	shapeType?: ShapeType;
+	width?: number;
+	height?: number;
+	endX?: number;
+	endY?: number;
+	rotation?: number;
 }
 
 export interface CanvasLayerItem {

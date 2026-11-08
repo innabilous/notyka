@@ -129,4 +129,5 @@ export const DEFAULT_VISIBLE_STAMP_CATEGORIES: Record<StampCategory, boolean> = 
 	custom: true,
 	text: true,
 	draw: true,
+	shapes: true,
 };

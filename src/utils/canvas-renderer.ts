@@ -1,6 +1,7 @@
 import { BoundingBox, Point, RulerItem, StampItem } from '@/types/editor';
 
 let trashPaths: Path2D[] | null = null;
+let rotatePaths: Path2D[] | null = null;
 
 function getTrashPaths(): Path2D[] {
 	if (!trashPaths && typeof Path2D !== 'undefined') {
@@ -13,6 +14,16 @@ function getTrashPaths(): Path2D[] {
 		].map((d) => new Path2D(d));
 	}
 	return trashPaths ?? [];
+}
+
+function getRotatePaths(): Path2D[] {
+	if (!rotatePaths && typeof Path2D !== 'undefined') {
+		rotatePaths = [
+			'M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8',
+			'M21 3v5h-5',
+		].map((d) => new Path2D(d));
+	}
+	return rotatePaths ?? [];
 }
 
 export function getStampFont(size: number, U: number): string {
@@ -66,6 +77,47 @@ export function calculateStampBox(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): BoundingBox {
+	//! Якщо це фігура (прямокутник, коло, стрілка)
+	if (stamp.category === 'shapes' || stamp.shapeType) {
+		const pad = 8 * U;
+		if (stamp.shapeType === 'arrow') {
+			const p1 = { x: stamp.x, y: stamp.y };
+			const p2 = {
+				x: stamp.endX ?? stamp.x + stamp.size * 3 * U,
+				y: stamp.endY ?? stamp.y,
+			};
+			const minX = Math.min(p1.x, p2.x) - pad;
+			const minY = Math.min(p1.y, p2.y) - pad;
+			const maxX = Math.max(p1.x, p2.x) + pad;
+			const maxY = Math.max(p1.y, p2.y) + pad;
+			return {
+				x: minX,
+				y: minY,
+				w: Math.max(20 * U, maxX - minX),
+				h: Math.max(20 * U, maxY - minY),
+			};
+		}
+		if (stamp.shapeType === 'circle') {
+			const rx = (stamp.width ? stamp.width / 2 : stamp.size) * U;
+			const ry = (stamp.height ? stamp.height / 2 : stamp.size) * U;
+			return {
+				x: stamp.x - rx - pad,
+				y: stamp.y - ry - pad,
+				w: (rx + pad) * 2,
+				h: (ry + pad) * 2,
+			};
+		}
+		// За замовчуванням прямокутник
+		const w = (stamp.width || stamp.size * 2) * U;
+		const h = (stamp.height || stamp.size * 1.5) * U;
+		return {
+			x: stamp.x - w / 2 - pad,
+			y: stamp.y - h / 2 - pad,
+			w: w + pad * 2,
+			h: h + pad * 2,
+		};
+	}
+
 	//! Якщо це намальований штамп — рахуємо габарити з його збережених контурів
 	if (stamp.isDrawing && stamp.rawBounds) {
 		const scale = stamp.size / (stamp.initialSize || 24);
@@ -128,6 +180,49 @@ export function getStampBoxOffsets(
 	};
 }
 
+//! Обмежує положення стрілки так, щоб вістря та його крила не виходили за межі полотна
+export function clampArrowHead(
+	p1: Point,
+	target: Point,
+	lw: number,
+	canvasW: number,
+	canvasH: number,
+): Point {
+	const halfLw = lw / 2;
+	let endX = Math.max(halfLw, Math.min(canvasW - halfLw, target.x));
+	let endY = Math.max(halfLw, Math.min(canvasH - halfLw, target.y));
+
+	const dx = endX - p1.x;
+	const dy = endY - p1.y;
+	const len = Math.hypot(dx, dy);
+	if (len < 1e-4) return { x: endX, y: endY };
+
+	const angle = Math.atan2(dy, dx);
+	const baseHeadLen = Math.max(12, lw * 4.5);
+	const headLen = Math.min(len * 0.45, baseHeadLen);
+	const headAngle = Math.PI / 6;
+
+	const w1x = endX - headLen * Math.cos(angle - headAngle);
+	const w1y = endY - headLen * Math.sin(angle - headAngle);
+	const w2x = endX - headLen * Math.cos(angle + headAngle);
+	const w2y = endY - headLen * Math.sin(angle + headAngle);
+
+	const minX = Math.min(endX, w1x, w2x) - halfLw;
+	const maxX = Math.max(endX, w1x, w2x) + halfLw;
+	const minY = Math.min(endY, w1y, w2y) - halfLw;
+	const maxY = Math.max(endY, w1y, w2y) + halfLw;
+
+	if (minX < 0) endX += -minX;
+	if (maxX > canvasW) endX -= maxX - canvasW;
+	if (minY < 0) endY += -minY;
+	if (maxY > canvasH) endY -= maxY - canvasH;
+
+	return {
+		x: Math.max(halfLw, Math.min(canvasW - halfLw, endX)),
+		y: Math.max(halfLw, Math.min(canvasH - halfLw, endY)),
+	};
+}
+
 //! Зупиняє штамп на межі канвасу, не дозволяючи жодному елементу вийти за межі
 export function clampStampPosition(
 	x: number,
@@ -136,9 +231,82 @@ export function clampStampPosition(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): { x: number; y: number } {
-	const offsets = getStampBoxOffsets(stamp, U, ctx);
 	const canvasW = ctx.canvas?.width ?? 10000;
 	const canvasH = ctx.canvas?.height ?? 10000;
+
+	//! Для фігур точний геометричний розрахунок впритик до межі канвасу без зайвих відступів
+	if (stamp.category === 'shapes' || stamp.shapeType) {
+		const lw = Math.max(1 * U, (stamp.strokeWidth || stamp.size || 2) * U);
+		const halfLw = lw / 2;
+
+		if (stamp.shapeType === 'arrow') {
+			const p1 = { x: stamp.x, y: stamp.y };
+			const p2 = {
+				x: stamp.endX ?? stamp.x + stamp.size * 3 * U,
+				y: stamp.endY ?? stamp.y,
+			};
+			const dx = p2.x - p1.x;
+			const dy = p2.y - p1.y;
+			const len = Math.hypot(dx, dy);
+			const angle = Math.atan2(dy, dx);
+			const baseHeadLen = Math.max(12 * U, lw * 4.5);
+			const headLen = Math.min(len * 0.45, baseHeadLen);
+			const headAngle = Math.PI / 6;
+			const w1x = p2.x - headLen * Math.cos(angle - headAngle);
+			const w1y = p2.y - headLen * Math.sin(angle - headAngle);
+			const w2x = p2.x - headLen * Math.cos(angle + headAngle);
+			const w2y = p2.y - headLen * Math.sin(angle + headAngle);
+
+			// Межі стрілки відносно базової точки (stamp.x, stamp.y)
+			const minRelX = Math.min(0, dx, w1x - p1.x, w2x - p1.x) - halfLw;
+			const maxRelX = Math.max(0, dx, w1x - p1.x, w2x - p1.x) + halfLw;
+			const minRelY = Math.min(0, dy, w1y - p1.y, w2y - p1.y) - halfLw;
+			const maxRelY = Math.max(0, dy, w1y - p1.y, w2y - p1.y) + halfLw;
+
+			const minX = -minRelX;
+			const maxX = canvasW - maxRelX;
+			const minY = -minRelY;
+			const maxY = canvasH - maxRelY;
+
+			const clampedX = maxX >= minX ? Math.max(minX, Math.min(maxX, x)) : canvasW / 2;
+			const clampedY = maxY >= minY ? Math.max(minY, Math.min(maxY, y)) : canvasH / 2;
+			return { x: clampedX, y: clampedY };
+		}
+
+		// Для прямокутника та кола/овалу з урахуванням обертання rot
+		const rot = stamp.rotation || 0;
+		const w = (stamp.width || stamp.size * 2) * U;
+		const h = (stamp.height || stamp.size * 1.5) * U;
+
+		let projW: number;
+		let projH: number;
+
+		if (stamp.shapeType === 'circle') {
+			const rx = w / 2;
+			const ry = h / 2;
+			const cos = Math.cos(rot);
+			const sin = Math.sin(rot);
+			projW = Math.sqrt((rx * cos) ** 2 + (ry * sin) ** 2) + halfLw;
+			projH = Math.sqrt((rx * sin) ** 2 + (ry * cos) ** 2) + halfLw;
+		} else {
+			// Прямокутник
+			const absCos = Math.abs(Math.cos(rot));
+			const absSin = Math.abs(Math.sin(rot));
+			projW = (w / 2) * absCos + (h / 2) * absSin + halfLw;
+			projH = (w / 2) * absSin + (h / 2) * absCos + halfLw;
+		}
+
+		const minX = projW;
+		const maxX = canvasW - projW;
+		const minY = projH;
+		const maxY = canvasH - projH;
+
+		const clampedX = maxX >= minX ? Math.max(minX, Math.min(maxX, x)) : canvasW / 2;
+		const clampedY = maxY >= minY ? Math.max(minY, Math.min(maxY, y)) : canvasH / 2;
+		return { x: clampedX, y: clampedY };
+	}
+
+	const offsets = getStampBoxOffsets(stamp, U, ctx);
 
 	// Враховуємо бічні напівкружечки зміни розміру (6*U)
 	const sideMargin = 7 * U;
@@ -184,15 +352,55 @@ export function getDeleteCoords(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): { x: number; y: number; radius: number } {
-	const bx = calculateStampBox(stamp, U, ctx);
 	const canvasH = ctx.canvas?.height ?? 10000;
 	const canvasW = ctx.canvas?.width ?? 10000;
 	const radius = 9 * U;
 
-	const handle = getHandleCoords(stamp, U, ctx);
+	const bx = calculateStampBox(stamp, U, ctx);
 	const spaceAbove = bx.y;
 	const spaceBelow = canvasH - (bx.y + bx.h);
 	const neededSpace = 15 * U + radius + 4 * U;
+
+	//! Для фігур (прямокутник, коло, стрілка) кошик перелаштовується адаптивно зверху чи знизу на тій самій відстані, що й у решти штампів
+	if (stamp.category === 'shapes' || stamp.shapeType) {
+		if (stamp.shapeType === 'arrow') {
+			const p1 = { x: stamp.x, y: stamp.y };
+			const p2 = { x: stamp.endX ?? stamp.x + stamp.size * 3 * U, y: stamp.endY ?? stamp.y };
+			const minY = Math.min(p1.y, p2.y);
+			const maxY = Math.max(p1.y, p2.y);
+			const midX = (p1.x + p2.x) / 2;
+			const targetX = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, midX));
+			if (minY >= neededSpace) {
+				return { x: targetX, y: Math.max(radius + 2 * U, minY - 13 * U), radius };
+			}
+			return { x: targetX, y: Math.min(canvasH - radius - 2 * U, maxY + 13 * U), radius };
+		}
+
+		// Для прямокутника та кола точні межі з урахуванням обертання
+		const rot = stamp.rotation || 0;
+		const w = (stamp.width || stamp.size * 2) * U;
+		const h = (stamp.height || stamp.size * 1.5) * U;
+		const cos = Math.cos(rot);
+		const sin = Math.sin(rot);
+		const toC = (lx: number, ly: number) => ({
+			x: stamp.x + lx * cos - ly * sin,
+			y: stamp.y + lx * sin + ly * cos,
+		});
+		const c1 = toC(-w / 2, -h / 2);
+		const c2 = toC(w / 2, -h / 2);
+		const c3 = toC(w / 2, h / 2);
+		const c4 = toC(-w / 2, h / 2);
+		const minY = Math.min(c1.y, c2.y, c3.y, c4.y);
+		const maxY = Math.max(c1.y, c2.y, c3.y, c4.y);
+		const targetX = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
+
+		if (minY >= neededSpace) {
+			return { x: targetX, y: Math.max(radius + 2 * U, minY - 13 * U), radius };
+		}
+		return { x: targetX, y: Math.min(canvasH - radius - 2 * U, maxY + 13 * U), radius };
+	}
+
+	const handle = getHandleCoords(stamp, U, ctx);
 
 	//! Якщо хендлер вгорі (бо знизу мало місця):
 	if (handle.isFlipped) {
@@ -237,6 +445,21 @@ export function getResizeHandleCoords(
 	left: { x: number; y: number; radius: number; hitRadius: number };
 	right: { x: number; y: number; radius: number; hitRadius: number };
 } {
+	//! Для стрілки лівий хендл — це хвіст (початок), правий — вістря (кінець)
+	if (stamp.shapeType === 'arrow') {
+		const p1 = { x: stamp.x, y: stamp.y };
+		const p2 = {
+			x: stamp.endX ?? stamp.x + stamp.size * 3 * U,
+			y: stamp.endY ?? stamp.y,
+		};
+		const radius = Math.max(5 * U, 5);
+		const hitRadius = Math.max(16 * U, 16);
+		return {
+			left: { x: p1.x, y: p1.y, radius, hitRadius },
+			right: { x: p2.x, y: p2.y, radius, hitRadius },
+		};
+	}
+
 	const bx = calculateStampBox(stamp, U, ctx);
 	const cy = bx.y + bx.h / 2;
 	//! Для малих штампів радіус хендла масштабується від висоти, щоб він лишався на прямій ділянці грані
@@ -254,8 +477,23 @@ export function isPointInResizeHandle(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): 'left' | 'right' | null {
-	const bx = calculateStampBox(stamp, U, ctx);
 	const handles = getResizeHandleCoords(stamp, U, ctx);
+
+	if (stamp.shapeType === 'arrow') {
+		const dlx = p.x - handles.left.x;
+		const dly = p.y - handles.left.y;
+		if (dlx * dlx + dly * dly <= handles.left.hitRadius * handles.left.hitRadius) {
+			return 'left';
+		}
+		const drx = p.x - handles.right.x;
+		const dry = p.y - handles.right.y;
+		if (drx * drx + dry * dry <= handles.right.hitRadius * handles.right.hitRadius) {
+			return 'right';
+		}
+		return null;
+	}
+
+	const bx = calculateStampBox(stamp, U, ctx);
 
 	//! Обмежуємо зону всередині рамки (макс 15% ширини або 4*U), щоб клік по тексту штампа тягнув штамп, а не масштабував
 	const maxInward = Math.min(bx.w * 0.15, 4 * U);
@@ -279,12 +517,153 @@ export function isPointInResizeHandle(
 	return null;
 }
 
+export function getShapeRotateHandleCoords(
+	stamp: StampItem,
+	U: number,
+	canvasW: number,
+	canvasH: number,
+): { x: number; y: number; stemFrom: Point; radius: number } {
+	const rot = stamp.rotation || 0;
+	const w = (stamp.width || stamp.size * 2) * U;
+	const h = (stamp.height || stamp.size * 1.5) * U;
+	const cos = Math.cos(rot);
+	const sin = Math.sin(rot);
+	const radius = 8.5 * U;
+
+	const toCanvas = (lx: number, ly: number) => ({
+		x: stamp.x + lx * cos - ly * sin,
+		y: stamp.y + lx * sin + ly * cos,
+	});
+
+	// Нормальна позиція: зверху праворуч
+	const normLX = w / 2 + 16 * U;
+	const normLY = -h / 2 - 16 * U;
+	const normPt = toCanvas(normLX, normLY);
+
+	const margin = radius + 4 * U;
+	const fitsTopRight =
+		normPt.x >= margin &&
+		normPt.x <= canvasW - margin &&
+		normPt.y >= margin &&
+		normPt.y <= canvasH - margin;
+
+	if (fitsTopRight) {
+		return {
+			x: normPt.x,
+			y: normPt.y,
+			stemFrom: toCanvas(w / 2, -h / 2),
+			radius,
+		};
+	}
+
+	// Якщо зверху праворуч немає місця — переміщуємо на протилежний бік: знизу ліворуч
+	const flipLX = -w / 2 - 16 * U;
+	const flipLY = h / 2 + 16 * U;
+	const flipPt = toCanvas(flipLX, flipLY);
+	return {
+		x: Math.max(margin, Math.min(canvasW - margin, flipPt.x)),
+		y: Math.max(margin, Math.min(canvasH - margin, flipPt.y)),
+		stemFrom: toCanvas(-w / 2, h / 2),
+		radius,
+	};
+}
+
+export function isPointInRotateHandle(
+	p: Point,
+	stamp: StampItem,
+	U: number,
+	ctx?: CanvasRenderingContext2D | null,
+): boolean {
+	if (stamp.category !== 'shapes' || stamp.shapeType === 'arrow') return false;
+	const canvasW = ctx?.canvas?.width ?? 10000;
+	const canvasH = ctx?.canvas?.height ?? 10000;
+	const rotInfo = getShapeRotateHandleCoords(stamp, U, canvasW, canvasH);
+	const hitRadius = Math.max(16 * U, 16);
+	const dx = p.x - rotInfo.x;
+	const dy = p.y - rotInfo.y;
+	return dx * dx + dy * dy <= hitRadius * hitRadius;
+}
+
+export function isPointInCornerResizeHandle(
+	p: Point,
+	stamp: StampItem,
+	U: number,
+): 'tl' | 'tr' | 'br' | 'bl' | null {
+	if (stamp.category !== 'shapes' || stamp.shapeType === 'arrow') return null;
+	const rot = stamp.rotation || 0;
+	const w = (stamp.width || stamp.size * 2) * U;
+	const h = (stamp.height || stamp.size * 1.5) * U;
+	const cos = Math.cos(rot);
+	const sin = Math.sin(rot);
+	const hitRadius = Math.max(14 * U, 14);
+	const hitSq = hitRadius * hitRadius;
+
+	const corners: Array<{ side: 'tl' | 'tr' | 'br' | 'bl'; lx: number; ly: number }> = [
+		{ side: 'tl', lx: -w / 2, ly: -h / 2 },
+		{ side: 'tr', lx: w / 2, ly: -h / 2 },
+		{ side: 'br', lx: w / 2, ly: h / 2 },
+		{ side: 'bl', lx: -w / 2, ly: h / 2 },
+	];
+
+	for (const { side, lx, ly } of corners) {
+		const cx = stamp.x + lx * cos - ly * sin;
+		const cy = stamp.y + lx * sin + ly * cos;
+		const dx = p.x - cx;
+		const dy = p.y - cy;
+		if (dx * dx + dy * dy <= hitSq) {
+			return side;
+		}
+	}
+	return null;
+}
+
 export function isPointInStamp(
 	p: Point,
 	stamp: StampItem,
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): boolean {
+	//! Для фігур точніша перевірка потрапляння
+	if (stamp.category === 'shapes' || stamp.shapeType) {
+		const pad = 12 * U;
+		if (stamp.shapeType === 'arrow') {
+			const p1 = { x: stamp.x, y: stamp.y };
+			const p2 = {
+				x: stamp.endX ?? stamp.x + stamp.size * 3 * U,
+				y: stamp.endY ?? stamp.y,
+			};
+			const dx = p2.x - p1.x;
+			const dy = p2.y - p1.y;
+			const lenSq = dx * dx + dy * dy;
+			if (lenSq === 0) return Math.hypot(p.x - p1.x, p.y - p1.y) <= pad;
+			const t = Math.max(0, Math.min(1, ((p.x - p1.x) * dx + (p.y - p1.y) * dy) / lenSq));
+			const projX = p1.x + t * dx;
+			const projY = p1.y + t * dy;
+			return Math.hypot(p.x - projX, p.y - projY) <= Math.max(pad, 14 * U);
+		}
+
+		// Для прямокутника та кола/овалу переводимо точку в локальні координати з урахуванням обертання
+		const rot = stamp.rotation || 0;
+		const cos = Math.cos(-rot);
+		const sin = Math.sin(-rot);
+		const dx = p.x - stamp.x;
+		const dy = p.y - stamp.y;
+		const lx = dx * cos - dy * sin;
+		const ly = dx * sin + dy * cos;
+
+		if (stamp.shapeType === 'circle') {
+			const rx = (stamp.width ? stamp.width / 2 : stamp.size) * U + pad;
+			const ry = (stamp.height ? stamp.height / 2 : stamp.size) * U + pad;
+			const ex = lx / rx;
+			const ey = ly / ry;
+			return ex * ex + ey * ey <= 1;
+		}
+		// Прямокутник
+		const w = (stamp.width || stamp.size * 2) * U;
+		const h = (stamp.height || stamp.size * 1.5) * U;
+		return Math.abs(lx) <= w / 2 + pad && Math.abs(ly) <= h / 2 + pad;
+	}
+
 	const bx = calculateStampBox(stamp, U, ctx);
 	return p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h;
 }
@@ -295,6 +674,8 @@ export function isPointInHandle(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): boolean {
+	//! Для фігур хендлер переміщення відсутній (рухається за тіло фігури, обертається за хендлер повороту)
+	if (stamp.category === 'shapes') return false;
 	const h = getHandleCoords(stamp, U, ctx);
 	const dx = p.x - h.x;
 	const dy = p.y - h.y;
@@ -379,6 +760,112 @@ export function drawStamp(
 		});
 
 		ctx.restore();
+	} else if (stamp.category === 'shapes' || stamp.shapeType) {
+		const lw = Math.max(1 * U, (stamp.strokeWidth || stamp.size || 2) * U);
+		const hasFill = stamp.mainColor && stamp.mainColor !== 'transparent';
+		const hasStroke = stamp.strokeColor && stamp.strokeColor !== 'transparent';
+
+		if (stamp.shapeType === 'arrow') {
+			ctx.save();
+			const p1 = { x: stamp.x, y: stamp.y };
+			const p2 = {
+				x: stamp.endX ?? stamp.x + stamp.size * 3 * U,
+				y: stamp.endY ?? stamp.y,
+			};
+			const dx = p2.x - p1.x;
+			const dy = p2.y - p1.y;
+			const len = Math.hypot(dx, dy);
+			const angle = Math.atan2(dy, dx);
+			const arrowColor =
+				hasStroke && stamp.strokeColor !== 'transparent'
+					? stamp.strokeColor
+					: hasFill && stamp.mainColor !== 'transparent'
+						? stamp.mainColor
+						: '#ed1c24';
+			const baseHeadLen = Math.max(12 * U, lw * 4.5);
+			const headLen = Math.min(len * 0.45, baseHeadLen);
+
+			ctx.strokeStyle = arrowColor;
+			ctx.fillStyle = arrowColor;
+			ctx.lineWidth = lw;
+			ctx.lineCap = 'round';
+			ctx.lineJoin = 'miter';
+
+			// Лінія тіла стрілки
+			ctx.beginPath();
+			ctx.moveTo(p1.x, p1.y);
+			ctx.lineTo(p2.x - headLen * 0.6 * Math.cos(angle), p2.y - headLen * 0.6 * Math.sin(angle));
+			ctx.stroke();
+
+			// Наконечник стрілки - чіткий трикутник без надмірного скруглення
+			const headAngle = Math.PI / 6;
+			const a1 = angle - headAngle;
+			const a2 = angle + headAngle;
+			const w1 = { x: p2.x - headLen * Math.cos(a1), y: p2.y - headLen * Math.sin(a1) };
+			const w2 = { x: p2.x - headLen * Math.cos(a2), y: p2.y - headLen * Math.sin(a2) };
+
+			ctx.beginPath();
+			ctx.moveTo(p2.x, p2.y);
+			ctx.lineTo(w1.x, w1.y);
+			ctx.lineTo(w2.x, w2.y);
+			ctx.closePath();
+			ctx.fill();
+			ctx.restore();
+		} else {
+			ctx.save();
+			ctx.translate(stamp.x, stamp.y);
+			if (stamp.rotation) {
+				ctx.rotate(stamp.rotation);
+			}
+
+			if (stamp.shapeType === 'rect') {
+				const w = (stamp.width || stamp.size * 2) * U;
+				const h = (stamp.height || stamp.size * 1.5) * U;
+				const rx = -w / 2;
+				const ry = -h / 2;
+				const radius = Math.min(w, h, 20 * U) * 0.18;
+
+				ctx.beginPath();
+				if (typeof ctx.roundRect === 'function') {
+					ctx.roundRect(rx, ry, w, h, radius);
+				} else {
+					ctx.rect(rx, ry, w, h);
+				}
+
+				if (hasFill) {
+					ctx.fillStyle = stamp.mainColor;
+					ctx.fill();
+				}
+				if (hasStroke) {
+					ctx.strokeStyle = stamp.strokeColor;
+					ctx.lineWidth = lw;
+					ctx.stroke();
+				} else if (!hasFill) {
+					ctx.strokeStyle = '#ed1c24';
+					ctx.lineWidth = lw;
+					ctx.stroke();
+				}
+			} else if (stamp.shapeType === 'circle') {
+				const rx = (stamp.width ? stamp.width / 2 : stamp.size) * U;
+				const ry = (stamp.height ? stamp.height / 2 : stamp.size) * U;
+				ctx.beginPath();
+				ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+				if (hasFill) {
+					ctx.fillStyle = stamp.mainColor;
+					ctx.fill();
+				}
+				if (hasStroke) {
+					ctx.strokeStyle = stamp.strokeColor;
+					ctx.lineWidth = lw;
+					ctx.stroke();
+				} else if (!hasFill) {
+					ctx.strokeStyle = '#ed1c24';
+					ctx.lineWidth = lw;
+					ctx.stroke();
+				}
+			}
+			ctx.restore();
+		}
 	} else {
 		const lines = getStampLines(stamp, U, ctx);
 		const lineH = fontSize * 1.25;
@@ -417,114 +904,274 @@ export function drawStamp(
 	}
 
 	if (isActive) {
-		const bx = calculateStampBox(stamp, U, ctx);
-		ctx.strokeStyle = '#6366f1';
-		ctx.lineWidth = 2 * U;
-		ctx.setLineDash([5 * U, 4 * U]);
-		ctx.beginPath();
-		//! Для штампів розміром менше 8px радіус рамки зменшується, зберігаючи рівні грані для хендлів
-		const maxBoxRadius = Math.min(bx.w, bx.h) * 0.25;
-		const baseBoxRadius =
-			stamp.size < 8 ? Math.max(1.5 * U, (stamp.size / 8) * 8 * U) : 8 * U;
-		const activeRadius = Math.min(baseBoxRadius, maxBoxRadius);
-		if (typeof ctx.roundRect === 'function') {
-			ctx.roundRect(bx.x, bx.y, bx.w, bx.h, activeRadius);
-		} else {
-			ctx.rect(bx.x, bx.y, bx.w, bx.h);
-		}
-		ctx.stroke();
+		const isShapes = stamp.category === 'shapes' || Boolean(stamp.shapeType);
+		const isArrow = stamp.shapeType === 'arrow';
 
-		const handle = getHandleCoords(stamp, U, ctx);
-		const hx = handle.x;
-		const hy = handle.y;
-		ctx.setLineDash([]);
-		ctx.beginPath();
-		const stemStartY = handle.isFlipped ? bx.y : bx.y + bx.h;
-		ctx.moveTo(hx, stemStartY);
-		ctx.lineTo(hx, hy);
-		ctx.stroke();
+		if (isShapes && !isArrow) {
+			const rot = stamp.rotation || 0;
+			const w = (stamp.width || stamp.size * 2) * U;
+			const h = (stamp.height || stamp.size * 1.5) * U;
+			const cos = Math.cos(rot);
+			const sin = Math.sin(rot);
 
-		ctx.beginPath();
-		ctx.arc(hx, hy, 14 * U, 0, Math.PI * 2);
-		ctx.fillStyle = '#6366f1';
-		ctx.fill();
-		ctx.strokeStyle = '#ffffff';
-		ctx.stroke();
+			const toCanvas = (lx: number, ly: number) => ({
+				x: stamp.x + lx * cos - ly * sin,
+				y: stamp.y + lx * sin + ly * cos,
+			});
 
-		// 4-directional move arrows inside handle
-		const s = 6.5 * U;
-		const a = 2.5 * U;
-		ctx.lineWidth = 1.5 * U;
-		ctx.beginPath();
-		// Horizontal axis & arrows
-		ctx.moveTo(hx - s, hy);
-		ctx.lineTo(hx + s, hy);
-		ctx.moveTo(hx - s + a, hy - a);
-		ctx.lineTo(hx - s, hy);
-		ctx.lineTo(hx - s + a, hy + a);
-		ctx.moveTo(hx + s - a, hy - a);
-		ctx.lineTo(hx + s, hy);
-		ctx.lineTo(hx + s - a, hy + a);
+			// 1. Пунктирна рамка
+			ctx.save();
+			ctx.translate(stamp.x, stamp.y);
+			ctx.rotate(rot);
+			ctx.strokeStyle = '#6366f1';
+			ctx.lineWidth = 1.5 * U;
+			ctx.setLineDash([5 * U, 4 * U]);
+			ctx.strokeRect(-w / 2, -h / 2, w, h);
+			ctx.restore();
 
-		// Vertical axis & arrows
-		ctx.moveTo(hx, hy - s);
-		ctx.lineTo(hx, hy + s);
-		ctx.moveTo(hx - a, hy - s + a);
-		ctx.lineTo(hx, hy - s);
-		ctx.lineTo(hx + a, hy - s + a);
-		ctx.moveTo(hx - a, hy + s - a);
-		ctx.lineTo(hx, hy + s);
-		ctx.lineTo(hx + a, hy + s - a);
-		ctx.stroke();
+			// 2. Хендлер обертання (адаптивно: зверху праворуч або знизу ліворуч якщо на краю)
+			const rotInfo = getShapeRotateHandleCoords(
+				stamp,
+				U,
+				ctx.canvas?.width ?? 10000,
+				ctx.canvas?.height ?? 10000,
+			);
 
-		if (deleteBtnOn) {
-			const d = getDeleteCoords(stamp, U, ctx);
+			ctx.save();
+			ctx.setLineDash([]);
+			ctx.strokeStyle = '#6366f1';
+			ctx.lineWidth = 1.5 * U;
 			ctx.beginPath();
-			ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
-			ctx.fillStyle = '#ef4444';
+			ctx.moveTo(rotInfo.stemFrom.x, rotInfo.stemFrom.y);
+			ctx.lineTo(rotInfo.x, rotInfo.y);
+			ctx.stroke();
+
+			ctx.beginPath();
+			ctx.arc(rotInfo.x, rotInfo.y, rotInfo.radius, 0, Math.PI * 2);
+			ctx.fillStyle = '#6366f1';
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
 			ctx.lineWidth = 1.5 * U;
 			ctx.stroke();
 
-			const paths = getTrashPaths();
-			if (paths.length > 0) {
+			// Іконка кругової стрілки повороту всередині (завжди пряма, без перекошування)
+			const rPaths = getRotatePaths();
+			if (rPaths.length > 0) {
 				ctx.save();
-				const k = (9 * U) / 24;
-				ctx.translate(d.x - 12 * k, d.y - 12 * k);
-				ctx.scale(k, k);
+				ctx.translate(rotInfo.x, rotInfo.y);
+				const s = (10 * U) / 24;
+				ctx.scale(s, s);
+				ctx.translate(-12, -12);
 				ctx.strokeStyle = '#ffffff';
-				ctx.lineWidth = 2.2;
+				ctx.lineWidth = 2.5;
 				ctx.lineCap = 'round';
 				ctx.lineJoin = 'round';
-				paths.forEach((pth) => ctx.stroke(pth));
+				rPaths.forEach((path) => ctx.stroke(path));
 				ctx.restore();
 			}
-		}
+			ctx.restore();
 
-		if (resizeHandlesOn) {
-			const resizes = getResizeHandleCoords(stamp, U, ctx);
-			ctx.fillStyle = '#6366f1';
+			// 3. 4 кутові хендли зміни розміру
+			if (resizeHandlesOn) {
+				const corners = [
+					{ lx: -w / 2, ly: -h / 2 },
+					{ lx: w / 2, ly: -h / 2 },
+					{ lx: w / 2, ly: h / 2 },
+					{ lx: -w / 2, ly: h / 2 },
+				];
+				corners.forEach(({ lx, ly }) => {
+					const pt = toCanvas(lx, ly);
+					ctx.beginPath();
+					ctx.arc(pt.x, pt.y, 6.5 * U, 0, Math.PI * 2);
+					ctx.fillStyle = '#ffffff';
+					ctx.fill();
+					ctx.strokeStyle = '#6366f1';
+					ctx.lineWidth = 2 * U;
+					ctx.stroke();
+				});
+			}
+
+			// 4. Кнопка видалення
+			if (deleteBtnOn) {
+				const d = getDeleteCoords(stamp, U, ctx);
+				ctx.beginPath();
+				ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
+				ctx.fillStyle = '#ef4444';
+				ctx.fill();
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 1.5 * U;
+				ctx.stroke();
+
+				const paths = getTrashPaths();
+				if (paths.length > 0) {
+					ctx.save();
+					const k = (9 * U) / 24;
+					ctx.translate(d.x - 12 * k, d.y - 12 * k);
+					ctx.scale(k, k);
+					ctx.strokeStyle = '#ffffff';
+					ctx.lineWidth = 2.2;
+					ctx.lineCap = 'round';
+					ctx.lineJoin = 'round';
+					paths.forEach((pth) => ctx.stroke(pth));
+					ctx.restore();
+				}
+			}
+		} else if (isArrow) {
+			if (deleteBtnOn) {
+				const d = getDeleteCoords(stamp, U, ctx);
+				ctx.beginPath();
+				ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
+				ctx.fillStyle = '#ef4444';
+				ctx.fill();
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 1.5 * U;
+				ctx.stroke();
+
+				const paths = getTrashPaths();
+				if (paths.length > 0) {
+					ctx.save();
+					const k = (9 * U) / 24;
+					ctx.translate(d.x - 12 * k, d.y - 12 * k);
+					ctx.scale(k, k);
+					ctx.strokeStyle = '#ffffff';
+					ctx.lineWidth = 2.2;
+					ctx.lineCap = 'round';
+					ctx.lineJoin = 'round';
+					paths.forEach((pth) => ctx.stroke(pth));
+					ctx.restore();
+				}
+			}
+
+			if (resizeHandlesOn) {
+				const resizes = getResizeHandleCoords(stamp, U, ctx);
+				ctx.fillStyle = '#6366f1';
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 1.5 * U;
+
+				ctx.beginPath();
+				ctx.arc(resizes.left.x, resizes.left.y, resizes.left.radius, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.stroke();
+
+				ctx.beginPath();
+				ctx.arc(resizes.right.x, resizes.right.y, resizes.right.radius, 0, Math.PI * 2);
+				ctx.fill();
+				ctx.stroke();
+			}
+		} else {
+			const bx = calculateStampBox(stamp, U, ctx);
 			ctx.strokeStyle = '#6366f1';
-			ctx.lineWidth = 1 * U;
-
-			// Лівий напівкружечок: випинається назовні вліво (від PI/2 до 3*PI/2)
+			ctx.lineWidth = 2 * U;
+			ctx.setLineDash([5 * U, 4 * U]);
 			ctx.beginPath();
-			ctx.arc(
-				resizes.left.x,
-				resizes.left.y,
-				resizes.left.radius,
-				Math.PI / 2,
-				(3 * Math.PI) / 2,
-			);
-			ctx.closePath();
-			ctx.fill();
+			const maxBoxRadius = Math.min(bx.w, bx.h) * 0.25;
+			const baseBoxRadius = stamp.size < 8 ? Math.max(1.5 * U, (stamp.size / 8) * 8 * U) : 8 * U;
+			const activeRadius = Math.min(baseBoxRadius, maxBoxRadius);
+			if (typeof ctx.roundRect === 'function') {
+				ctx.roundRect(bx.x, bx.y, bx.w, bx.h, activeRadius);
+			} else {
+				ctx.rect(bx.x, bx.y, bx.w, bx.h);
+			}
+			ctx.stroke();
 
-			// Правий напівкружечок: випинається назовні вправо (від -PI/2 до PI/2)
+			const handle = getHandleCoords(stamp, U, ctx);
+			const hx = handle.x;
+			const hy = handle.y;
+			ctx.setLineDash([]);
 			ctx.beginPath();
-			ctx.arc(resizes.right.x, resizes.right.y, resizes.right.radius, -Math.PI / 2, Math.PI / 2);
-			ctx.closePath();
+			const stemStartY = handle.isFlipped ? bx.y : bx.y + bx.h;
+			ctx.moveTo(hx, stemStartY);
+			ctx.lineTo(hx, hy);
+			ctx.stroke();
+
+			ctx.beginPath();
+			ctx.arc(hx, hy, 14 * U, 0, Math.PI * 2);
+			ctx.fillStyle = '#6366f1';
 			ctx.fill();
+			ctx.strokeStyle = '#ffffff';
+			ctx.stroke();
+
+			// 4-directional move arrows inside handle
+			const s = 6.5 * U;
+			const a = 2.5 * U;
+			ctx.lineWidth = 1.5 * U;
+			ctx.beginPath();
+			ctx.moveTo(hx - s, hy);
+			ctx.lineTo(hx + s, hy);
+			ctx.moveTo(hx - s + a, hy - a);
+			ctx.lineTo(hx - s, hy);
+			ctx.lineTo(hx - s + a, hy + a);
+			ctx.moveTo(hx + s - a, hy - a);
+			ctx.lineTo(hx + s, hy);
+			ctx.lineTo(hx + s - a, hy + a);
+
+			ctx.moveTo(hx, hy - s);
+			ctx.lineTo(hx, hy + s);
+			ctx.moveTo(hx - a, hy - s + a);
+			ctx.lineTo(hx, hy - s);
+			ctx.lineTo(hx + a, hy - s + a);
+			ctx.moveTo(hx - a, hy + s - a);
+			ctx.lineTo(hx, hy + s);
+			ctx.lineTo(hx + a, hy + s - a);
+			ctx.stroke();
+
+			if (deleteBtnOn) {
+				const d = getDeleteCoords(stamp, U, ctx);
+				ctx.beginPath();
+				ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
+				ctx.fillStyle = '#ef4444';
+				ctx.fill();
+				ctx.strokeStyle = '#ffffff';
+				ctx.lineWidth = 1.5 * U;
+				ctx.stroke();
+
+				const paths = getTrashPaths();
+				if (paths.length > 0) {
+					ctx.save();
+					const k = (9 * U) / 24;
+					ctx.translate(d.x - 12 * k, d.y - 12 * k);
+					ctx.scale(k, k);
+					ctx.strokeStyle = '#ffffff';
+					ctx.lineWidth = 2.2;
+					ctx.lineCap = 'round';
+					ctx.lineJoin = 'round';
+					paths.forEach((pth) => ctx.stroke(pth));
+					ctx.restore();
+				}
+			}
+
+			if (resizeHandlesOn) {
+				const resizes = getResizeHandleCoords(stamp, U, ctx);
+				if (isArrow) {
+					ctx.fillStyle = '#ffffff';
+					ctx.strokeStyle = '#6366f1';
+					ctx.lineWidth = 2 * U;
+
+					ctx.beginPath();
+					ctx.arc(resizes.left.x, resizes.left.y, 6.5 * U, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.stroke();
+
+					ctx.beginPath();
+					ctx.arc(resizes.right.x, resizes.right.y, 6.5 * U, 0, Math.PI * 2);
+					ctx.fill();
+					ctx.stroke();
+				} else {
+					ctx.fillStyle = '#6366f1';
+					ctx.strokeStyle = '#ffffff';
+					ctx.lineWidth = 1.5 * U;
+
+					ctx.beginPath();
+					ctx.arc(resizes.left.x, resizes.left.y, resizes.left.radius, Math.PI / 2, (3 * Math.PI) / 2);
+					ctx.closePath();
+					ctx.fill();
+
+					ctx.beginPath();
+					ctx.arc(resizes.right.x, resizes.right.y, resizes.right.radius, -Math.PI / 2, Math.PI / 2);
+					ctx.closePath();
+					ctx.fill();
+				}
+			}
 		}
 	}
 
@@ -705,11 +1352,7 @@ export function getStampItemHorizontalSnap(
 }
 
 //! Відображення вертикальної напрямної розумного снепу (Smart Guide)
-export function drawSmartGuide(
-	ctx: CanvasRenderingContext2D,
-	guide: SnapGuide,
-	U: number,
-): void {
+export function drawSmartGuide(ctx: CanvasRenderingContext2D, guide: SnapGuide, U: number): void {
 	ctx.save();
 	ctx.strokeStyle = '#0284c7';
 	ctx.lineWidth = 1.5 * U;
