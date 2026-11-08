@@ -14,6 +14,7 @@ interface TopToolbarProps {
 	sizeLocked: boolean;
 	mainColor: string;
 	strokeColor: string;
+	isSideSliderOpen?: boolean;
 	rulersVisible?: boolean;
 	rulersSnap?: boolean;
 	rulersSnapItems?: boolean;
@@ -27,6 +28,7 @@ interface TopToolbarProps {
 	onChangeSize: (size: number) => void;
 	onToggleLock: (e: React.MouseEvent) => void;
 	onTogglePalette: (e: React.MouseEvent) => void;
+	onToggleSideSlider?: () => void;
 	onToggleRulersVisible?: () => void;
 	onToggleRulersSnap?: () => void;
 	onToggleRulersSnapItems?: () => void;
@@ -46,6 +48,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	sizeLocked,
 	mainColor,
 	strokeColor,
+	isSideSliderOpen,
 	rulersVisible = true,
 	rulersSnap = true,
 	rulersSnapItems = true,
@@ -59,6 +62,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	onChangeSize,
 	onToggleLock,
 	onTogglePalette,
+	onToggleSideSlider,
 	onSyncCategorySizes,
 	onToggleRulersVisible,
 	onToggleRulersSnap,
@@ -122,9 +126,11 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 						sizeLocked={sizeLocked}
 						mainColor={mainColor}
 						strokeColor={strokeColor}
+						isSideSliderOpen={isSideSliderOpen}
 						onChangeSize={onChangeSize}
 						onToggleLock={onToggleLock}
 						onTogglePalette={onTogglePalette}
+						onToggleSideSlider={onToggleSideSlider}
 						onSyncCategorySizes={onSyncCategorySizes}
 					/>
 				)}

@@ -6,11 +6,14 @@ import { BrandLogo } from '@/components/common/brand-logo';
 import {
 	CHORD_ROOTS,
 	COUNT_ITEMS,
+	DEFAULT_BLANK_HEIGHT,
+	DEFAULT_BLANK_WIDTH,
 	DRAG_SLOP,
 	MAX_HISTORY,
 	MAX_PIXELS,
 	MAX_SCALE,
 	MAX_SIDE,
+	MIN_CANVAS_SIDE,
 	MIN_SCALE,
 	NOTES,
 	SMOOTH,
@@ -83,6 +86,7 @@ interface CanvasStageProps {
 	onChangeSize?: (newSize: number) => void;
 	onAdvanceAutoCount?: () => void;
 	onHistoryChange: (canUndo: boolean, canRedo: boolean) => void;
+	onScaleChange?: (scale: number) => void;
 	onRulersCountChange?: (count: number) => void;
 	onNotify: (message: string) => void;
 	onInitBlank: () => void;
@@ -143,6 +147,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	onChangeSize,
 	onAdvanceAutoCount,
 	onHistoryChange,
+	onScaleChange,
 	onRulersCountChange,
 	onNotify,
 	onInitBlank,
@@ -249,7 +254,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		scaleRef.current = 1;
 		panRef.current = { x: 0, y: 0 };
 		applyTransform();
-	}, [applyTransform]);
+		onScaleChange?.(1);
+	}, [applyTransform, onScaleChange]);
 
 	const updateUndoRedo = useCallback(() => {
 		const canUndo = historyStepRef.current > 0;
@@ -2465,6 +2471,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					};
 					scaleRef.current = ns;
 					applyTransform();
+					onScaleChange?.(ns);
 				}
 			} else if (e.touches.length === 1 && !isMultiTouchRef.current) {
 				const t = e.touches[0];
@@ -2647,6 +2654,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			};
 			scaleRef.current = ns;
 			applyTransform();
+			onScaleChange?.(ns);
 
 			if (currentMode === 'eraser' && !isDrawingRef.current) {
 				cursorPosRef.current = getCanvasCoords(e.clientX, e.clientY);

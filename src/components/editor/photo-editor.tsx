@@ -9,6 +9,7 @@ import { ImageMenuModal } from '@/components/modals/image-menu-modal';
 import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal';
 import { SettingsModal } from '@/components/modals/settings-modal';
 import { BrushSettings } from '@/components/settings/brush-settings';
+import { SideSizeSlider } from '@/components/settings/side-size-slider';
 import { StampCategory, StampSettings } from '@/components/settings/stamp-settings';
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
 import { ToolbarSkeleton } from '@/components/toolbar/toolbar-skeleton';
@@ -113,6 +114,8 @@ export const PhotoEditor: React.FC = () => {
 
 	const [deleteBtnOn, setDeleteBtnOn] = useState<boolean>(true);
 	const [resizeHandlesOn, setResizeHandlesOn] = useState<boolean>(true);
+	const [isSideSliderOpen, setIsSideSliderOpen] = useState<boolean>(false);
+	const [canvasScale, setCanvasScale] = useState<number>(1);
 	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
 	const [rulersSnap, setRulersSnap] = useState<boolean>(true);
 	const [rulersSnapItems, setRulersSnapItems] = useState<boolean>(true); //! За замовчуванням увімкнено прив'язку до нот на інших лінійках
@@ -1544,6 +1547,7 @@ export const PhotoEditor: React.FC = () => {
 		setVisibleStampCategories({ ...DEFAULT_VISIBLE_STAMP_CATEGORIES });
 		setDeleteBtnOn(true);
 		setResizeHandlesOn(true);
+		setIsSideSliderOpen(false);
 		setCurrentMode('pencil');
 		setToolSizes({
 			pencil: 2,
@@ -1803,6 +1807,7 @@ export const PhotoEditor: React.FC = () => {
 				sizeLocked={sizeLocked}
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
+				isSideSliderOpen={isSideSliderOpen}
 				rulersVisible={rulersVisible}
 				rulersSnap={rulersSnap}
 				rulersSnapItems={rulersSnapItems}
@@ -1816,6 +1821,7 @@ export const PhotoEditor: React.FC = () => {
 				onChangeSize={handleChangeSize}
 				onToggleLock={handleToggleLock}
 				onTogglePalette={handleTogglePalette}
+				onToggleSideSlider={() => setIsSideSliderOpen((prev) => !prev)}
 				onSyncCategorySizes={handleSyncCategorySizes}
 				onToggleRulersVisible={handleToggleRulersVisible}
 				onToggleRulersSnap={() => setRulersSnap((prev) => !prev)}
@@ -1856,6 +1862,7 @@ export const PhotoEditor: React.FC = () => {
 					setCanUndo(undo);
 					setCanRedo(redo);
 				}}
+				onScaleChange={setCanvasScale}
 				onRulersCountChange={setRulersCount}
 				onNotify={showToast}
 				onInitBlank={() => setHasCanvas(true)}
@@ -1911,6 +1918,17 @@ export const PhotoEditor: React.FC = () => {
 				onResetSettings={handleResetSettingsOnly}
 				onClearAllData={handleClearAllData}
 				onClose={() => setIsSettingsOpen(false)}
+			/>
+
+			<SideSizeSlider
+				value={currentSize}
+				onChange={handleChangeSize}
+				opened={isSideSliderOpen}
+				onClose={() => setIsSideSliderOpen(false)}
+				currentMode={currentMode}
+				canvasScale={canvasScale}
+				mainColor={currentMainColor}
+				strokeColor={currentStrokeColor}
 			/>
 
 			<ImageCropModal

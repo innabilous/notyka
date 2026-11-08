@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Slider } from '@mantine/core';
+import React from 'react';
 import { ArrowUpDown, Lock, Minus, Plus, Unlock } from 'lucide-react';
 import { ToolMode } from '@/types/editor';
 
@@ -11,9 +10,11 @@ interface BrushSettingsProps {
 	sizeLocked: boolean;
 	mainColor: string;
 	strokeColor: string;
+	isSideSliderOpen?: boolean;
 	onChangeSize: (size: number) => void;
 	onToggleLock: (e: React.MouseEvent) => void;
 	onTogglePalette: (e: React.MouseEvent) => void;
+	onToggleSideSlider?: () => void;
 	onSyncCategorySizes?: () => void;
 }
 
@@ -23,31 +24,13 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	sizeLocked,
 	mainColor,
 	strokeColor,
+	isSideSliderOpen,
 	onChangeSize,
 	onToggleLock,
 	onTogglePalette,
+	onToggleSideSlider,
 	onSyncCategorySizes,
 }) => {
-	//! Відображення лейблу з розміром під слайдером у момент зміни розміру
-	const [isChanging, setIsChanging] = useState<boolean>(false);
-	const timerRef = useRef<NodeJS.Timeout | null>(null);
-	const isMountedRef = useRef<boolean>(false);
-
-	useEffect(() => {
-		if (!isMountedRef.current) {
-			isMountedRef.current = true;
-			return;
-		}
-		setIsChanging(true);
-		if (timerRef.current) clearTimeout(timerRef.current);
-		timerRef.current = setTimeout(() => {
-			setIsChanging(false);
-		}, 1200);
-
-		return () => {
-			if (timerRef.current) clearTimeout(timerRef.current);
-		};
-	}, [brushSize]);
 
 	if (currentMode === 'ruler') {
 		return null;
@@ -97,43 +80,38 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				</button>
 			)}
 
-			<button
-				type="button"
-				className="btn-size-step"
-				aria-label="Зменшити розмір"
-				onClick={handleDecrease}
-			>
-				<Minus className="icon" />
-			</button>
+			<div className="size-stepper-wrap">
+				<button
+					type="button"
+					className="btn-size-step"
+					aria-label="Зменшити розмір"
+					title="Зменшити (-1)"
+					onClick={handleDecrease}
+				>
+					<Minus className="icon" />
+				</button>
 
-			<div className="brush-slider-wrap">
-				<Slider
-					size="xs"
-					color="indigo"
-					min={1}
-					max={100}
-					value={brushSize}
-					onChange={onChangeSize}
-					label={(val) => `${val} px`}
-					labelAlwaysOn={isChanging}
-					classNames={{
-						root: 'brush-slider-root',
-						track: 'brush-slider-track',
-						bar: 'brush-slider-bar',
-						thumb: 'brush-slider-thumb',
-						label: 'brush-slider-label',
-					}}
-				/>
+				<button
+					type="button"
+					className={`btn-size-value ${isSideSliderOpen ? 'active' : ''}`}
+					aria-label={`Розмір: ${brushSize}px. Натисніть для повзунка`}
+					title="Змінити розмір повзунком"
+					onClick={onToggleSideSlider}
+				>
+					<span>{brushSize}</span>
+					<span className="unit">px</span>
+				</button>
+
+				<button
+					type="button"
+					className="btn-size-step"
+					aria-label="Збільшити розмір"
+					title="Збільшити (+1)"
+					onClick={handleIncrease}
+				>
+					<Plus className="icon" />
+				</button>
 			</div>
-
-			<button
-				type="button"
-				className="btn-size-step"
-				aria-label="Збільшити розмір"
-				onClick={handleIncrease}
-			>
-				<Plus className="icon" />
-			</button>
 
 			<button
 				id="btn-toggle-palette"
