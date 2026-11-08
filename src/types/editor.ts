@@ -1,4 +1,5 @@
 export type ToolMode = 'pencil' | 'stamp' | 'eraser' | 'ruler';
+export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw';
 
 export interface RulerItem {
 	id: string;

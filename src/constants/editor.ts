@@ -1,3 +1,5 @@
+import { StampCategory, ToolMode } from '@/types/editor';
+
 export const NOTES = ['До', 'Ре', 'Мі', 'Фа', 'Соль', 'Ля', 'Сі'] as const;
 export const ACCIDENTALS = ['♯', '♭'] as const;
 
@@ -109,3 +111,19 @@ export const MAX_SIDE = 8192;
 export const DRAG_SLOP = 8;
 export const SMOOTH = 0.35;
 export const MAX_HISTORY = 150;
+
+export const DEFAULT_VISIBLE_TOOLS: Record<ToolMode, boolean> = {
+	pencil: true,
+	stamp: true,
+	ruler: true,
+	eraser: true,
+};
+
+export const DEFAULT_VISIBLE_STAMP_CATEGORIES: Record<StampCategory, boolean> = {
+	notes: true,
+	chords: true,
+	count: true,
+	custom: true,
+	text: true,
+	draw: true,
+};

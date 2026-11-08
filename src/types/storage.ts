@@ -1,4 +1,4 @@
-import { AutoCountItem, RulerItem, StampItem, ToolMode } from './editor';
+import { AutoCountItem, RulerItem, StampCategory, StampItem, ToolMode } from './editor';
 
 export interface EditorSettings {
 	currentMode: ToolMode;
@@ -21,6 +21,8 @@ export interface EditorSettings {
 	noteSizes: Record<string, number>;
 	deleteBtnOn: boolean;
 	resizeHandlesOn?: boolean;
+	visibleTools?: Record<ToolMode, boolean>;
+	visibleStampCategories?: Record<StampCategory, boolean>;
 	rulersVisible?: boolean;
 	rulersSnap?: boolean;
 	rulersAttachContent?: boolean;

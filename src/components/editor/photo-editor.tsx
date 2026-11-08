@@ -7,6 +7,7 @@ import { CustomStampModal } from '@/components/modals/custom-stamp-modal';
 import { ImageCropModal } from '@/components/modals/image-crop-modal';
 import { ImageMenuModal } from '@/components/modals/image-menu-modal';
 import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal';
+import { SettingsModal } from '@/components/modals/settings-modal';
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { StampCategory, StampSettings } from '@/components/settings/stamp-settings';
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
@@ -19,6 +20,8 @@ import {
 	COUNT_PATTERN_STEP,
 	DEFAULT_AUTO_COUNT_SEQUENCE,
 	DEFAULT_COUNT_PATTERN,
+	DEFAULT_VISIBLE_STAMP_CATEGORIES,
+	DEFAULT_VISIBLE_TOOLS,
 	MAX_COUNT_PATTERN_LENGTH,
 	MIN_COUNT_PATTERN_LENGTH,
 	NOTES,
@@ -115,6 +118,11 @@ export const PhotoEditor: React.FC = () => {
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
 	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
 	const [rulersCount, setRulersCount] = useState<number>(0);
+	const [visibleTools, setVisibleTools] =
+		useState<Record<ToolMode, boolean>>(DEFAULT_VISIBLE_TOOLS);
+	const [visibleStampCategories, setVisibleStampCategories] =
+		useState<Record<StampCategory, boolean>>(DEFAULT_VISIBLE_STAMP_CATEGORIES);
+	const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 	const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 	const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
 	const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
@@ -215,6 +223,10 @@ export const PhotoEditor: React.FC = () => {
 			if (savedSettings.deleteBtnOn !== undefined) setDeleteBtnOn(savedSettings.deleteBtnOn);
 			if (savedSettings.resizeHandlesOn !== undefined)
 				setResizeHandlesOn(savedSettings.resizeHandlesOn);
+			if (savedSettings.visibleTools)
+				setVisibleTools((prev) => ({ ...prev, ...savedSettings.visibleTools }));
+			if (savedSettings.visibleStampCategories)
+				setVisibleStampCategories((prev) => ({ ...prev, ...savedSettings.visibleStampCategories }));
 			if (savedSettings.rulersVisible !== undefined)
 				setRulersVisible(savedSettings.rulersVisible);
 			if (savedSettings.rulersSnap !== undefined)
@@ -286,6 +298,8 @@ export const PhotoEditor: React.FC = () => {
 			noteSizes,
 			deleteBtnOn,
 			resizeHandlesOn,
+			visibleTools,
+			visibleStampCategories,
 			rulersVisible,
 			rulersSnap,
 			rulersAttachContent,
@@ -326,6 +340,8 @@ export const PhotoEditor: React.FC = () => {
 		stampCategory,
 		toolColors,
 		toolSizes,
+		visibleStampCategories,
+		visibleTools,
 	]);
 
 	const currentSize = toolSizes[currentMode] ?? 24;
@@ -1468,6 +1484,109 @@ export const PhotoEditor: React.FC = () => {
 		});
 	}, [showToast]);
 
+	const handleToggleTool = useCallback(
+		(tool: ToolMode) => {
+			setVisibleTools((prev) => {
+				const isCurrentlyEnabled = prev[tool] ?? true;
+				const currentlyEnabledCount = Object.values(prev).filter(Boolean).length;
+				if (isCurrentlyEnabled && currentlyEnabledCount <= 1) {
+					showToast('Щонайменше один інструмент має бути активним');
+					return prev;
+				}
+				const next = { ...prev, [tool]: !isCurrentlyEnabled };
+				if (!next[currentMode]) {
+					const firstAvailable = (['pencil', 'stamp', 'ruler', 'eraser'] as ToolMode[]).find(
+						(t) => next[t],
+					);
+					if (firstAvailable) {
+						handleSelectMode(firstAvailable);
+					}
+				}
+				return next;
+			});
+		},
+		[currentMode, handleSelectMode, showToast],
+	);
+
+	const handleToggleStampCategory = useCallback(
+		(category: StampCategory) => {
+			setVisibleStampCategories((prev) => {
+				const isCurrentlyEnabled = prev[category] ?? true;
+				const currentlyEnabledCount = Object.values(prev).filter(Boolean).length;
+				if (isCurrentlyEnabled && currentlyEnabledCount <= 1) {
+					showToast('Щонайменше один розділ має бути активним');
+					return prev;
+				}
+				const next = { ...prev, [category]: !isCurrentlyEnabled };
+				if (!next[stampCategory]) {
+					const firstAvailable = (
+						['notes', 'chords', 'count', 'custom', 'text', 'draw'] as StampCategory[]
+					).find((c) => next[c]);
+					if (firstAvailable) {
+						handleChangeStampCategory(firstAvailable);
+					}
+				}
+				return next;
+			});
+		},
+		[handleChangeStampCategory, showToast, stampCategory],
+	);
+
+	const handleResetSettingsToDefault = useCallback(() => {
+		setVisibleTools({ ...DEFAULT_VISIBLE_TOOLS });
+		setVisibleStampCategories({ ...DEFAULT_VISIBLE_STAMP_CATEGORIES });
+		setDeleteBtnOn(true);
+		setResizeHandlesOn(true);
+		setCurrentMode('pencil');
+		setToolSizes({
+			pencil: 2,
+			stamp: 8,
+			eraser: 24,
+			ruler: 24,
+		});
+		setToolColors({
+			pencil: { main: '#ed1c24', stroke: '#000000' },
+			stamp: { main: '#ed1c24', stroke: 'transparent' },
+		});
+		setCategoryColors({
+			notes: { main: '#ed1c24', stroke: 'transparent' },
+			chords: { main: '#ed1c24', stroke: 'transparent' },
+			count: { main: '#ed1c24', stroke: 'transparent' },
+			custom: { main: '#ed1c24', stroke: 'transparent' },
+			text: { main: '#ed1c24', stroke: 'transparent' },
+			draw: { main: '#ed1c24', stroke: 'transparent' },
+		});
+		setSelectedNote('До');
+		setSelectedAccidental('');
+		setSelectedChordRoot('C');
+		setSelectedChordAccidental('');
+		setSelectedChordModifier('');
+		setSelectedChordSlash(false);
+		setSelectedChordBassRoot('');
+		setSelectedChordBassAccidental('');
+		setStampBadgeMode(false);
+		setActiveStampText('До');
+		setStampCategory('notes');
+		setSizeLocked(true);
+		setNoteSizes({});
+		setRulersVisible(true);
+		setRulersSnap(true);
+		setRulersAttachContent(true);
+		setRulersShowDistance(false);
+		setRulersLockEqualDistance(false);
+		setCustomText('Текст');
+		setIsAutoCountMode(false);
+		setCountPattern(DEFAULT_COUNT_PATTERN);
+		setAutoCountSequence(DEFAULT_AUTO_COUNT_SEQUENCE);
+		try {
+			localStorage.removeItem('notyka_editor_settings');
+		} catch {
+			// Ignore
+		}
+		showToast('Налаштування скинуто до початкових');
+		setIsSettingsOpen(false);
+	}, [showToast]);
+
 	// Save / Share logic
 	const downloadBlob = useCallback((blob: Blob) => {
 		const url = URL.createObjectURL(blob);
@@ -1734,8 +1853,6 @@ export const PhotoEditor: React.FC = () => {
 
 			<ImageMenuModal
 				opened={isMenuOpen}
-				deleteBtnOn={deleteBtnOn}
-				resizeHandlesOn={resizeHandlesOn}
 				onClose={() => setIsMenuOpen(false)}
 				onUploadClick={() => {
 					setIsMenuOpen(false);
@@ -1747,14 +1864,30 @@ export const PhotoEditor: React.FC = () => {
 					setHasCanvas(true);
 				}}
 				onOpenHistory={handleOpenHistory}
+				onOpenSettings={() => {
+					setIsMenuOpen(false);
+					setIsSettingsOpen(true);
+				}}
 				onClear={() => {
 					setIsMenuOpen(false);
 					stageRef.current?.clear();
 				}}
 				onSave={handleSave}
 				onShare={handleShare}
+			/>
+
+			<SettingsModal
+				opened={isSettingsOpen}
+				visibleTools={visibleTools}
+				visibleStampCategories={visibleStampCategories}
+				deleteBtnOn={deleteBtnOn}
+				resizeHandlesOn={resizeHandlesOn}
+				onToggleTool={handleToggleTool}
+				onToggleStampCategory={handleToggleStampCategory}
 				onToggleDeleteBtn={handleToggleDeleteBtn}
 				onToggleResizeHandles={handleToggleResizeHandles}
+				onResetDefaults={handleResetSettingsToDefault}
+				onClose={() => setIsSettingsOpen(false)}
 			/>
 
 			<ImageCropModal
@@ -1806,6 +1939,7 @@ export const PhotoEditor: React.FC = () => {
 							selectedChordBassAccidental={selectedChordBassAccidental}
 							activeStampText={activeStampText}
 							category={stampCategory}
+							visibleCategories={visibleStampCategories}
 							customStamps={customStamps}
 							customText={customText}
 							onChangeCategory={handleChangeStampCategory}
@@ -1837,7 +1971,11 @@ export const PhotoEditor: React.FC = () => {
 						/>
 					)}
 
-					<BottomToolbar currentMode={currentMode} onSelectMode={handleSelectMode} />
+					<BottomToolbar
+						currentMode={currentMode}
+						visibleTools={visibleTools}
+						onSelectMode={handleSelectMode}
+					/>
 				</footer>
 			)}
 

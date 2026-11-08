@@ -12,9 +12,9 @@ import {
 	COUNT_ITEMS,
 	NOTES,
 } from '@/constants/editor';
-import { AutoCountItem } from '@/types/editor';
+import { AutoCountItem, StampCategory } from '@/types/editor';
 
-export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw';
+export type { StampCategory };
 
 interface StampSettingsProps {
 	selectedNote: string;
@@ -29,6 +29,7 @@ interface StampSettingsProps {
 	category: StampCategory;
 	customStamps: string[];
 	customText?: string;
+	visibleCategories?: Record<StampCategory, boolean>;
 	isAutoCountMode?: boolean;
 	countPattern?: readonly string[];
 	currentAutoCountIndex?: number;
@@ -78,6 +79,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 	category,
 	customStamps,
 	customText = '',
+	visibleCategories,
 	onChangeCategory,
 	onSelectNote,
 	onSelectAccidental,
@@ -115,6 +117,20 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 }) => {
 	const [isDeleteMode, setIsDeleteMode] = useState<boolean>(false);
 
+	const allCategories = [
+		{ label: 'Ноти', value: 'notes' },
+		{ label: 'Акорди', value: 'chords' },
+		{ label: 'Рахунок', value: 'count' },
+		{ label: 'Власні', value: 'custom' },
+		{ label: 'Текст', value: 'text' },
+		{ label: 'Малюнок', value: 'draw' },
+	];
+
+	const availableCategories = allCategories.filter(
+		(c) => visibleCategories?.[c.value as StampCategory] ?? true,
+	);
+	const displayedCategories = availableCategories.length > 0 ? availableCategories : allCategories;
+
 	return (
 		<div id="stamp-settings">
 			{/* Рівень 1: Mantine SegmentedControl для категорій */}
@@ -131,14 +147,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							setIsDeleteMode(false);
 						}
 					}}
-					data={[
-						{ label: 'Ноти', value: 'notes' },
-						{ label: 'Акорди', value: 'chords' },
-						{ label: 'Рахунок', value: 'count' },
-						{ label: 'Власні', value: 'custom' },
-						{ label: 'Текст', value: 'text' },
-						{ label: 'Малюнок', value: 'draw' },
-					]}
+					data={displayedCategories}
 					classNames={{
 						root: 'stamp-segmented-root',
 						indicator: 'stamp-segmented-indicator',
