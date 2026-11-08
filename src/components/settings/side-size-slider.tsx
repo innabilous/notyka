@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
-import { ToolMode } from '@/types/editor';
+import { StampCategory, ToolMode } from '@/types/editor';
 
 interface SideSizeSliderProps {
 	value: number;
@@ -10,6 +10,7 @@ interface SideSizeSliderProps {
 	opened: boolean;
 	onClose: () => void;
 	currentMode: ToolMode;
+	stampCategory?: StampCategory;
 	canvasScale?: number;
 	mainColor?: string;
 	strokeColor?: string;
@@ -21,6 +22,7 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 	opened,
 	onClose,
 	currentMode,
+	stampCategory,
 	canvasScale = 1,
 	mainColor = '#ed1c24',
 	strokeColor = 'transparent',
@@ -101,6 +103,10 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 
 	const fillPercent = Math.max(0, Math.min(100, ((value - 1) / 99) * 100));
 	const isStamp = currentMode === 'stamp';
+	const showPreviewDot =
+		currentMode === 'pencil' ||
+		currentMode === 'eraser' ||
+		(currentMode === 'stamp' && stampCategory === 'draw');
 	const isTransparent = isStamp && strokeColor === 'transparent';
 	const previewBorder = isStamp
 		? isTransparent
@@ -153,19 +159,21 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 				<Minus className="icon" />
 			</button>
 
-			{/* Спливаючий бабл з числовим значенням та кружечком прев'ю 1:1 */}
+			{/* Спливаючий бабл з числовим значенням (кружечок прев'ю 1:1 тільки для малювання та гумки) */}
 			<div className="side-slider-bubble">
-				<div
-					className="side-slider-preview-dot"
-					style={{
-						width: `${previewDiameter}px`,
-						height: `${previewDiameter}px`,
-						backgroundColor: currentMode === 'eraser' ? '#ffffff' : mainColor,
-						borderColor: previewBorder,
-						borderWidth: isStamp && !isTransparent ? '2px' : '1px',
-						borderStyle: 'solid',
-					}}
-				/>
+				{showPreviewDot && (
+					<div
+						className="side-slider-preview-dot"
+						style={{
+							width: `${previewDiameter}px`,
+							height: `${previewDiameter}px`,
+							backgroundColor: currentMode === 'eraser' ? '#ffffff' : mainColor,
+							borderColor: previewBorder,
+							borderWidth: isStamp && !isTransparent ? '2px' : '1px',
+							borderStyle: 'solid',
+						}}
+					/>
+				)}
 				<span className="side-slider-bubble-text">{value} px</span>
 			</div>
 		</aside>

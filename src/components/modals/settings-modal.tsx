@@ -13,6 +13,7 @@ import {
 	RotateCcw,
 	Ruler,
 	Settings,
+	Shapes,
 	Stamp,
 	Trash2,
 	Type,
@@ -55,6 +56,7 @@ const CATEGORIES_CONFIG: {
 	{ id: 'custom', label: 'Власні', icon: Plus },
 	{ id: 'text', label: 'Текст', icon: Type },
 	{ id: 'draw', label: 'Малюнок', icon: PenTool },
+	{ id: 'shapes', label: 'Фігури', icon: Shapes },
 ];
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({

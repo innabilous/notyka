@@ -4,12 +4,13 @@ import React from 'react';
 import { Menu, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { RulerSettings } from '@/components/settings/ruler-settings';
-import { ToolMode } from '@/types/editor';
+import { StampCategory, ToolMode } from '@/types/editor';
 
 interface TopToolbarProps {
 	canUndo: boolean;
 	canRedo: boolean;
 	currentMode: ToolMode;
+	stampCategory?: StampCategory;
 	brushSize: number;
 	sizeLocked: boolean;
 	mainColor: string;
@@ -44,6 +45,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	canUndo,
 	canRedo,
 	currentMode,
+	stampCategory,
 	brushSize,
 	sizeLocked,
 	mainColor,
@@ -140,6 +142,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 				) : (
 					<BrushSettings
 						currentMode={currentMode}
+						stampCategory={stampCategory}
 						brushSize={brushSize}
 						sizeLocked={sizeLocked}
 						mainColor={mainColor}

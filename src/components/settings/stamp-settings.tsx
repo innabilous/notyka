@@ -2,7 +2,18 @@
 
 import React, { useState } from 'react';
 import { SegmentedControl, Textarea } from '@mantine/core';
-import { Copy, Eraser, ListOrdered, Plus, RotateCcw, Trash2, X } from 'lucide-react';
+import {
+	Circle,
+	Copy,
+	Eraser,
+	ListOrdered,
+	MoveRight,
+	Plus,
+	RotateCcw,
+	Square,
+	Trash2,
+	X,
+} from 'lucide-react';
 import {
 	ACCIDENTALS,
 	CHORD_ACCIDENTALS,
@@ -12,7 +23,7 @@ import {
 	COUNT_ITEMS,
 	NOTES,
 } from '@/constants/editor';
-import { AutoCountItem, StampCategory } from '@/types/editor';
+import { AutoCountItem, ShapeType, StampCategory } from '@/types/editor';
 
 export type { StampCategory };
 
@@ -27,6 +38,7 @@ interface StampSettingsProps {
 	selectedChordBassAccidental: string;
 	activeStampText: string;
 	category: StampCategory;
+	selectedShape?: ShapeType;
 	customStamps: string[];
 	customText?: string;
 	visibleCategories?: Record<StampCategory, boolean>;
@@ -37,6 +49,7 @@ interface StampSettingsProps {
 	autoCountSequence?: AutoCountItem[];
 	currentAutoCountItemId?: string;
 	onChangeCategory: (cat: StampCategory) => void;
+	onSelectShape?: (shape: ShapeType) => void;
 	onSelectNote: (note: string) => void;
 	onSelectAccidental: (acc: string) => void;
 	onSelectChordRoot: (root: string) => void;
@@ -77,10 +90,12 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 	selectedChordBassAccidental,
 	activeStampText,
 	category,
+	selectedShape = 'rect',
 	customStamps,
 	customText = '',
 	visibleCategories,
 	onChangeCategory,
+	onSelectShape,
 	onSelectNote,
 	onSelectAccidental,
 	onSelectChordRoot,
@@ -124,6 +139,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 		{ label: 'Власні', value: 'custom' },
 		{ label: 'Текст', value: 'text' },
 		{ label: 'Малюнок', value: 'draw' },
+		{ label: 'Фігури', value: 'shapes' },
 	];
 
 	const availableCategories = allCategories.filter(
@@ -585,6 +601,67 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 								<span>Дублювати</span>
 							</button>
 						)}
+					</div>
+				)}
+				{/* 7. Фігури (прямокутник, коло, стрілка) */}
+				{category === 'shapes' && (
+					<div
+						className="stamp-chips-row fit-width"
+						style={{
+							display: 'flex',
+							alignItems: 'center',
+							gap: '0.45rem',
+							width: '100%',
+							justifyContent: 'center',
+						}}
+					>
+						<button
+							type="button"
+							className={`chip shape-chip ${selectedShape === 'rect' ? 'active' : ''}`}
+							onClick={() => onSelectShape?.('rect')}
+							title="Прямокутник"
+							aria-label="Прямокутник"
+							style={{
+								display: 'inline-flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								padding: '0.4rem 0.85rem',
+							}}
+						>
+							<Square className="icon" style={{ width: '1rem', height: '1rem' }} />
+						</button>
+
+						<button
+							type="button"
+							className={`chip shape-chip ${selectedShape === 'circle' ? 'active' : ''}`}
+							onClick={() => onSelectShape?.('circle')}
+							title="Коло / Овал"
+							aria-label="Коло / Овал"
+							style={{
+								display: 'inline-flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								padding: '0.4rem 0.85rem',
+							}}
+						>
+							<Circle className="icon" style={{ width: '1rem', height: '1rem' }} />
+						</button>
+
+						<button
+							type="button"
+							className={`chip shape-chip ${selectedShape === 'arrow' ? 'active' : ''}`}
+							onClick={() => onSelectShape?.('arrow')}
+							title="Стрілка"
+							aria-label="Стрілка"
+							style={{
+								display: 'inline-flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								padding: '0.4rem 0.85rem',
+							}}
+						>
+							<MoveRight className="icon" style={{ width: '1rem', height: '1rem' }} />
+						</button>
 					</div>
 				)}
 			</div>

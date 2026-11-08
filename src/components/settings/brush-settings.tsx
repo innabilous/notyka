@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { ArrowUpDown, Lock, Minus, Plus, Unlock } from 'lucide-react';
-import { ToolMode } from '@/types/editor';
+import { StampCategory, ToolMode } from '@/types/editor';
 
 interface BrushSettingsProps {
 	currentMode: ToolMode;
+	stampCategory?: StampCategory;
 	brushSize: number;
 	sizeLocked: boolean;
 	mainColor: string;
@@ -20,6 +21,7 @@ interface BrushSettingsProps {
 
 export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	currentMode,
+	stampCategory,
 	brushSize,
 	sizeLocked,
 	mainColor,
@@ -38,11 +40,31 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 
 	const isStamp = currentMode === 'stamp';
 	const isEraser = currentMode === 'eraser';
+	const isShapes = isStamp && stampCategory === 'shapes';
+	const isFillTransparent = isStamp && mainColor === 'transparent';
 	const isStrokeTransparent = isStamp && strokeColor === 'transparent';
+
+	// Для фігур, якщо заливка прозора, а обводка кольорова — показуємо колір обводки як заливку для прев'ю
+	const previewBgColor =
+		isShapes && isFillTransparent && !isStrokeTransparent
+			? strokeColor
+			: isFillTransparent
+				? 'transparent'
+				: mainColor;
 
 	let previewBorderColor = 'rgba(255, 255, 255, 0.35)';
 	if (isStamp) {
-		previewBorderColor = isStrokeTransparent ? 'rgba(255, 255, 255, 0.4)' : strokeColor;
+		previewBorderColor = isShapes
+			? strokeColor !== 'transparent'
+				? strokeColor
+				: 'rgba(255, 255, 255, 0.4)'
+			: isFillTransparent
+				? isStrokeTransparent
+					? 'rgba(255, 255, 255, 0.4)'
+					: strokeColor
+				: isStrokeTransparent
+					? 'rgba(255, 255, 255, 0.4)'
+					: strokeColor;
 	}
 
 	const handleDecrease = () => {
@@ -123,11 +145,14 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				<div
 					id="color-preview"
 					style={{
-						backgroundColor: mainColor,
+						backgroundColor: previewBgColor,
 						borderColor: previewBorderColor,
 					}}
 				>
-					<span id="stroke-transparent-icon" className={!isStrokeTransparent ? 'hidden' : ''}>
+					<span
+						id="stroke-transparent-icon"
+						className={isShapes || !(isStrokeTransparent && !isFillTransparent) ? 'hidden' : ''}
+					>
 						✕
 					</span>
 				</div>
