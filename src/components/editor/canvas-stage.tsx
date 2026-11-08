@@ -728,12 +728,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			cssW = Math.round(cssH * A4_ASPECT);
 		}
 
-		const k = Math.min(
-			Math.max(2, window.devicePixelRatio || 1),
-			Math.sqrt(MAX_PIXELS / (cssW * cssH)),
-		);
-
-		initCanvas(Math.round(cssW * k), Math.round(cssH * k), cssW, cssH);
+		//! Стандартизований буфер A4 (1240 × 1754 px) для ідеальної чіткості без зайвого навантаження пам'яті
+		initCanvas(DEFAULT_BLANK_WIDTH, DEFAULT_BLANK_HEIGHT, cssW, cssH);
 		onInitBlank();
 		render();
 
@@ -765,23 +761,36 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					activeOrigRef.current = '';
 					resetTransform();
 
-					const cw = container.clientWidth - 20;
-					const ch = container.clientHeight - 130;
+					const cw = Math.max(280, container.clientWidth - 20);
+					const ch = Math.max(280, container.clientHeight - 130);
 					const naturalW = img.naturalWidth || img.width;
 					const naturalH = img.naturalHeight || img.height;
-					const fit = Math.min(cw / naturalW, ch / naturalH);
-					const k = Math.min(
-						1,
-						Math.sqrt(MAX_PIXELS / (naturalW * naturalH)),
-						MAX_SIDE / Math.max(naturalW, naturalH),
-					);
 
-					initCanvas(
-						Math.round(naturalW * k),
-						Math.round(naturalH * k),
-						Math.round(naturalW * fit),
-						Math.round(naturalH * fit),
+					//! 1. Якщо зображення менше за мінімальний стандарт (MIN_CANVAS_SIDE), підтягуємо роздільну здатність
+					let targetW = naturalW;
+					let targetH = naturalH;
+					const minSide = Math.min(naturalW, naturalH);
+					if (minSide < MIN_CANVAS_SIDE) {
+						const upscale = MIN_CANVAS_SIDE / minSide;
+						targetW = Math.round(naturalW * upscale);
+						targetH = Math.round(naturalH * upscale);
+					}
+
+					//! 2. Обмежуємо максимальні габарити (2K / 4.5 Мп) для економії оперативної пам'яті
+					const maxSide = Math.max(targetW, targetH);
+					const downscale = Math.min(
+						1,
+						MAX_SIDE / maxSide,
+						Math.sqrt(MAX_PIXELS / (targetW * targetH)),
 					);
+					const canvasW = Math.round(targetW * downscale);
+					const canvasH = Math.round(targetH * downscale);
+
+					const fit = Math.min(cw / canvasW, ch / canvasH);
+					const cssW = Math.round(canvasW * fit);
+					const cssH = Math.round(canvasH * fit);
+
+					initCanvas(canvasW, canvasH, cssW, cssH);
 
 					const bg = bgCanvasRef.current;
 					if (bg) {

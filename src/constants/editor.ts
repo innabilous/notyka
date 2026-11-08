@@ -106,8 +106,11 @@ export const PALETTE_COLORS: readonly string[] = [
 
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 8;
-export const MAX_PIXELS = 36e6;
-export const MAX_SIDE = 8192;
+export const MAX_PIXELS = 4.5e6; //! Максимум ~4.5 Мп (пам'ять < 20 МБ, запобігає крашам Safari)
+export const MAX_SIDE = 2048; //! Максимум 2048 px (2K ліміт для фото з камери)
+export const MIN_CANVAS_SIDE = 1000; //! Мінімальний розмір меншої сторони для імпортованих фото (усуває розмиття нот на 400-600px)
+export const DEFAULT_BLANK_WIDTH = 1240; //! Стандартний розмір аркуша A4 (1240 × 1754, ~2.1 Мп, легкий та чіткий)
+export const DEFAULT_BLANK_HEIGHT = 1754;
 export const DRAG_SLOP = 8;
 export const SMOOTH = 0.35;
 export const MAX_HISTORY = 150;
