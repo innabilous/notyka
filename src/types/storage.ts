@@ -1,4 +1,12 @@
-import { AutoCountItem, RulerItem, StampCategory, StampItem, ToolMode } from './editor';
+import {
+	AutoCountItem,
+	RulerItem,
+	SelectionMode,
+	SelectionShape,
+	StampCategory,
+	StampItem,
+	ToolMode,
+} from './editor';
 
 export interface EditorSettings {
 	currentMode: ToolMode;
@@ -30,6 +38,8 @@ export interface EditorSettings {
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
 	compactRulers?: boolean;
+	selectionShape?: SelectionShape;
+	selectionMode?: SelectionMode;
 	customText?: string;
 	isAutoCountMode?: boolean;
 	countPattern?: string[];

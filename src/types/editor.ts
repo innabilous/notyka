@@ -1,6 +1,8 @@
-export type ToolMode = 'pencil' | 'stamp' | 'eraser' | 'ruler';
+export type ToolMode = 'select' | 'pencil' | 'stamp' | 'eraser' | 'ruler';
 export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw' | 'shapes';
 export type ShapeType = 'rect' | 'circle' | 'arrow';
+export type SelectionShape = 'lasso' | 'rect';
+export type SelectionMode = 'inside' | 'intersect';
 
 export interface RulerItem {
 	id: string;

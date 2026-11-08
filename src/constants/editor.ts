@@ -116,6 +116,7 @@ export const SMOOTH = 0.35;
 export const MAX_HISTORY = 150;
 
 export const DEFAULT_VISIBLE_TOOLS: Record<ToolMode, boolean> = {
+	select: true,
 	pencil: true,
 	stamp: true,
 	ruler: true,
