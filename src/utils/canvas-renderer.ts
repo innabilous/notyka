@@ -1,4 +1,11 @@
-import { BoundingBox, Point, RulerItem, StampItem } from '@/types/editor';
+import {
+	BoundingBox,
+	Point,
+	RulerItem,
+	SelectionMode,
+	SelectionShape,
+	StampItem,
+} from '@/types/editor';
 
 let trashPaths: Path2D[] | null = null;
 let rotatePaths: Path2D[] | null = null;
@@ -1481,4 +1488,326 @@ export function drawRulers(
 			ctx.restore();
 		}
 	}
+}
+
+function doSegmentsIntersect(
+	p1: Point,
+	p2: Point,
+	p3: Point,
+	p4: Point,
+): boolean {
+	const ccw = (a: Point, b: Point, c: Point) =>
+		(c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
+	return (
+		ccw(p1, p3, p4) !== ccw(p2, p3, p4) &&
+		ccw(p1, p2, p3) !== ccw(p1, p2, p4)
+	);
+}
+
+export function isPointInPolygon(pt: Point, poly: Point[]): boolean {
+	if (poly.length < 3) return false;
+	let inside = false;
+	for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+		const xi = poly[i].x;
+		const yi = poly[i].y;
+		const xj = poly[j].x;
+		const yj = poly[j].y;
+		const intersect =
+			yi > pt.y !== yj > pt.y &&
+			pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi) + xi;
+		if (intersect) inside = !inside;
+	}
+	return inside;
+}
+
+//! Отримує ключові точки полігона/рамки штампа для перевірки потрапляння у виділення
+export function getStampBoundingPoints(
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): Point[] {
+	if (stamp.category === 'shapes' || stamp.shapeType) {
+		const lw = Math.max(1 * U, (stamp.strokeWidth || stamp.size || 2) * U);
+
+		if (stamp.shapeType === 'arrow') {
+			const p1 = { x: stamp.x, y: stamp.y };
+			const p2 = {
+				x: stamp.endX ?? stamp.x + stamp.size * 3 * U,
+				y: stamp.endY ?? stamp.y,
+			};
+			const dx = p2.x - p1.x;
+			const dy = p2.y - p1.y;
+			const len = Math.hypot(dx, dy);
+			const angle = Math.atan2(dy, dx);
+			const baseHeadLen = Math.max(12 * U, lw * 4.5);
+			const headLen = Math.min(len * 0.45, baseHeadLen);
+			const headAngle = Math.PI / 6;
+
+			const w1 = {
+				x: p2.x - headLen * Math.cos(angle - headAngle),
+				y: p2.y - headLen * Math.sin(angle - headAngle),
+			};
+			const w2 = {
+				x: p2.x - headLen * Math.cos(angle + headAngle),
+				y: p2.y - headLen * Math.sin(angle + headAngle),
+			};
+			const mid = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+			return [p1, p2, w1, w2, mid];
+		}
+
+		const rot = stamp.rotation || 0;
+		const w = (stamp.width || stamp.size * 2) * U + lw;
+		const h = (stamp.height || stamp.size * 1.5) * U + lw;
+		const cos = Math.cos(rot);
+		const sin = Math.sin(rot);
+
+		const toCanvas = (lx: number, ly: number) => ({
+			x: stamp.x + lx * cos - ly * sin,
+			y: stamp.y + lx * sin + ly * cos,
+		});
+
+		return [
+			toCanvas(-w / 2, -h / 2),
+			toCanvas(w / 2, -h / 2),
+			toCanvas(w / 2, h / 2),
+			toCanvas(-w / 2, h / 2),
+			{ x: stamp.x, y: stamp.y },
+		];
+	}
+
+	const box = calculateStampBox(stamp, U, ctx);
+	return [
+		{ x: box.x, y: box.y },
+		{ x: box.x + box.w, y: box.y },
+		{ x: box.x + box.w, y: box.y + box.h },
+		{ x: box.x, y: box.y + box.h },
+		{ x: stamp.x, y: stamp.y },
+	];
+}
+
+//! Перевіряє, чи потрапляє штамп у виділення згідно з обраною формою та критерієм
+export function isStampInSelection(
+	stamp: StampItem,
+	shape: SelectionShape,
+	mode: SelectionMode,
+	points: Point[],
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): boolean {
+	if (points.length < 2) return false;
+
+	const stampPts = getStampBoundingPoints(stamp, U, ctx);
+	if (stampPts.length === 0) return false;
+
+	if (shape === 'rect') {
+		const p0 = points[0];
+		const p1 = points[points.length - 1];
+		const minX = Math.min(p0.x, p1.x);
+		const maxX = Math.max(p0.x, p1.x);
+		const minY = Math.min(p0.y, p1.y);
+		const maxY = Math.max(p0.y, p1.y);
+
+		const rectPoly: Point[] = [
+			{ x: minX, y: minY },
+			{ x: maxX, y: minY },
+			{ x: maxX, y: maxY },
+			{ x: minX, y: maxY },
+		];
+
+		if (mode === 'inside') {
+			return stampPts.every(
+				(p) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY,
+			);
+		} else {
+			if (stampPts.some((p) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY)) {
+				return true;
+			}
+			if (rectPoly.some((rp) => isPointInPolygon(rp, stampPts.slice(0, 4)))) {
+				return true;
+			}
+			const sEdges: [Point, Point][] = [
+				[stampPts[0], stampPts[1]],
+				[stampPts[1], stampPts[2]],
+				[stampPts[2], stampPts[3]],
+				[stampPts[3], stampPts[0]],
+			];
+			const rEdges: [Point, Point][] = [
+				[rectPoly[0], rectPoly[1]],
+				[rectPoly[1], rectPoly[2]],
+				[rectPoly[2], rectPoly[3]],
+				[rectPoly[3], rectPoly[0]],
+			];
+			for (const se of sEdges) {
+				for (const re of rEdges) {
+					if (doSegmentsIntersect(se[0], se[1], re[0], re[1])) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+	} else {
+		if (points.length < 3) return false;
+
+		if (mode === 'inside') {
+			return stampPts.every((p) => isPointInPolygon(p, points));
+		} else {
+			if (stampPts.some((p) => isPointInPolygon(p, points))) {
+				return true;
+			}
+			if (points.some((lp) => isPointInPolygon(lp, stampPts.slice(0, 4)))) {
+				return true;
+			}
+			const sEdges: [Point, Point][] = [
+				[stampPts[0], stampPts[1]],
+				[stampPts[1], stampPts[2]],
+				[stampPts[2], stampPts[3]],
+				[stampPts[3], stampPts[0]],
+			];
+			for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+				const pA = points[j];
+				const pB = points[i];
+				for (const se of sEdges) {
+					if (doSegmentsIntersect(pA, pB, se[0], se[1])) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+	}
+}
+
+//! Малювання інтерактивної рамки або контуру ласо під час виділення
+export function drawAreaSelectionOverlay(
+	ctx: CanvasRenderingContext2D,
+	shape: SelectionShape,
+	points: Point[],
+	U: number,
+): void {
+	if (points.length < 2) return;
+
+	ctx.save();
+	ctx.fillStyle = 'rgba(14, 165, 233, 0.14)';
+	ctx.strokeStyle = '#0ea5e9';
+	ctx.lineWidth = 1.5 * U;
+	ctx.setLineDash([5 * U, 4 * U]);
+
+	if (shape === 'rect') {
+		const p0 = points[0];
+		const p1 = points[points.length - 1];
+		const minX = Math.min(p0.x, p1.x);
+		const maxX = Math.max(p0.x, p1.x);
+		const minY = Math.min(p0.y, p1.y);
+		const maxY = Math.max(p0.y, p1.y);
+		const w = maxX - minX;
+		const h = maxY - minY;
+
+		ctx.fillRect(minX, minY, w, h);
+		ctx.strokeRect(minX, minY, w, h);
+
+		ctx.setLineDash([]);
+		ctx.fillStyle = '#ffffff';
+		ctx.lineWidth = 1.5 * U;
+		const corners = [
+			{ x: minX, y: minY },
+			{ x: maxX, y: minY },
+			{ x: maxX, y: maxY },
+			{ x: minX, y: maxY },
+		];
+		corners.forEach((c) => {
+			ctx.beginPath();
+			ctx.arc(c.x, c.y, 3.5 * U, 0, Math.PI * 2);
+			ctx.fill();
+			ctx.stroke();
+		});
+	} else {
+		ctx.beginPath();
+		ctx.moveTo(points[0].x, points[0].y);
+		for (let i = 1; i < points.length; i++) {
+			ctx.lineTo(points[i].x, points[i].y);
+		}
+		ctx.closePath();
+		ctx.fill();
+		ctx.stroke();
+
+		ctx.setLineDash([]);
+		ctx.fillStyle = '#ffffff';
+		ctx.beginPath();
+		ctx.arc(points[0].x, points[0].y, 4 * U, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.stroke();
+	}
+
+	ctx.restore();
+}
+
+//! Малювання спільної пунктирної рамки для кількох виділених штампів
+export function drawMultiSelectionBox(
+	ctx: CanvasRenderingContext2D,
+	stamps: StampItem[],
+	U: number,
+): { minX: number; minY: number; maxX: number; maxY: number } | null {
+	if (stamps.length < 2) return null;
+
+	let minX = Infinity;
+	let minY = Infinity;
+	let maxX = -Infinity;
+	let maxY = -Infinity;
+
+	stamps.forEach((s) => {
+		const pts = getStampBoundingPoints(s, U, ctx);
+		pts.forEach((p) => {
+			if (p.x < minX) minX = p.x;
+			if (p.x > maxX) maxX = p.x;
+			if (p.y < minY) minY = p.y;
+			if (p.y > maxY) maxY = p.y;
+		});
+
+		ctx.save();
+		ctx.strokeStyle = 'rgba(14, 165, 233, 0.45)';
+		ctx.lineWidth = 1 * U;
+		ctx.setLineDash([3 * U, 3 * U]);
+		if (pts.length >= 4) {
+			ctx.beginPath();
+			ctx.moveTo(pts[0].x, pts[0].y);
+			for (let i = 1; i < 4; i++) ctx.lineTo(pts[i].x, pts[i].y);
+			ctx.closePath();
+			ctx.stroke();
+		}
+		ctx.restore();
+	});
+
+	if (minX === Infinity) return null;
+
+	const pad = 6 * U;
+	const bx = minX - pad;
+	const by = minY - pad;
+	const bw = maxX - minX + pad * 2;
+	const bh = maxY - minY + pad * 2;
+
+	ctx.save();
+	ctx.strokeStyle = '#0ea5e9';
+	ctx.lineWidth = 1.5 * U;
+	ctx.setLineDash([6 * U, 4 * U]);
+	ctx.strokeRect(bx, by, bw, bh);
+
+	ctx.setLineDash([]);
+	ctx.fillStyle = '#ffffff';
+	const corners = [
+		{ x: bx, y: by },
+		{ x: bx + bw, y: by },
+		{ x: bx + bw, y: by + bh },
+		{ x: bx, y: by + bh },
+	];
+	corners.forEach((c) => {
+		ctx.beginPath();
+		ctx.arc(c.x, c.y, 4 * U, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.stroke();
+	});
+
+	ctx.restore();
+
+	return { minX: bx, minY: by, maxX: bx + bw, maxY: by + bh };
 }
