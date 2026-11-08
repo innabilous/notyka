@@ -28,7 +28,7 @@ import {
 	MIN_COUNT_PATTERN_LENGTH,
 	NOTES,
 } from '@/constants/editor';
-import { AutoCountItem, StampItem, ToolMode } from '@/types/editor';
+import { AutoCountItem, ShapeType, StampItem, ToolMode } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
 	clearAllStorage,
@@ -72,6 +72,15 @@ export const PhotoEditor: React.FC = () => {
 		custom: { main: '#ed1c24', stroke: 'transparent' },
 		text: { main: '#ed1c24', stroke: 'transparent' },
 		draw: { main: '#ed1c24', stroke: 'transparent' },
+		shapes: { main: 'transparent', stroke: '#ed1c24' },
+	});
+
+	// Selected shape type and independent sizes for shapes stamp category
+	const [selectedShape, setSelectedShape] = useState<ShapeType>('rect');
+	const [shapeSizes, setShapeSizes] = useState<Record<ShapeType, number>>({
+		rect: 2,
+		circle: 2,
+		arrow: 2,
 	});
 
 	// Independent tool sizes
@@ -359,15 +368,58 @@ export const PhotoEditor: React.FC = () => {
 		visibleTools,
 	]);
 
-	const currentSize = toolSizes[currentMode] ?? 24;
-	const currentMainColor =
-		currentMode === 'stamp'
-			? (categoryColors[stampCategory]?.main ?? '#ed1c24')
-			: toolColors.pencil.main;
-	const currentStrokeColor =
-		currentMode === 'stamp'
-			? (categoryColors[stampCategory]?.stroke ?? 'transparent')
-			: toolColors.pencil.stroke;
+	const currentSize = useMemo(() => {
+		if (currentMode === 'stamp' && stampCategory === 'shapes') {
+			return shapeSizes[selectedShape] ?? 2;
+		}
+		return toolSizes[currentMode] ?? 24;
+	}, [currentMode, selectedShape, shapeSizes, stampCategory, toolSizes]);
+
+	const currentMainColor = useMemo(() => {
+		if (currentMode !== 'stamp') return toolColors.pencil.main;
+		if (stampCategory === 'shapes') {
+			if (selectedShape === 'arrow') {
+				const arrowColor =
+					categoryColors.shapes?.stroke && categoryColors.shapes.stroke !== 'transparent'
+						? categoryColors.shapes.stroke
+						: categoryColors.shapes?.main && categoryColors.shapes.main !== 'transparent'
+							? categoryColors.shapes.main
+							: '#ed1c24';
+				return arrowColor;
+			}
+			return categoryColors.shapes?.main ?? 'transparent';
+		}
+		return categoryColors[stampCategory]?.main ?? '#ed1c24';
+	}, [
+		categoryColors,
+		currentMode,
+		selectedShape,
+		stampCategory,
+		toolColors.pencil.main,
+	]);
+
+	const currentStrokeColor = useMemo(() => {
+		if (currentMode !== 'stamp') return toolColors.pencil.stroke;
+		if (stampCategory === 'shapes') {
+			if (selectedShape === 'arrow') {
+				const arrowColor =
+					categoryColors.shapes?.stroke && categoryColors.shapes.stroke !== 'transparent'
+						? categoryColors.shapes.stroke
+						: categoryColors.shapes?.main && categoryColors.shapes.main !== 'transparent'
+							? categoryColors.shapes.main
+							: '#ed1c24';
+				return arrowColor;
+			}
+			return categoryColors.shapes?.stroke ?? '#ed1c24';
+		}
+		return categoryColors[stampCategory]?.stroke ?? 'transparent';
+	}, [
+		categoryColors,
+		currentMode,
+		selectedShape,
+		stampCategory,
+		toolColors.pencil.stroke,
+	]);
 
 	const getStampKey = useCallback(
 		(note: string, acc: string, customText?: string) => customText || `${note}${acc}`,
@@ -1154,6 +1206,13 @@ export const PhotoEditor: React.FC = () => {
 				nextText = customText;
 			} else if (cat === 'draw') {
 				nextText = '';
+			} else if (cat === 'shapes') {
+				nextText = selectedShape;
+				const sz = shapeSizes[selectedShape] ?? 2;
+				setToolSizes((prev) => ({
+					...prev,
+					stamp: sz,
+				}));
 			}
 			setActiveStampText(nextText);
 		},
@@ -1174,7 +1233,24 @@ export const PhotoEditor: React.FC = () => {
 			selectedCount,
 			selectedCustom,
 			selectedNote,
+			selectedShape,
+			shapeSizes,
 		],
+	);
+
+	//! Вибір типу фігури
+	const handleSelectShape = useCallback(
+		(shape: ShapeType) => {
+			stageRef.current?.commitActiveStamp();
+			setSelectedShape(shape);
+			setActiveStampText(shape);
+			const sz = shapeSizes[shape] ?? 2;
+			setToolSizes((prev) => ({
+				...prev,
+				stamp: sz,
+			}));
+		},
+		[shapeSizes],
 	);
 
 	//! Зміна користувацького тексту штампа
@@ -1225,12 +1301,19 @@ export const PhotoEditor: React.FC = () => {
 
 	const handleChangeSize = useCallback(
 		(sz: number) => {
+			if (currentMode === 'stamp' && stampCategory === 'shapes') {
+				setShapeSizes((prev) => ({
+					...prev,
+					[selectedShape]: sz,
+				}));
+			}
+
 			setToolSizes((prev) => ({
 				...prev,
 				[currentMode]: sz,
 			}));
 
-			if (!sizeLocked && currentMode === 'stamp') {
+			if (!sizeLocked && currentMode === 'stamp' && stampCategory !== 'shapes') {
 				setNoteSizes((prev) => ({
 					...prev,
 					[getStampKey(selectedNote, selectedAccidental, activeStampText)]: sz,
@@ -1240,7 +1323,10 @@ export const PhotoEditor: React.FC = () => {
 			if (currentMode === 'stamp') {
 				stageRef.current?.updateActiveStampProps(
 					sz,
-					activeStampText || `${selectedNote}${selectedAccidental}`,
+					activeStampText ||
+						(stampCategory === 'shapes'
+							? selectedShape
+							: `${selectedNote}${selectedAccidental}`),
 					currentMainColor,
 					currentStrokeColor,
 				);
@@ -1254,7 +1340,9 @@ export const PhotoEditor: React.FC = () => {
 			getStampKey,
 			selectedAccidental,
 			selectedNote,
+			selectedShape,
 			sizeLocked,
+			stampCategory,
 		],
 	);
 
@@ -1279,6 +1367,19 @@ export const PhotoEditor: React.FC = () => {
 	const handleChangeMainColor = useCallback(
 		(color: string) => {
 			if (currentMode === 'stamp') {
+				if (stampCategory === 'shapes' && selectedShape === 'arrow') {
+					setCategoryColors((prev) => ({
+						...prev,
+						shapes: { main: color, stroke: color },
+					}));
+					stageRef.current?.updateActiveStampProps(
+						currentSize,
+						activeStampText || selectedShape,
+						color,
+						color,
+					);
+					return;
+				}
 				setCategoryColors((prev) => ({
 					...prev,
 					[stampCategory]: {
@@ -1288,7 +1389,10 @@ export const PhotoEditor: React.FC = () => {
 				}));
 				stageRef.current?.updateActiveStampProps(
 					currentSize,
-					activeStampText || `${selectedNote}${selectedAccidental}`,
+					activeStampText ||
+						(stampCategory === 'shapes'
+							? selectedShape
+							: `${selectedNote}${selectedAccidental}`),
 					color,
 					currentStrokeColor,
 				);
@@ -1309,6 +1413,7 @@ export const PhotoEditor: React.FC = () => {
 			currentStrokeColor,
 			selectedAccidental,
 			selectedNote,
+			selectedShape,
 			stampCategory,
 		],
 	);
@@ -1316,6 +1421,19 @@ export const PhotoEditor: React.FC = () => {
 	const handleChangeStrokeColor = useCallback(
 		(color: string) => {
 			if (currentMode === 'stamp') {
+				if (stampCategory === 'shapes' && selectedShape === 'arrow') {
+					setCategoryColors((prev) => ({
+						...prev,
+						shapes: { main: color, stroke: color },
+					}));
+					stageRef.current?.updateActiveStampProps(
+						currentSize,
+						activeStampText || selectedShape,
+						color,
+						color,
+					);
+					return;
+				}
 				setCategoryColors((prev) => ({
 					...prev,
 					[stampCategory]: {
@@ -1330,7 +1448,10 @@ export const PhotoEditor: React.FC = () => {
 
 				stageRef.current?.updateActiveStampProps(
 					currentSize,
-					activeStampText || `${selectedNote}${selectedAccidental}`,
+					activeStampText ||
+						(stampCategory === 'shapes'
+							? selectedShape
+							: `${selectedNote}${selectedAccidental}`),
 					currentMainColor,
 					color,
 					stampBadgeMode,
@@ -1352,6 +1473,7 @@ export const PhotoEditor: React.FC = () => {
 			currentSize,
 			selectedAccidental,
 			selectedNote,
+			selectedShape,
 			showToast,
 			stampBadgeMode,
 			stampCategory,
@@ -1485,6 +1607,12 @@ export const PhotoEditor: React.FC = () => {
 				updated[note] = currentSize;
 			});
 			setNoteSizes(updated);
+		} else if (stampCategory === 'shapes') {
+			setShapeSizes({
+				rect: currentSize,
+				circle: currentSize,
+				arrow: currentSize,
+			});
 		}
 	}, [currentMode, currentSize, noteSizes, stampCategory]);
 
@@ -1526,6 +1654,15 @@ export const PhotoEditor: React.FC = () => {
 			const root = (CHORD_ROOTS as readonly string[]).find((r) => stamp.text.startsWith(r));
 			if (root) {
 				setSelectedChordRoot(root);
+			}
+		} else if (cat === 'shapes') {
+			if (stamp.shapeType) {
+				setSelectedShape(stamp.shapeType);
+				const shapeSz = stamp.strokeWidth || stamp.size || 2;
+				setShapeSizes((prev) => ({
+					...prev,
+					[stamp.shapeType as ShapeType]: shapeSz,
+				}));
 			}
 		}
 
@@ -1604,7 +1741,7 @@ export const PhotoEditor: React.FC = () => {
 				const next = { ...prev, [category]: !isCurrentlyEnabled };
 				if (!next[stampCategory]) {
 					const firstAvailable = (
-						['notes', 'chords', 'count', 'custom', 'text', 'draw'] as StampCategory[]
+						['notes', 'chords', 'count', 'custom', 'text', 'draw', 'shapes'] as StampCategory[]
 					).find((c) => next[c]);
 					if (firstAvailable) {
 						handleChangeStampCategory(firstAvailable);
@@ -1641,7 +1778,10 @@ export const PhotoEditor: React.FC = () => {
 			custom: { main: '#ed1c24', stroke: 'transparent' },
 			text: { main: '#ed1c24', stroke: 'transparent' },
 			draw: { main: '#ed1c24', stroke: 'transparent' },
+			shapes: { main: 'transparent', stroke: '#ed1c24' },
 		});
+		setSelectedShape('rect');
+		setShapeSizes({ rect: 2, circle: 2, arrow: 2 });
 		setSelectedNote('До');
 		setSelectedAccidental('');
 		setSelectedChordRoot('C');
@@ -1879,6 +2019,7 @@ export const PhotoEditor: React.FC = () => {
 				canUndo={canUndo}
 				canRedo={canRedo}
 				currentMode={currentMode}
+				stampCategory={stampCategory}
 				brushSize={currentSize}
 				sizeLocked={sizeLocked}
 				mainColor={currentMainColor}
@@ -1916,6 +2057,7 @@ export const PhotoEditor: React.FC = () => {
 				currentSize={currentSize}
 				selectedNote={selectedNote}
 				selectedAccidental={selectedAccidental}
+				selectedShape={selectedShape}
 				activeStampText={activeStampText}
 				stampBadgeMode={stampBadgeMode}
 				stampCategory={stampCategory}
@@ -2005,6 +2147,7 @@ export const PhotoEditor: React.FC = () => {
 				opened={isSideSliderOpen}
 				onClose={() => setIsSideSliderOpen(false)}
 				currentMode={currentMode}
+				stampCategory={stampCategory}
 				canvasScale={canvasScale}
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
@@ -2029,6 +2172,8 @@ export const PhotoEditor: React.FC = () => {
 			<ColorPaletteModal
 				opened={isPaletteOpen}
 				currentMode={currentMode}
+				stampCategory={stampCategory}
+				selectedShape={selectedShape}
 				mainColor={currentMainColor}
 				strokeColor={currentStrokeColor}
 				stampBadgeMode={stampBadgeMode}
@@ -2077,6 +2222,8 @@ export const PhotoEditor: React.FC = () => {
 							onChangeCustomText={handleChangeCustomText}
 							isDrawDuplicateMode={drawDuplicateMode}
 							onToggleDrawDuplicateMode={() => setDrawDuplicateMode((prev) => !prev)}
+							selectedShape={selectedShape}
+							onSelectShape={handleSelectShape}
 							isAutoCountMode={isAutoCountMode}
 							countPattern={countPattern}
 							currentAutoCountIndex={autoCountIndex}
