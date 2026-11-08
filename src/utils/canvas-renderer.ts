@@ -239,7 +239,8 @@ export function getResizeHandleCoords(
 } {
 	const bx = calculateStampBox(stamp, U, ctx);
 	const cy = bx.y + bx.h / 2;
-	const radius = 6 * U;
+	//! Для малих штампів радіус хендла масштабується від висоти, щоб він лишався на прямій ділянці грані
+	const radius = Math.min(6 * U, Math.max(2.5 * U, bx.h * 0.25));
 	const hitRadius = Math.max(12 * U, 12);
 	return {
 		left: { x: bx.x, y: cy, radius, hitRadius },
@@ -389,7 +390,11 @@ export function drawStamp(
 				const bx = calculateStampBox(stamp, U, ctx);
 				ctx.fillStyle = stamp.strokeColor;
 				ctx.beginPath();
-				const radius = Math.min(6 * U, bx.h / 3);
+				//! Для малих штампів радіус плашки зменшується пропорційно, щоб плашка залишалась прямокутником
+				const maxBadgeRadius = Math.min(bx.w, bx.h) * 0.25;
+				const baseBadgeRadius =
+					stamp.size < 8 ? Math.max(1.5 * U, (stamp.size / 8) * 6 * U) : 6 * U;
+				const radius = Math.min(baseBadgeRadius, maxBadgeRadius);
 				if (typeof ctx.roundRect === 'function') {
 					ctx.roundRect(bx.x, bx.y, bx.w, bx.h, radius);
 				} else {
@@ -417,8 +422,13 @@ export function drawStamp(
 		ctx.lineWidth = 2 * U;
 		ctx.setLineDash([5 * U, 4 * U]);
 		ctx.beginPath();
+		//! Для штампів розміром менше 8px радіус рамки зменшується, зберігаючи рівні грані для хендлів
+		const maxBoxRadius = Math.min(bx.w, bx.h) * 0.25;
+		const baseBoxRadius =
+			stamp.size < 8 ? Math.max(1.5 * U, (stamp.size / 8) * 8 * U) : 8 * U;
+		const activeRadius = Math.min(baseBoxRadius, maxBoxRadius);
 		if (typeof ctx.roundRect === 'function') {
-			ctx.roundRect(bx.x, bx.y, bx.w, bx.h, 8 * U);
+			ctx.roundRect(bx.x, bx.y, bx.w, bx.h, activeRadius);
 		} else {
 			ctx.rect(bx.x, bx.y, bx.w, bx.h);
 		}
