@@ -636,6 +636,105 @@ footer {
 	}
 }
 
+/* Налаштування інструменту виділення у топбарі */
+#select-settings {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+	max-width: 100%;
+	width: auto;
+	height: 100%;
+}
+
+.select-setting-group {
+	display: flex;
+	align-items: center;
+	gap: 0.15rem;
+	background: rgba(255, 255, 255, 0.05);
+	padding: 0.15rem;
+	border-radius: 9999px;
+	border: 1px solid var(--line);
+}
+
+.select-setting-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.3rem;
+	height: 1.85rem;
+	padding: 0 0.55rem;
+	border-radius: 9999px;
+	border: none;
+	background: transparent;
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.12s;
+	flex-shrink: 0;
+}
+
+.select-setting-btn:hover {
+	color: var(--text);
+	background: rgba(255, 255, 255, 0.08);
+}
+
+.select-setting-btn.active {
+	background: var(--accent-gradient);
+	color: #ffffff;
+	font-weight: 600;
+	box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4);
+}
+
+.select-setting-btn.danger {
+	color: #ef4444;
+	background: rgba(239, 68, 68, 0.12);
+	border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.select-setting-btn.danger:hover {
+	background: #ef4444;
+	color: #ffffff;
+}
+
+.select-setting-btn .icon {
+	width: 0.9rem;
+	height: 0.9rem;
+	flex-shrink: 0;
+}
+
+.select-settings-divider {
+	width: 1px;
+	height: 1.25rem;
+	background: var(--line);
+	margin: 0 0.15rem;
+	flex-shrink: 0;
+}
+
+.select-count-badge {
+	display: flex;
+	align-items: center;
+	padding: 0 0.55rem;
+	height: 1.85rem;
+	border-radius: 9999px;
+	background: rgba(14, 165, 233, 0.15);
+	border: 1px solid rgba(14, 165, 233, 0.35);
+	color: var(--accent-text);
+	font-size: 0.75rem;
+	font-weight: 600;
+	flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+	.select-setting-btn span.btn-label {
+		display: none;
+	}
+	.select-setting-btn {
+		padding: 0 0.4rem;
+	}
+}
+
 .size-stepper-group {
 	display: flex;
 	align-items: center;
@@ -1694,7 +1793,7 @@ footer {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 2.25rem;
+	gap: clamp(0.75rem, 4vw, 2.25rem);
 	width: 100%;
 	padding: 0.45rem 1rem;
 	padding-bottom: max(0.45rem, env(safe-area-inset-bottom, 0px));
