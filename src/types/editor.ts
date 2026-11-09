@@ -5,6 +5,16 @@ export type ShapeType = 'rect' | 'circle' | 'arrow';
 export type SelectionShape = 'lasso' | 'rect';
 export type SelectionMode = 'inside' | 'intersect';
 
+export type AccentSkin = 'orange' | 'cobalt' | 'lime' | 'amber';
+export type DarkSurfaceTone = 'carbon' | 'obsidian';
+export type LightSurfaceTone = 'cotton' | 'anodized';
+
+export interface AppearanceConfig {
+	accentSkin: AccentSkin;
+	darkTone: DarkSurfaceTone;
+	lightTone: LightSurfaceTone;
+}
+
 export interface RulerItem {
 	id: string;
 	y: number;
