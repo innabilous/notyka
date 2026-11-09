@@ -133,6 +133,7 @@ export const PhotoEditor: React.FC = () => {
 	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(true); //! За замовчуванням увімкнено спільний рух
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
 	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
+	const [areaSelectEnabled, setAreaSelectEnabled] = useState<boolean>(false);
 	const [selectionShape, setSelectionShape] = useState<SelectionShape>('rect');
 	const [selectionMode, setSelectionMode] = useState<SelectionMode>('inside');
 	const [selectedStampsCount, setSelectedStampsCount] = useState<number>(0);
@@ -261,6 +262,8 @@ export const PhotoEditor: React.FC = () => {
 				setRulersLockEqualDistance(savedSettings.rulersLockEqualDistance);
 			if (savedSettings.compactRulers !== undefined)
 				setCompactRulers(savedSettings.compactRulers);
+			if (savedSettings.areaSelectEnabled !== undefined)
+				setAreaSelectEnabled(savedSettings.areaSelectEnabled);
 			if (savedSettings.selectionShape) setSelectionShape(savedSettings.selectionShape);
 			if (savedSettings.selectionMode) setSelectionMode(savedSettings.selectionMode);
 			if (savedSettings.customText) setCustomText(savedSettings.customText);
@@ -333,6 +336,7 @@ export const PhotoEditor: React.FC = () => {
 			rulersShowDistance,
 			rulersLockEqualDistance,
 			compactRulers,
+			areaSelectEnabled,
 			selectionShape,
 			selectionMode,
 			customText,
@@ -342,6 +346,7 @@ export const PhotoEditor: React.FC = () => {
 		});
 	}, [
 		activeStampText,
+		areaSelectEnabled,
 		autoCountSequence,
 		categoryColors,
 		compactRulers,
@@ -1837,6 +1842,7 @@ export const PhotoEditor: React.FC = () => {
 		setRulersAttachContent(true);
 		setRulersShowDistance(false);
 		setRulersLockEqualDistance(false);
+		setAreaSelectEnabled(false);
 		setSelectionShape('rect');
 		setSelectionMode('inside');
 		setSelectedStampsCount(0);
@@ -2072,9 +2078,11 @@ export const PhotoEditor: React.FC = () => {
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}
 				rulersCount={rulersCount}
+				areaSelectEnabled={areaSelectEnabled}
 				selectionShape={selectionShape}
 				selectionMode={selectionMode}
 				selectedCount={selectedStampsCount}
+				onToggleAreaSelect={() => setAreaSelectEnabled((prev) => !prev)}
 				onChangeSelectionShape={setSelectionShape}
 				onChangeSelectionMode={setSelectionMode}
 				onDeleteSelected={handleDeleteSelected}
@@ -2120,6 +2128,7 @@ export const PhotoEditor: React.FC = () => {
 				rulersAttachContent={rulersAttachContent}
 				rulersShowDistance={rulersShowDistance}
 				rulersLockEqualDistance={rulersLockEqualDistance}
+				areaSelectEnabled={areaSelectEnabled}
 				selectionShape={selectionShape}
 				selectionMode={selectionMode}
 				onSelectedCountChange={setSelectedStampsCount}
