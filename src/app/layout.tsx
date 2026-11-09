@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
+import { theme } from '@/theme/theme';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import './globals.css';
@@ -24,12 +25,12 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="uk" {...mantineHtmlProps} data-mantine-color-scheme="dark">
+		<html lang="uk" {...mantineHtmlProps}>
 			<head>
 				<ColorSchemeScript defaultColorScheme="dark" />
 			</head>
 			<body style={{ height: '100%', width: '100%', overflow: 'hidden' }}>
-				<MantineProvider defaultColorScheme="dark">
+				<MantineProvider defaultColorScheme="dark" theme={theme}>
 					<Notifications position="top-center" zIndex={2000} autoClose={1800} />
 					{children}
 				</MantineProvider>
