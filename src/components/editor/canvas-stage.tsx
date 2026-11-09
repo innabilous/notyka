@@ -91,6 +91,7 @@ interface CanvasStageProps {
 	rulersAttachContent?: boolean;
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
+	areaSelectEnabled?: boolean;
 	selectionShape?: SelectionShape;
 	selectionMode?: SelectionMode;
 	onSelectedCountChange?: (count: number) => void;
@@ -158,7 +159,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	rulersAttachContent = true,
 	rulersShowDistance = false,
 	rulersLockEqualDistance = false,
-	selectionShape = 'lasso',
+	areaSelectEnabled = false,
+	selectionShape = 'rect',
 	selectionMode = 'inside',
 	hasCanvas,
 	onSelectStamp,
@@ -1298,12 +1300,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 
-			//! 3.5. Якщо ми в режимі 'select' (виділення/редагування) і клікнули мимо будь-якого об'єкта — починаємо рамку/ласо
+			//! 3.5. Якщо ми в режимі 'select' (виділення/редагування) і клікнули мимо будь-якого об'єкта
 			if (currentMode === 'select') {
-				isAreaSelectingRef.current = true;
-				areaSelectPointsRef.current = [pt];
-				dragStartPtRef.current = pt;
-				dragMovedRef.current = false;
+				if (areaSelectEnabled) {
+					isAreaSelectingRef.current = true;
+					areaSelectPointsRef.current = [pt];
+					dragStartPtRef.current = pt;
+					dragMovedRef.current = false;
+					return;
+				}
+				//! Режим обведення вимкнено за замовчуванням — знімаємо активне виділення при кліку в пусте місце
+				selectedStampIdsRef.current = [];
+				onSelectedCountChange?.(0);
+				commitActiveStamp(false);
 				return;
 			}
 
@@ -1542,6 +1551,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		},
 		[
 			activeStampText,
+			areaSelectEnabled,
 			commitActiveStamp,
 			currentSize,
 			currentAutoCountIndex,

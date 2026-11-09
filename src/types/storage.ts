@@ -38,6 +38,7 @@ export interface EditorSettings {
 	rulersShowDistance?: boolean;
 	rulersLockEqualDistance?: boolean;
 	compactRulers?: boolean;
+	areaSelectEnabled?: boolean;
 	selectionShape?: SelectionShape;
 	selectionMode?: SelectionMode;
 	customText?: string;
