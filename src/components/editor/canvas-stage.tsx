@@ -39,6 +39,8 @@ import {
 	drawStamp,
 	drawAreaSelectionOverlay,
 	drawMultiSelectionBox,
+	getMultiSelectionBounds,
+	isPointInStampBounds,
 	isStampInSelection,
 	findRulerNearPoint,
 	getClosestRulerY,
@@ -253,7 +255,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const isDraggingMultiRef = useRef<boolean>(false);
 	const multiDragStartPtRef = useRef<Point | null>(null);
 	const multiDragOffsetsRef = useRef<
-		{ id: string; x: number; y: number; endX?: number; endY?: number }[]
+		{
+			id: string;
+			x: number;
+			y: number;
+			endX?: number;
+			endY?: number;
+			minDx: number;
+			maxDx: number;
+			minDy: number;
+			maxDy: number;
+		}[]
 	>([]);
 
 	// Drawing mode within stamp
@@ -1242,27 +1254,51 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				return;
 			}
 
-			// 2. Stamp body drag
-			if (active && isPointInStamp(pt, active, uRef.current, ctx)) {
-				isDraggingStampRef.current = true;
-				dragOffsetRef.current = { x: pt.x - active.x, y: pt.y - active.y };
-				return;
-			}
-
-			// 2.5. Перетягування групи виділених елементів
+			// 2. Перетягування групи виділених елементів (за будь-яку точку всієї області прямокутника)
 			if (selectedStampIdsRef.current.length > 1) {
-				const hitSelected = stampsListRef.current.find(
-					(s) => selectedStampIdsRef.current.includes(s.id) && isPointInStamp(pt, s, uRef.current, ctx),
+				const selectedStamps = stampsListRef.current.filter((s) =>
+					selectedStampIdsRef.current.includes(s.id),
 				);
-				if (hitSelected) {
+				const bounds = getMultiSelectionBounds(selectedStamps, uRef.current, ctx);
+				const isInMultiBox =
+					bounds &&
+					pt.x >= bounds.minX &&
+					pt.x <= bounds.maxX &&
+					pt.y >= bounds.minY &&
+					pt.y <= bounds.maxY;
+
+				if (isInMultiBox) {
 					isDraggingMultiRef.current = true;
 					multiDragStartPtRef.current = pt;
-					multiDragOffsetsRef.current = stampsListRef.current
-						.filter((s) => selectedStampIdsRef.current.includes(s.id))
-						.map((s) => ({ id: s.id, x: s.x, y: s.y, endX: s.endX, endY: s.endY }));
+					multiDragOffsetsRef.current = selectedStamps.map((s) => {
+						const posMin = clampStampPosition(-1e9, -1e9, s, uRef.current, ctx);
+						const posMax = clampStampPosition(1e9, 1e9, s, uRef.current, ctx);
+						return {
+							id: s.id,
+							x: s.x,
+							y: s.y,
+							endX: s.endX,
+							endY: s.endY,
+							minDx: posMin.x - s.x,
+							maxDx: posMax.x - s.x,
+							minDy: posMin.y - s.y,
+							maxDy: posMax.y - s.y,
+						};
+					});
 					dragMovedRef.current = false;
 					return;
 				}
+			}
+
+			// 2.5. Перетягування активного штампа (за тіло або за всю область його прямокутної рамки)
+			if (
+				active &&
+				(isPointInStamp(pt, active, uRef.current, ctx) ||
+					isPointInStampBounds(pt, active, uRef.current, ctx))
+			) {
+				isDraggingStampRef.current = true;
+				dragOffsetRef.current = { x: pt.x - active.x, y: pt.y - active.y };
+				return;
 			}
 
 			// 3. Selection of existing stamps from top to bottom
@@ -2349,30 +2385,43 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					return;
 				}
 
-				//! 0.1. Переміщення групи виділених елементів
+				//! 0.1. Переміщення групи виділених елементів як єдиного жорсткого блоку
 				if (isDraggingMultiRef.current) {
 					dragMovedRef.current = true;
 					const start = multiDragStartPtRef.current;
 					if (start) {
-						const dx = pt.x - start.x;
-						const dy = pt.y - start.y;
-						const canvas = canvasRef.current;
-						const ctx = canvas?.getContext('2d');
+						const rawDx = pt.x - start.x;
+						const rawDy = pt.y - start.y;
+
+						let groupMinDx = -Infinity;
+						let groupMaxDx = Infinity;
+						let groupMinDy = -Infinity;
+						let groupMaxDy = Infinity;
+
+						multiDragOffsetsRef.current.forEach((item) => {
+							if (item.minDx > groupMinDx) groupMinDx = item.minDx;
+							if (item.maxDx < groupMaxDx) groupMaxDx = item.maxDx;
+							if (item.minDy > groupMinDy) groupMinDy = item.minDy;
+							if (item.maxDy < groupMaxDy) groupMaxDy = item.maxDy;
+						});
+
+						const clampedDx =
+							groupMaxDx >= groupMinDx
+								? Math.max(groupMinDx, Math.min(groupMaxDx, rawDx))
+								: 0;
+						const clampedDy =
+							groupMaxDy >= groupMinDy
+								? Math.max(groupMinDy, Math.min(groupMaxDy, rawDy))
+								: 0;
+
 						multiDragOffsetsRef.current.forEach(({ id, x, y, endX, endY }) => {
 							const st = stampsListRef.current.find((s) => s.id === id);
 							if (!st) return;
-							let nextX = x + dx;
-							let nextY = y + dy;
-							if (ctx) {
-								const clamped = clampStampPosition(nextX, nextY, st, uRef.current, ctx);
-								nextX = clamped.x;
-								nextY = clamped.y;
-							}
-							st.x = nextX;
-							st.y = nextY;
+							st.x = x + clampedDx;
+							st.y = y + clampedDy;
 							if (st.shapeType === 'arrow' && endX !== undefined && endY !== undefined) {
-								st.endX = endX + (nextX - x);
-								st.endY = endY + (nextY - y);
+								st.endX = endX + clampedDx;
+								st.endY = endY + clampedDy;
 							}
 						});
 						scheduleRender();

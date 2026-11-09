@@ -675,6 +675,52 @@ export function isPointInStamp(
 	return p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h;
 }
 
+//! Перевіряє, чи знаходиться точка всередині всієї габаритної рамки виділення штампа
+export function isPointInStampBounds(
+	p: Point,
+	stamp: StampItem,
+	U: number,
+	ctx: CanvasRenderingContext2D,
+): boolean {
+	if (stamp.category === 'shapes' || stamp.shapeType) {
+		const pad = 10 * U;
+		const lw = Math.max(1 * U, (stamp.strokeWidth || stamp.size || 2) * U);
+		if (stamp.shapeType === 'arrow') {
+			const p1 = { x: stamp.x, y: stamp.y };
+			const p2 = {
+				x: stamp.endX ?? stamp.x + stamp.size * 3 * U,
+				y: stamp.endY ?? stamp.y,
+			};
+			const minX = Math.min(p1.x, p2.x) - pad - lw;
+			const maxX = Math.max(p1.x, p2.x) + pad + lw;
+			const minY = Math.min(p1.y, p2.y) - pad - lw;
+			const maxY = Math.max(p1.y, p2.y) + pad + lw;
+			return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
+		}
+
+		// Для фігур з кутом повороту перевіряємо в повернутій системі координат
+		const rot = stamp.rotation || 0;
+		const cos = Math.cos(-rot);
+		const sin = Math.sin(-rot);
+		const dx = p.x - stamp.x;
+		const dy = p.y - stamp.y;
+		const lx = dx * cos - dy * sin;
+		const ly = dx * sin + dy * cos;
+		const w = (stamp.width || stamp.size * 2) * U + lw;
+		const h = (stamp.height || stamp.size * 1.5) * U + lw;
+		return Math.abs(lx) <= w / 2 + pad && Math.abs(ly) <= h / 2 + pad;
+	}
+
+	const bx = calculateStampBox(stamp, U, ctx);
+	const pad = 6 * U;
+	return (
+		p.x >= bx.x - pad &&
+		p.x <= bx.x + bx.w + pad &&
+		p.y >= bx.y - pad &&
+		p.y <= bx.y + bx.h + pad
+	);
+}
+
 export function isPointInHandle(
 	p: Point,
 	stamp: StampItem,
@@ -930,7 +976,7 @@ export function drawStamp(
 			ctx.save();
 			ctx.translate(stamp.x, stamp.y);
 			ctx.rotate(rot);
-			ctx.strokeStyle = '#6366f1';
+			ctx.strokeStyle = '#0ea5e9';
 			ctx.lineWidth = 1.5 * U;
 			ctx.setLineDash([5 * U, 4 * U]);
 			ctx.strokeRect(-w / 2, -h / 2, w, h);
@@ -946,7 +992,7 @@ export function drawStamp(
 
 			ctx.save();
 			ctx.setLineDash([]);
-			ctx.strokeStyle = '#6366f1';
+			ctx.strokeStyle = '#0ea5e9';
 			ctx.lineWidth = 1.5 * U;
 			ctx.beginPath();
 			ctx.moveTo(rotInfo.stemFrom.x, rotInfo.stemFrom.y);
@@ -955,7 +1001,7 @@ export function drawStamp(
 
 			ctx.beginPath();
 			ctx.arc(rotInfo.x, rotInfo.y, rotInfo.radius, 0, Math.PI * 2);
-			ctx.fillStyle = '#6366f1';
+			ctx.fillStyle = '#0ea5e9';
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
 			ctx.lineWidth = 1.5 * U;
@@ -992,7 +1038,7 @@ export function drawStamp(
 					ctx.arc(pt.x, pt.y, 6.5 * U, 0, Math.PI * 2);
 					ctx.fillStyle = '#ffffff';
 					ctx.fill();
-					ctx.strokeStyle = '#6366f1';
+					ctx.strokeStyle = '#0ea5e9';
 					ctx.lineWidth = 2 * U;
 					ctx.stroke();
 				});
@@ -1051,7 +1097,7 @@ export function drawStamp(
 
 			if (resizeHandlesOn) {
 				const resizes = getResizeHandleCoords(stamp, U, ctx);
-				ctx.fillStyle = '#6366f1';
+				ctx.fillStyle = '#0ea5e9';
 				ctx.strokeStyle = '#ffffff';
 				ctx.lineWidth = 1.5 * U;
 
@@ -1067,7 +1113,7 @@ export function drawStamp(
 			}
 		} else {
 			const bx = calculateStampBox(stamp, U, ctx);
-			ctx.strokeStyle = '#6366f1';
+			ctx.strokeStyle = '#0ea5e9';
 			ctx.lineWidth = 2 * U;
 			ctx.setLineDash([5 * U, 4 * U]);
 			ctx.beginPath();
@@ -1093,7 +1139,7 @@ export function drawStamp(
 
 			ctx.beginPath();
 			ctx.arc(hx, hy, 14 * U, 0, Math.PI * 2);
-			ctx.fillStyle = '#6366f1';
+			ctx.fillStyle = '#0ea5e9';
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
 			ctx.stroke();
@@ -1151,7 +1197,7 @@ export function drawStamp(
 				const resizes = getResizeHandleCoords(stamp, U, ctx);
 				if (isArrow) {
 					ctx.fillStyle = '#ffffff';
-					ctx.strokeStyle = '#6366f1';
+					ctx.strokeStyle = '#0ea5e9';
 					ctx.lineWidth = 2 * U;
 
 					ctx.beginPath();
@@ -1164,7 +1210,7 @@ export function drawStamp(
 					ctx.fill();
 					ctx.stroke();
 				} else {
-					ctx.fillStyle = '#6366f1';
+					ctx.fillStyle = '#0ea5e9';
 					ctx.strokeStyle = '#ffffff';
 					ctx.lineWidth = 1.5 * U;
 
@@ -1742,11 +1788,11 @@ export function drawAreaSelectionOverlay(
 	ctx.restore();
 }
 
-//! Малювання спільної пунктирної рамки для кількох виділених штампів
-export function drawMultiSelectionBox(
-	ctx: CanvasRenderingContext2D,
+//! Обчислює спільну габаритну рамку для списку виділених штампів
+export function getMultiSelectionBounds(
 	stamps: StampItem[],
 	U: number,
+	ctx: CanvasRenderingContext2D,
 ): { minX: number; minY: number; maxX: number; maxY: number } | null {
 	if (stamps.length < 2) return null;
 
@@ -1763,7 +1809,32 @@ export function drawMultiSelectionBox(
 			if (p.y < minY) minY = p.y;
 			if (p.y > maxY) maxY = p.y;
 		});
+	});
 
+	if (minX === Infinity) return null;
+
+	const pad = 6 * U;
+	return {
+		minX: minX - pad,
+		minY: minY - pad,
+		maxX: maxX + pad,
+		maxY: maxY + pad,
+	};
+}
+
+//! Малювання спільної пунктирної рамки для кількох виділених штампів
+export function drawMultiSelectionBox(
+	ctx: CanvasRenderingContext2D,
+	stamps: StampItem[],
+	U: number,
+): { minX: number; minY: number; maxX: number; maxY: number } | null {
+	if (stamps.length < 2) return null;
+
+	const bounds = getMultiSelectionBounds(stamps, U, ctx);
+	if (!bounds) return null;
+
+	stamps.forEach((s) => {
+		const pts = getStampBoundingPoints(s, U, ctx);
 		ctx.save();
 		ctx.strokeStyle = 'rgba(14, 165, 233, 0.45)';
 		ctx.lineWidth = 1 * U;
@@ -1778,13 +1849,10 @@ export function drawMultiSelectionBox(
 		ctx.restore();
 	});
 
-	if (minX === Infinity) return null;
-
-	const pad = 6 * U;
-	const bx = minX - pad;
-	const by = minY - pad;
-	const bw = maxX - minX + pad * 2;
-	const bh = maxY - minY + pad * 2;
+	const bx = bounds.minX;
+	const by = bounds.minY;
+	const bw = bounds.maxX - bounds.minX;
+	const bh = bounds.maxY - bounds.minY;
 
 	ctx.save();
 	ctx.strokeStyle = '#0ea5e9';
@@ -1809,5 +1877,5 @@ export function drawMultiSelectionBox(
 
 	ctx.restore();
 
-	return { minX: bx, minY: by, maxX: bx + bw, maxY: by + bh };
+	return bounds;
 }
