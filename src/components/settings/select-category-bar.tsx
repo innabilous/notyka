@@ -33,7 +33,6 @@ export const SelectCategoryBar: React.FC<SelectCategoryBarProps> = ({
 				<SegmentedControl
 					fullWidth
 					size="xs"
-					radius="xl"
 					withItemsBorders={false}
 					value={category}
 					onChange={(val) => onChangeCategory(val as SelectFilterCategory)}

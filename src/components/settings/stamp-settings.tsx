@@ -151,7 +151,6 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 				<SegmentedControl
 					fullWidth
 					size="xs"
-					radius="xl"
 					withItemsBorders={false}
 					value={category}
 					onChange={(val) => {

@@ -68,7 +68,7 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 				) : (
 					<Stack gap="xs">
 						{projects.map((item) => (
-							<Paper key={item.id} withBorder p="xs" radius="md">
+							<Paper key={item.id} withBorder p="xs" radius="sm">
 								<Group justify="space-between" wrap="nowrap">
 									<UnstyledButton
 										onClick={() => onSelectProject(item)}
@@ -82,7 +82,7 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 												style={{
 													background: 'var(--panel-3)',
 													border: '1px solid var(--line)',
-													borderRadius: 6,
+													borderRadius: 4,
 													overflow: 'hidden',
 													flexShrink: 0,
 													display: 'flex',

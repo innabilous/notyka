@@ -324,7 +324,6 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 						<SegmentedControl
 							fullWidth
 							size="xs"
-							radius="xl"
 							withItemsBorders={false}
 							value={stampBadgeMode ? 'badge' : 'stroke'}
 							onChange={(val) => onToggleBadgeMode?.(val === 'badge')}

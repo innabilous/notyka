@@ -19,7 +19,7 @@ import {
 	FlipVertical,
 	RotateCcw,
 	RotateCw,
-	Sparkles,
+	SlidersHorizontal,
 	Undo2,
 	X,
 } from 'lucide-react';
@@ -369,7 +369,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 					justifyContent: 'space-between',
 					padding: 0,
 					overflow: 'hidden',
-					backgroundColor: 'rgba(3, 7, 18, 0.96)',
+					backgroundColor: 'var(--bg-dark)',
 				},
 			}}
 		>
@@ -380,7 +380,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 				py="xs"
 				style={{
 					borderBottom: '1px solid var(--line)',
-					background: 'rgba(31, 41, 55, 0.8)',
+					background: 'var(--panel)',
 					zIndex: 10,
 				}}
 			>
@@ -577,7 +577,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 				px="sm"
 				py="xs"
 				style={{
-					background: 'rgba(31, 41, 55, 0.95)',
+					background: 'var(--panel)',
 					borderTop: '1px solid var(--line)',
 					paddingBottom: 'calc(0.65rem + env(safe-area-inset-bottom, 0px))',
 					zIndex: 10,
@@ -589,6 +589,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 						<Button
 							key={ratio}
 							size="compact-xs"
+							radius="xs"
 							variant={aspectRatio === ratio ? 'filled' : 'default'}
 							color="sky"
 							onClick={() => handleAspectChange(ratio)}
@@ -603,51 +604,51 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 				<Group gap="sm" justify="center">
 					<Tooltip label="Повернути проти годинникової стрілки (-90°)">
 						<ActionIcon
-							size={40}
-							radius="xl"
+							size={36}
+							radius="sm"
 							variant="default"
 							onClick={handleRotateLeft}
 							aria-label="Повернути проти годинникової стрілки"
 						>
-							<RotateCcw size={18} />
+							<RotateCcw size={16} />
 						</ActionIcon>
 					</Tooltip>
 
 					<Tooltip label="Повернути за годинниковою стрілкою (+90°)">
 						<ActionIcon
-							size={40}
-							radius="xl"
+							size={36}
+							radius="sm"
 							variant="default"
 							onClick={handleRotateRight}
 							aria-label="Повернути за годинниковою стрілкою"
 						>
-							<RotateCw size={18} />
+							<RotateCw size={16} />
 						</ActionIcon>
 					</Tooltip>
 
 					<Tooltip label="Віддзеркалити горизонтально">
 						<ActionIcon
-							size={40}
-							radius="xl"
+							size={36}
+							radius="sm"
 							variant={flipH ? 'filled' : 'default'}
 							color="sky"
 							onClick={handleToggleFlipH}
 							aria-label="Віддзеркалити горизонтально"
 						>
-							<FlipHorizontal size={18} />
+							<FlipHorizontal size={16} />
 						</ActionIcon>
 					</Tooltip>
 
 					<Tooltip label="Віддзеркалити вертикально">
 						<ActionIcon
-							size={40}
-							radius="xl"
+							size={36}
+							radius="sm"
 							variant={flipV ? 'filled' : 'default'}
 							color="sky"
 							onClick={handleToggleFlipV}
 							aria-label="Віддзеркалити вертикально"
 						>
-							<FlipVertical size={18} />
+							<FlipVertical size={16} />
 						</ActionIcon>
 					</Tooltip>
 
@@ -659,27 +660,27 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 						}
 					>
 						<ActionIcon
-							size={40}
-							radius="xl"
-							variant={enhanceClarity ? 'gradient' : 'default'}
-							gradient={{ from: 'sky.4', to: 'sky.6', deg: 135 }}
+							size={36}
+							radius="sm"
+							variant={enhanceClarity ? 'filled' : 'default'}
+							color="sky"
 							onClick={handleToggleEnhance}
 							aria-label="Покращити чіткість нот та контраст партитури"
 						>
-							<Sparkles size={18} />
+							<SlidersHorizontal size={16} />
 						</ActionIcon>
 					</Tooltip>
 
 					<Tooltip label="Скинути налаштування">
 						<ActionIcon
-							size={40}
-							radius="xl"
+							size={36}
+							radius="sm"
 							variant="default"
 							color="gray"
 							onClick={handleReset}
 							aria-label="Скинути налаштування"
 						>
-							<Undo2 size={18} />
+							<Undo2 size={16} />
 						</ActionIcon>
 					</Tooltip>
 				</Group>

@@ -67,62 +67,55 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 					<Stack gap={2}>
 						{/* Група 1: Робота з полотном */}
 						<NavLink
-							leftSection={<ImagePlus size={18} />}
+							leftSection={<ImagePlus size={16} />}
 							label="Відкрити фото"
 							onClick={onUploadClick}
-							style={{ borderRadius: 8 }}
 						/>
 
 						<NavLink
-							leftSection={<FilePlus size={18} />}
+							leftSection={<FilePlus size={16} />}
 							label="Новий білий аркуш"
 							onClick={onNewBlank}
-							style={{ borderRadius: 8 }}
 						/>
 
 						<NavLink
-							leftSection={<Clock size={18} />}
+							leftSection={<Clock size={16} />}
 							label="Історія проектів"
 							onClick={onOpenHistory}
-							style={{ borderRadius: 8 }}
 						/>
 
 						<Divider my={4} />
 
 						{/* Група 2: Експорт */}
 						<NavLink
-							leftSection={<Download size={18} />}
+							leftSection={<Download size={16} />}
 							label="Зберегти фото"
 							onClick={onSave}
-							style={{ borderRadius: 8 }}
 						/>
 
 						<NavLink
-							leftSection={<Share2 size={18} />}
+							leftSection={<Share2 size={16} />}
 							label="Поділитися"
 							onClick={onShare}
-							style={{ borderRadius: 8 }}
 						/>
 
 						<Divider my={4} />
 
 						{/* Група 3: Опції та очищення */}
 						<NavLink
-							leftSection={<Settings size={18} />}
+							leftSection={<Settings size={16} />}
 							label="Налаштування"
 							onClick={(e) => {
 								e.stopPropagation();
 								onOpenSettings();
 							}}
-							style={{ borderRadius: 8 }}
 						/>
 
 						<NavLink
-							leftSection={<RotateCcw size={18} />}
+							leftSection={<RotateCcw size={16} />}
 							label="Очистити аркуш"
 							color="red"
 							onClick={onClear}
-							style={{ borderRadius: 8 }}
 						/>
 					</Stack>
 				</ScrollArea.Autosize>
