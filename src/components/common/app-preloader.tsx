@@ -41,8 +41,7 @@ export const AppPreloader: React.FC<AppPreloaderProps> = ({ isLoading }) => {
 			}}
 		>
 			<Stack align="center" gap="1rem">
-				{/* Animated Bespoke Logo with PRO badge */}
-				<BrandLogo size={76} animated={true} showText={true} />
+				<BrandLogo size={64} showText={true} />
 			</Stack>
 		</Box>
 	);
