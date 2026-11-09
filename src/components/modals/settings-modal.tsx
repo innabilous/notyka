@@ -14,6 +14,7 @@ import {
 	Switch,
 	Text,
 	UnstyledButton,
+	useComputedColorScheme,
 	useMantineColorScheme,
 } from '@mantine/core';
 import {
@@ -37,7 +38,22 @@ import {
 	Trash2,
 	Type,
 } from 'lucide-react';
-import { StampCategory, ToolMode } from '@/types/editor';
+import { useAppearance } from '@/theme/app-theme-provider';
+import { DEFAULT_APPEARANCE_CONFIG } from '@/theme/theme';
+import {
+	AccentSkin,
+	DarkSurfaceTone,
+	LightSurfaceTone,
+	StampCategory,
+	ToolMode,
+} from '@/types/editor';
+
+const ACCENT_SKINS: { id: AccentSkin; label: string; hex: string }[] = [
+	{ id: 'orange', label: 'Orange', hex: '#ff5500' },
+	{ id: 'cobalt', label: 'Cobalt', hex: '#2563eb' },
+	{ id: 'lime', label: 'Lime', hex: '#84cc16' },
+	{ id: 'amber', label: 'Amber', hex: '#f59e0b' },
+];
 
 interface SettingsModalProps {
 	opened: boolean;
@@ -95,6 +111,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 	onClose,
 }) => {
 	const { colorScheme, setColorScheme } = useMantineColorScheme();
+	const computedColorScheme = useComputedColorScheme('dark');
+	const { config, setAccentSkin, setDarkTone, setLightTone, setConfig } = useAppearance();
 	const [confirmModal, setConfirmModal] = useState<'settings' | 'all' | null>(null);
 
 	return (
@@ -155,6 +173,85 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 								},
 							]}
 						/>
+
+						{/* Тон поверхні */}
+						<Stack gap={4} mt={4}>
+							<Text size="xs" c="dimmed">
+								Тон поверхні ({computedColorScheme === 'dark' ? 'темний' : 'світлий'})
+							</Text>
+							{computedColorScheme === 'dark' ? (
+								<SegmentedControl
+									fullWidth
+									size="xs"
+									value={config.darkTone}
+									onChange={(val) => setDarkTone(val as DarkSurfaceTone)}
+									data={[
+										{ value: 'carbon', label: 'Matte Carbon' },
+										{ value: 'obsidian', label: 'OLED Obsidian' },
+									]}
+								/>
+							) : (
+								<SegmentedControl
+									fullWidth
+									size="xs"
+									value={config.lightTone}
+									onChange={(val) => setLightTone(val as LightSurfaceTone)}
+									data={[
+										{ value: 'cotton', label: 'Warm Cotton' },
+										{ value: 'anodized', label: 'Anodized Silver' },
+									]}
+								/>
+							)}
+						</Stack>
+
+						{/* Акцентний скін */}
+						<Stack gap={4} mt={4}>
+							<Text size="xs" c="dimmed">
+								Акцентний скін
+							</Text>
+							<Group gap="xs" grow>
+								{ACCENT_SKINS.map((skin) => {
+									const isSelected = config.accentSkin === skin.id;
+									return (
+										<UnstyledButton
+											key={skin.id}
+											onClick={() => setAccentSkin(skin.id)}
+											aria-label={`Обрати скін ${skin.label}`}
+											style={{
+												display: 'flex',
+												flexDirection: 'column',
+												alignItems: 'center',
+												gap: 5,
+												padding: '6px 4px',
+												borderRadius: 6,
+												border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--line)'}`,
+												background: isSelected ? 'var(--accent-subtle)' : 'var(--keycap-bg)',
+												cursor: 'pointer',
+												transition: 'all 0.12s ease',
+											}}
+										>
+											<div
+												style={{
+													width: 14,
+													height: 14,
+													borderRadius: '50%',
+													background: skin.hex,
+													border: isSelected ? '2px solid var(--accent-contrast)' : 'none',
+													boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+												}}
+											/>
+											<Text
+												size="11px"
+												fw={isSelected ? 700 : 500}
+												c={isSelected ? 'var(--text)' : 'dimmed'}
+											>
+												{skin.label}
+											</Text>
+										</UnstyledButton>
+									);
+								})}
+							</Group>
+						</Stack>
 					</Stack>
 
 					<Divider />
@@ -168,7 +265,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							{TOOLS_CONFIG.map(({ id, label, icon: Icon }) => {
 								const isChecked = visibleTools[id] ?? true;
 								return (
-									<Paper key={id} withBorder p="xs" radius="md">
+									<Paper key={id} withBorder p="xs" radius="sm">
 										<UnstyledButton
 											onClick={() => onToggleTool(id)}
 											style={{ width: '100%' }}
@@ -206,7 +303,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							{CATEGORIES_CONFIG.map(({ id, label, icon: Icon }) => {
 								const isChecked = visibleStampCategories[id] ?? true;
 								return (
-									<Paper key={id} withBorder p="xs" radius="md">
+									<Paper key={id} withBorder p="xs" radius="sm">
 										<UnstyledButton
 											onClick={() => onToggleStampCategory(id)}
 											style={{ width: '100%' }}
@@ -241,7 +338,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							Штамп на полотні
 						</Text>
 						<Stack gap="xs">
-							<Paper withBorder p="xs" radius="md">
+							<Paper withBorder p="xs" radius="sm">
 								<UnstyledButton
 									onClick={onToggleDeleteBtn}
 									style={{ width: '100%' }}
@@ -264,7 +361,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 								</UnstyledButton>
 							</Paper>
 
-							<Paper withBorder p="xs" radius="md">
+							<Paper withBorder p="xs" radius="sm">
 								<UnstyledButton
 									onClick={onToggleResizeHandles}
 									style={{ width: '100%' }}
@@ -296,7 +393,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
 							Панель лінійок
 						</Text>
-						<Paper withBorder p="xs" radius="md">
+						<Paper withBorder p="xs" radius="sm">
 							<UnstyledButton
 								onClick={onToggleCompactRulers}
 								style={{ width: '100%' }}
@@ -385,8 +482,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 								setConfirmModal(null);
 								if (action === 'settings') {
 									onResetSettings();
+									setConfig(DEFAULT_APPEARANCE_CONFIG);
 								} else {
 									onClearAllData();
+									setConfig(DEFAULT_APPEARANCE_CONFIG);
 								}
 							}}
 						>
