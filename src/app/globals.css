@@ -9,9 +9,9 @@
 	--popup-bg: rgba(22, 23, 27, 0.96);
 	--top-bar-gradient: linear-gradient(
 		180deg,
-		rgba(10, 11, 14, 0.95) 0%,
-		rgba(10, 11, 14, 0.6) 60%,
-		rgba(10, 11, 14, 0) 100%
+		rgba(9, 10, 12, 0.96) 0%,
+		rgba(9, 10, 12, 0.6) 65%,
+		rgba(9, 10, 12, 0.08) 100%
 	);
 	--line: rgba(255, 255, 255, 0.08);
 	--line-strong: rgba(255, 255, 255, 0.14);
@@ -40,9 +40,9 @@
 	--popup-bg: #ffffff;
 	--top-bar-gradient: linear-gradient(
 		180deg,
-		rgba(248, 250, 252, 0.98) 0%,
-		rgba(248, 250, 252, 0.72) 60%,
-		rgba(248, 250, 252, 0) 100%
+		rgba(255, 255, 255, 0.98) 0%,
+		rgba(255, 255, 255, 0.7) 60%,
+		rgba(255, 255, 255, 0.08) 100%
 	);
 	--line: rgba(0, 0, 0, 0.08);
 	--line-strong: rgba(0, 0, 0, 0.15);
@@ -160,7 +160,7 @@ button {
 
 #editor-canvas {
 	background: #ffffff;
-	box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+	box-shadow: none;
 	cursor: crosshair;
 	transform-origin: 0 0;
 	will-change: transform;

@@ -27,10 +27,10 @@ export default function RootLayout({
 	return (
 		<html lang="uk" {...mantineHtmlProps}>
 			<head>
-				<ColorSchemeScript defaultColorScheme="dark" />
+				<ColorSchemeScript defaultColorScheme="auto" />
 			</head>
 			<body style={{ height: '100%', width: '100%', overflow: 'hidden' }}>
-				<MantineProvider defaultColorScheme="dark" theme={theme}>
+				<MantineProvider defaultColorScheme="auto" theme={theme}>
 					<Notifications position="top-center" zIndex={2000} autoClose={1800} />
 					{children}
 				</MantineProvider>
