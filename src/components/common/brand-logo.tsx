@@ -40,7 +40,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 				<defs>
 					<linearGradient id="notyka-note-grad" x1="0%" y1="0%" x2="100%" y2="100%">
 						<stop offset="0%" stopColor="#38bdf8" />
-						<stop offset="100%" stopColor="#6366f1" />
+						<stop offset="100%" stopColor="#0284c7" />
 					</linearGradient>
 				</defs>
 			</svg>
@@ -68,7 +68,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 						}}
 						aria-label="Notyka Logo"
 					>
-						{/* Шлейф (хвіст) променя: м'який індиго-ціановий шлейф позаду голови */}
+						{/* Шлейф (хвіст) променя: м'який ціаново-блакитний шлейф позаду голови */}
 						<Box
 							className="notyka-border-glow-tail"
 							style={{
@@ -78,7 +78,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 								width: '220%',
 								height: '220%',
 								background:
-									'conic-gradient(from 0deg, transparent 0deg, transparent 230deg, rgba(99, 102, 241, 0.25) 260deg, #6366f1 295deg, #38bdf8 320deg, rgba(56, 189, 248, 0.3) 335deg, transparent 345deg)',
+									'conic-gradient(from 0deg, transparent 0deg, transparent 230deg, rgba(2, 132, 199, 0.25) 260deg, #0284c7 295deg, #38bdf8 320deg, rgba(56, 189, 248, 0.3) 335deg, transparent 345deg)',
 								borderRadius: '50%',
 								pointerEvents: 'none',
 								zIndex: 1,
@@ -108,7 +108,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 								width: '100%',
 								height: '100%',
 								borderRadius: innerBorderRadius,
-								background: 'linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)',
+								background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
 								display: 'flex',
 								alignItems: 'center',
 								justifyContent: 'center',
@@ -135,13 +135,13 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 							width: numericSize,
 							height: numericSize,
 							borderRadius,
-							background: 'linear-gradient(135deg, #38bdf8 0%, #6366f1 100%)',
+							background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 100%)',
 							border: '1px solid rgba(255, 255, 255, 0.28)',
 							display: 'inline-flex',
 							alignItems: 'center',
 							justifyContent: 'center',
 							boxShadow:
-								'0 8px 24px rgba(56, 189, 248, 0.35), 0 2px 8px rgba(99, 102, 241, 0.25)',
+								'0 8px 24px rgba(56, 189, 248, 0.35), 0 2px 8px rgba(2, 132, 199, 0.25)',
 							flexShrink: 0,
 							overflow: 'hidden',
 						}}

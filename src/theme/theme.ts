@@ -2,6 +2,9 @@ import { createTheme } from '@mantine/core';
 
 export const theme = createTheme({
 	primaryColor: 'sky',
+	primaryShade: { light: 6, dark: 5 },
+	autoContrast: true,
+	defaultGradient: { from: 'sky.4', to: 'sky.6', deg: 135 },
 	colors: {
 		sky: [
 			'#f0f9ff',
@@ -27,6 +30,18 @@ export const theme = createTheme({
 			'#050507',
 			'#000000',
 		],
+		red: [
+			'#fef2f2',
+			'#fee2e2',
+			'#fecaca',
+			'#fca5a5',
+			'#f87171',
+			'#ef4444',
+			'#dc2626',
+			'#b91c1c',
+			'#991b1b',
+			'#7f1d1d',
+		],
 	},
 	defaultRadius: 'md',
 	cursorType: 'pointer',
@@ -34,12 +49,14 @@ export const theme = createTheme({
 		Button: {
 			defaultProps: {
 				radius: 'md',
+				color: 'sky',
 			},
 		},
 		ActionIcon: {
 			defaultProps: {
 				radius: 'md',
 				variant: 'subtle',
+				color: 'sky',
 			},
 		},
 		Modal: {
@@ -51,6 +68,17 @@ export const theme = createTheme({
 					blur: 8,
 				},
 			},
+			styles: {
+				content: {
+					background: 'var(--panel)',
+					border: '1px solid var(--line-strong)',
+					boxShadow: 'var(--shadow-lg)',
+				},
+				header: {
+					background: 'var(--panel)',
+					borderBottom: '1px solid var(--line)',
+				},
+			},
 		},
 		SegmentedControl: {
 			defaultProps: {
@@ -58,9 +86,28 @@ export const theme = createTheme({
 				color: 'sky',
 			},
 		},
+		Switch: {
+			defaultProps: {
+				color: 'sky',
+				radius: 'xl',
+			},
+		},
+		Badge: {
+			defaultProps: {
+				color: 'sky',
+				radius: 'sm',
+			},
+		},
 		Paper: {
 			defaultProps: {
 				radius: 'md',
+			},
+		},
+		Divider: {
+			styles: {
+				root: {
+					borderColor: 'var(--line)',
+				},
 			},
 		},
 		Tooltip: {
@@ -74,5 +121,21 @@ export const theme = createTheme({
 				color: 'sky',
 			},
 		},
+		NavLink: {
+			defaultProps: {
+				color: 'sky',
+			},
+		},
+		TextInput: {
+			defaultProps: {
+				radius: 'md',
+			},
+		},
+		Textarea: {
+			defaultProps: {
+				radius: 'md',
+			},
+		},
 	},
 });
+

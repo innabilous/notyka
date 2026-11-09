@@ -109,14 +109,14 @@ export const REMARKS_ITEMS = [
 export const PALETTE_COLORS: readonly string[] = [
 	'#ffffff',
 	'#000000',
-	'#ff0055',
-	'#ed1c24',
+	'#ef4444',
 	'#ff7f27',
 	'#fff200',
 	'#22b14c',
 	'#00a2e8',
 	'#3f48cc',
 	'#a349a4',
+	'#64748b',
 ];
 
 export const MIN_SCALE = 0.25;
