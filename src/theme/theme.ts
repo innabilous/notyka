@@ -2,9 +2,9 @@ import { CSSVariablesResolver, MantineColorsTuple, createTheme } from '@mantine/
 import { AccentSkin, AppearanceConfig, DarkSurfaceTone, LightSurfaceTone } from '@/types/editor';
 
 export const DEFAULT_APPEARANCE_CONFIG: AppearanceConfig = {
-	accentSkin: 'orange',
-	darkTone: 'carbon',
-	lightTone: 'cotton',
+	accentSkin: 'cobalt',
+	darkTone: 'obsidian',
+	lightTone: 'anodized',
 };
 
 // 10-shade Mantine palettes for Accent Skins

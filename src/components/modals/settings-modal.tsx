@@ -49,9 +49,9 @@ import {
 } from '@/types/editor';
 
 const ACCENT_SKINS: { id: AccentSkin; label: string; hex: string }[] = [
-	{ id: 'orange', label: 'Orange', hex: '#ff5500' },
 	{ id: 'cobalt', label: 'Cobalt', hex: '#2563eb' },
 	{ id: 'lime', label: 'Lime', hex: '#84cc16' },
+	{ id: 'orange', label: 'Orange', hex: '#ff5500' },
 	{ id: 'amber', label: 'Amber', hex: '#f59e0b' },
 ];
 
@@ -145,6 +145,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							onChange={(val) => setColorScheme(val as 'dark' | 'light' | 'auto')}
 							data={[
 								{
+									value: 'auto',
+									label: (
+										<Center style={{ gap: 6 }}>
+											<Monitor size={14} />
+											<span>Системна</span>
+										</Center>
+									),
+								},
+								{
 									value: 'dark',
 									label: (
 										<Center style={{ gap: 6 }}>
@@ -159,15 +168,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 										<Center style={{ gap: 6 }}>
 											<Sun size={14} />
 											<span>Світла</span>
-										</Center>
-									),
-								},
-								{
-									value: 'auto',
-									label: (
-										<Center style={{ gap: 6 }}>
-											<Monitor size={14} />
-											<span>Системна</span>
 										</Center>
 									),
 								},
@@ -186,8 +186,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 									value={config.darkTone}
 									onChange={(val) => setDarkTone(val as DarkSurfaceTone)}
 									data={[
-										{ value: 'carbon', label: 'Matte Carbon' },
 										{ value: 'obsidian', label: 'OLED Obsidian' },
+										{ value: 'carbon', label: 'Matte Carbon' },
 									]}
 								/>
 							) : (
@@ -197,8 +197,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 									value={config.lightTone}
 									onChange={(val) => setLightTone(val as LightSurfaceTone)}
 									data={[
-										{ value: 'cotton', label: 'Warm Cotton' },
 										{ value: 'anodized', label: 'Anodized Silver' },
+										{ value: 'cotton', label: 'Warm Cotton' },
 									]}
 								/>
 							)}

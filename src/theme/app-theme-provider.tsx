@@ -10,7 +10,7 @@ import {
 } from '@/theme/theme';
 import { AccentSkin, AppearanceConfig, DarkSurfaceTone, LightSurfaceTone } from '@/types/editor';
 
-const STORAGE_KEY = 'notyka_appearance_v1';
+const STORAGE_KEY = 'notyka_appearance_v2';
 
 interface AppearanceContextValue {
 	config: AppearanceConfig;
