@@ -93,7 +93,6 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 						<NavLink
 							leftSection={<Download size={18} />}
 							label="Зберегти фото"
-							color="green"
 							onClick={onSave}
 							style={{ borderRadius: 8 }}
 						/>
@@ -101,7 +100,6 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 						<NavLink
 							leftSection={<Share2 size={18} />}
 							label="Поділитися"
-							color="sky"
 							onClick={onShare}
 							style={{ borderRadius: 8 }}
 						/>

@@ -79,8 +79,9 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 											<Box
 												w={46}
 												h={46}
-												bg="dark.8"
 												style={{
+													background: 'var(--panel-3)',
+													border: '1px solid var(--line)',
 													borderRadius: 6,
 													overflow: 'hidden',
 													flexShrink: 0,
@@ -98,7 +99,7 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 														h="100%"
 													/>
 												) : (
-													<Box w="100%" h="100%" bg="white" />
+													<Box w="100%" h="100%" style={{ background: 'var(--panel-3)' }} />
 												)}
 											</Box>
 

@@ -521,8 +521,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 									top: -8,
 									width: 16,
 									height: 16,
-									borderLeft: '4px solid var(--accent-2)',
-									borderTop: '4px solid var(--accent-2)',
+									borderLeft: '4px solid var(--accent)',
+									borderTop: '4px solid var(--accent)',
 									cursor: 'nwse-resize',
 								}}
 								onPointerDown={(e) => onPointerDown('nw', e)}
@@ -534,8 +534,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 									top: -8,
 									width: 16,
 									height: 16,
-									borderRight: '4px solid var(--accent-2)',
-									borderTop: '4px solid var(--accent-2)',
+									borderRight: '4px solid var(--accent)',
+									borderTop: '4px solid var(--accent)',
 									cursor: 'nesw-resize',
 								}}
 								onPointerDown={(e) => onPointerDown('ne', e)}
@@ -547,8 +547,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 									bottom: -8,
 									width: 16,
 									height: 16,
-									borderRight: '4px solid var(--accent-2)',
-									borderBottom: '4px solid var(--accent-2)',
+									borderRight: '4px solid var(--accent)',
+									borderBottom: '4px solid var(--accent)',
 									cursor: 'nwse-resize',
 								}}
 								onPointerDown={(e) => onPointerDown('se', e)}
@@ -560,8 +560,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 									bottom: -8,
 									width: 16,
 									height: 16,
-									borderLeft: '4px solid var(--accent-2)',
-									borderBottom: '4px solid var(--accent-2)',
+									borderLeft: '4px solid var(--accent)',
+									borderBottom: '4px solid var(--accent)',
 									cursor: 'nesw-resize',
 								}}
 								onPointerDown={(e) => onPointerDown('sw', e)}
@@ -662,7 +662,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 							size={40}
 							radius="xl"
 							variant={enhanceClarity ? 'gradient' : 'default'}
-							gradient={{ from: 'sky', to: 'indigo', deg: 135 }}
+							gradient={{ from: 'sky.4', to: 'sky.6', deg: 135 }}
 							onClick={handleToggleEnhance}
 							aria-label="Покращити чіткість нот та контраст партитури"
 						>

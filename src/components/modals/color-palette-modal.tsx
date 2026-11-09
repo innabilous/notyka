@@ -53,7 +53,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 				? strokeColor
 				: mainColor && mainColor !== 'transparent'
 					? mainColor
-					: '#ed1c24';
+					: '#ef4444';
 
 		const handleSetArrowColor = (color: string) => {
 			onChangeMainColor(color);
@@ -80,7 +80,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 							<Text size="xs">Свій</Text>
 							<input
 								type="color"
-								value={arrowColor.startsWith('#') ? arrowColor : '#ed1c24'}
+								value={arrowColor.startsWith('#') ? arrowColor : '#ef4444'}
 								onChange={(e) => handleSetArrowColor(e.target.value)}
 								style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
 							/>
@@ -139,7 +139,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 								<Text size="xs">Свій</Text>
 								<input
 									type="color"
-									value={mainColor.startsWith('#') ? mainColor : '#ed1c24'}
+									value={mainColor.startsWith('#') ? mainColor : '#ef4444'}
 									onChange={(e) => onChangeMainColor(e.target.value)}
 									style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
 								/>
@@ -199,7 +199,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 								<Text size="xs">Свій</Text>
 								<input
 									type="color"
-									value={strokeColor.startsWith('#') ? strokeColor : '#ed1c24'}
+									value={strokeColor.startsWith('#') ? strokeColor : '#ef4444'}
 									onChange={(e) => onChangeStrokeColor(e.target.value)}
 									style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
 								/>
@@ -273,7 +273,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 							<Text size="xs">Свій</Text>
 							<input
 								type="color"
-								value={mainColor.startsWith('#') ? mainColor : '#ff0055'}
+								value={mainColor.startsWith('#') ? mainColor : '#ef4444'}
 								onChange={(e) => onChangeMainColor(e.target.value)}
 								style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
 							/>
