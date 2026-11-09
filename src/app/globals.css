@@ -617,22 +617,25 @@ footer {
 }
 
 #ruler-settings.compact .ruler-setting-btn {
-	height: 1.85rem;
-	padding: 0 0.55rem;
-	border-radius: 9999px;
+	width: 2.15rem;
+	height: 2.15rem;
+	border-radius: 50%;
+	padding: 0;
+	aspect-ratio: 1 / 1;
+	justify-content: center;
+	align-items: center;
+	display: inline-flex;
 	flex-shrink: 0;
-	width: auto;
+}
+
+#ruler-settings.compact .ruler-setting-btn span {
+	display: none;
 }
 
 @media (max-width: 860px) {
-	#ruler-settings.compact .ruler-setting-btn span {
-		display: none;
-	}
 	#ruler-settings.compact .ruler-setting-btn {
-		padding: 0;
-		width: 1.8rem;
-		height: 1.8rem;
-		justify-content: center;
+		width: 1.85rem;
+		height: 1.85rem;
 	}
 }
 
@@ -675,6 +678,14 @@ footer {
 	flex-shrink: 0;
 }
 
+.select-setting-btn.standalone {
+	height: 1.85rem;
+	padding: 0 0.55rem;
+	border-radius: 9999px;
+	border: 1px solid var(--line);
+	background: rgba(255, 255, 255, 0.05);
+}
+
 .select-setting-btn:hover {
 	color: var(--text);
 	background: rgba(255, 255, 255, 0.08);
@@ -688,6 +699,9 @@ footer {
 }
 
 .select-setting-btn.danger {
+	height: 1.85rem;
+	padding: 0 0.55rem;
+	border-radius: 9999px;
 	color: #ef4444;
 	background: rgba(239, 68, 68, 0.12);
 	border: 1px solid rgba(239, 68, 68, 0.25);
@@ -699,8 +713,8 @@ footer {
 }
 
 .select-setting-btn .icon {
-	width: 0.9rem;
-	height: 0.9rem;
+	width: 0.95rem;
+	height: 0.95rem;
 	flex-shrink: 0;
 }
 
@@ -730,8 +744,30 @@ footer {
 	.select-setting-btn span.btn-label {
 		display: none;
 	}
+
 	.select-setting-btn {
-		padding: 0 0.4rem;
+		width: 1.85rem;
+		height: 1.85rem;
+		padding: 0;
+		border-radius: 50%;
+		aspect-ratio: 1 / 1;
+		justify-content: center;
+	}
+
+	.select-setting-btn.standalone {
+		width: 2rem;
+		height: 2rem;
+		padding: 0;
+		border-radius: 50%;
+		aspect-ratio: 1 / 1;
+	}
+
+	.select-setting-btn.danger {
+		width: 2rem;
+		height: 2rem;
+		padding: 0;
+		border-radius: 50%;
+		aspect-ratio: 1 / 1;
 	}
 }
 
