@@ -86,12 +86,19 @@ export const PhotoEditor: React.FC = () => {
 		shapes: { main: 'transparent', stroke: '#ed1c24' },
 	});
 
-	// Selected shape type and independent sizes for shapes stamp category
+	// Selected shape type and independent sizes and colors for shapes
 	const [selectedShape, setSelectedShape] = useState<ShapeType>('rect');
 	const [shapeSizes, setShapeSizes] = useState<Record<ShapeType, number>>({
 		rect: 2,
 		circle: 2,
 		arrow: 2,
+	});
+	const [shapeColors, setShapeColors] = useState<
+		Record<ShapeType, { main: string; stroke: string }>
+	>({
+		rect: { main: 'transparent', stroke: '#ed1c24' },
+		circle: { main: 'transparent', stroke: '#ed1c24' },
+		arrow: { main: '#ed1c24', stroke: '#ed1c24' },
 	});
 
 	// Independent tool sizes
@@ -421,20 +428,21 @@ export const PhotoEditor: React.FC = () => {
 		if (stampCategory === 'shapes') {
 			if (selectedShape === 'arrow') {
 				const arrowColor =
-					categoryColors.shapes?.stroke && categoryColors.shapes.stroke !== 'transparent'
-						? categoryColors.shapes.stroke
-						: categoryColors.shapes?.main && categoryColors.shapes.main !== 'transparent'
-							? categoryColors.shapes.main
+					shapeColors.arrow.stroke && shapeColors.arrow.stroke !== 'transparent'
+						? shapeColors.arrow.stroke
+						: shapeColors.arrow.main && shapeColors.arrow.main !== 'transparent'
+							? shapeColors.arrow.main
 							: '#ed1c24';
 				return arrowColor;
 			}
-			return categoryColors.shapes?.main ?? 'transparent';
+			return shapeColors[selectedShape]?.main ?? 'transparent';
 		}
 		return categoryColors[stampCategory]?.main ?? '#ed1c24';
 	}, [
 		categoryColors,
 		currentMode,
 		selectedShape,
+		shapeColors,
 		stampCategory,
 		toolColors.pencil.main,
 	]);
@@ -444,20 +452,21 @@ export const PhotoEditor: React.FC = () => {
 		if (stampCategory === 'shapes') {
 			if (selectedShape === 'arrow') {
 				const arrowColor =
-					categoryColors.shapes?.stroke && categoryColors.shapes.stroke !== 'transparent'
-						? categoryColors.shapes.stroke
-						: categoryColors.shapes?.main && categoryColors.shapes.main !== 'transparent'
-							? categoryColors.shapes.main
+					shapeColors.arrow.stroke && shapeColors.arrow.stroke !== 'transparent'
+						? shapeColors.arrow.stroke
+						: shapeColors.arrow.main && shapeColors.arrow.main !== 'transparent'
+							? shapeColors.arrow.main
 							: '#ed1c24';
 				return arrowColor;
 			}
-			return categoryColors.shapes?.stroke ?? '#ed1c24';
+			return shapeColors[selectedShape]?.stroke ?? '#ed1c24';
 		}
 		return categoryColors[stampCategory]?.stroke ?? 'transparent';
 	}, [
 		categoryColors,
 		currentMode,
 		selectedShape,
+		shapeColors,
 		stampCategory,
 		toolColors.pencil.stroke,
 	]);
@@ -1422,16 +1431,32 @@ export const PhotoEditor: React.FC = () => {
 	const handleChangeMainColor = useCallback(
 		(color: string) => {
 			if (currentMode === 'stamp' || currentMode === 'select') {
-				if (stampCategory === 'shapes' && selectedShape === 'arrow') {
-					setCategoryColors((prev) => ({
+				if (stampCategory === 'shapes') {
+					if (selectedShape === 'arrow') {
+						setShapeColors((prev) => ({
+							...prev,
+							arrow: { main: color, stroke: color },
+						}));
+						stageRef.current?.updateActiveStampProps(
+							currentSize,
+							activeStampText || selectedShape,
+							color,
+							color,
+						);
+						return;
+					}
+					setShapeColors((prev) => ({
 						...prev,
-						shapes: { main: color, stroke: color },
+						[selectedShape]: {
+							...prev[selectedShape],
+							main: color,
+						},
 					}));
 					stageRef.current?.updateActiveStampProps(
 						currentSize,
 						activeStampText || selectedShape,
 						color,
-						color,
+						currentStrokeColor,
 					);
 					return;
 				}
@@ -1444,10 +1469,7 @@ export const PhotoEditor: React.FC = () => {
 				}));
 				stageRef.current?.updateActiveStampProps(
 					currentSize,
-					activeStampText ||
-						(stampCategory === 'shapes'
-							? selectedShape
-							: `${selectedNote}${selectedAccidental}`),
+					activeStampText || `${selectedNote}${selectedAccidental}`,
 					color,
 					currentStrokeColor,
 				);
@@ -1476,16 +1498,36 @@ export const PhotoEditor: React.FC = () => {
 	const handleChangeStrokeColor = useCallback(
 		(color: string) => {
 			if (currentMode === 'stamp' || currentMode === 'select') {
-				if (stampCategory === 'shapes' && selectedShape === 'arrow') {
-					setCategoryColors((prev) => ({
+				if (stampCategory === 'shapes') {
+					if (selectedShape === 'arrow') {
+						setShapeColors((prev) => ({
+							...prev,
+							arrow: { main: color, stroke: color },
+						}));
+						stageRef.current?.updateActiveStampProps(
+							currentSize,
+							activeStampText || selectedShape,
+							color,
+							color,
+						);
+						return;
+					}
+					setShapeColors((prev) => ({
 						...prev,
-						shapes: { main: color, stroke: color },
+						[selectedShape]: {
+							...prev[selectedShape],
+							stroke: color,
+						},
 					}));
+					if (color === 'transparent') {
+						showToast('Обводку вимкнено');
+					}
 					stageRef.current?.updateActiveStampProps(
 						currentSize,
 						activeStampText || selectedShape,
+						currentMainColor,
 						color,
-						color,
+						stampBadgeMode,
 					);
 					return;
 				}
@@ -1503,10 +1545,7 @@ export const PhotoEditor: React.FC = () => {
 
 				stageRef.current?.updateActiveStampProps(
 					currentSize,
-					activeStampText ||
-						(stampCategory === 'shapes'
-							? selectedShape
-							: `${selectedNote}${selectedAccidental}`),
+					activeStampText || `${selectedNote}${selectedAccidental}`,
 					currentMainColor,
 					color,
 					stampBadgeMode,
@@ -1659,7 +1698,7 @@ export const PhotoEditor: React.FC = () => {
 	//! Синхронізація розмірів усіх штампів вибраного розділу
 	const handleSyncCategorySizes = useCallback(() => {
 		if (currentMode !== 'stamp' && currentMode !== 'select') return;
-		stageRef.current?.syncCategorySizes(stampCategory, currentSize);
+		stageRef.current?.syncCategorySizes(stampCategory, currentSize, selectedShape);
 
 		if (stampCategory === 'notes') {
 			const updated: Record<string, number> = { ...noteSizes };
@@ -1671,13 +1710,12 @@ export const PhotoEditor: React.FC = () => {
 			});
 			setNoteSizes(updated);
 		} else if (stampCategory === 'shapes') {
-			setShapeSizes({
-				rect: currentSize,
-				circle: currentSize,
-				arrow: currentSize,
-			});
+			setShapeSizes((prev) => ({
+				...prev,
+				[selectedShape]: currentSize,
+			}));
 		}
-	}, [currentMode, currentSize, noteSizes, stampCategory]);
+	}, [currentMode, currentSize, noteSizes, selectedShape, stampCategory]);
 
 	const handleSelectStampFromCanvas = useCallback((stamp: StampItem) => {
 		setToolSizes((prev) => ({
@@ -1720,11 +1758,19 @@ export const PhotoEditor: React.FC = () => {
 			}
 		} else if (cat === 'shapes') {
 			if (stamp.shapeType) {
-				setSelectedShape(stamp.shapeType);
+				const shape = stamp.shapeType;
+				setSelectedShape(shape);
 				const shapeSz = stamp.strokeWidth || stamp.size || 2;
 				setShapeSizes((prev) => ({
 					...prev,
-					[stamp.shapeType as ShapeType]: shapeSz,
+					[shape]: shapeSz,
+				}));
+				setShapeColors((prev) => ({
+					...prev,
+					[shape]: {
+						main: stamp.mainColor || 'transparent',
+						stroke: stamp.strokeColor || '#ed1c24',
+					},
 				}));
 			}
 		}
@@ -1846,6 +1892,11 @@ export const PhotoEditor: React.FC = () => {
 		});
 		setSelectedShape('rect');
 		setShapeSizes({ rect: 2, circle: 2, arrow: 2 });
+		setShapeColors({
+			rect: { main: 'transparent', stroke: '#ed1c24' },
+			circle: { main: 'transparent', stroke: '#ed1c24' },
+			arrow: { main: '#ed1c24', stroke: '#ed1c24' },
+		});
 		setSelectedNote('До');
 		setSelectedAccidental('');
 		setSelectedChordRoot('C');

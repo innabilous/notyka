@@ -117,7 +117,7 @@ export interface CanvasStageHandle {
 	duplicateActiveStamp: () => void;
 	deleteSelectedStamps: () => void;
 	clearSelection: () => void;
-	syncCategorySizes: (category: StampCategory, size: number) => void;
+	syncCategorySizes: (category: StampCategory, size: number, shapeType?: ShapeType) => void;
 	prepareExport: () => void;
 	getExportBlob: () => Promise<Blob | null>;
 	serializeProject: (title?: string) => Promise<ProjectItem | null>;
@@ -231,17 +231,26 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const rotateStartAngleRef = useRef<number>(0);
 	const rotateInitialAngleRef = useRef<number>(0);
 	const isDraggingCornerRef = useRef<'tl' | 'tr' | 'br' | 'bl' | null>(null);
-	const lastShapePresetRef = useRef<{
-		shapeType: ShapeType;
-		width: number;
-		height: number;
-		rotation: number;
-		dx?: number;
-		dy?: number;
-		strokeWidth: number;
-		mainColor: string;
-		strokeColor: string;
-	} | null>(null);
+	const lastShapePresetsRef = useRef<
+		Record<
+			ShapeType,
+			{
+				shapeType: ShapeType;
+				width: number;
+				height: number;
+				rotation: number;
+				dx?: number;
+				dy?: number;
+				strokeWidth: number;
+				mainColor: string;
+				strokeColor: string;
+			} | null
+		>
+	>({
+		rect: null,
+		circle: null,
+		arrow: null,
+	});
 
 	// Area and multi-selection refs
 	const selectedStampIdsRef = useRef<string[]>([]);
@@ -722,10 +731,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	);
 
 	const syncCategorySizes = useCallback(
-		(category: StampCategory, size: number) => {
+		(category: StampCategory, size: number, shapeType?: ShapeType) => {
 			let updatedCount = 0;
 			layersRef.current.forEach((layer) => {
 				if (layer.type === 'stamp' && getStampCategory(layer.stamp) === category) {
+					//! Якщо це фігури і передано конкретний тип — синхронізуємо тільки відповідний тип фігури
+					if (
+						category === 'shapes' &&
+						shapeType &&
+						(layer.stamp.shapeType || 'rect') !== shapeType
+					) {
+						return;
+					}
 					layer.stamp.size = size;
 					if (layer.stamp.category === 'shapes' || layer.stamp.shapeType) {
 						layer.stamp.strokeWidth = size;
@@ -749,6 +766,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 			stampsListRef.current.forEach((st) => {
 				if (getStampCategory(st) === category) {
+					if (
+						category === 'shapes' &&
+						shapeType &&
+						(st.shapeType || 'rect') !== shapeType
+					) {
+						return;
+					}
 					st.size = size;
 					if (st.category === 'shapes' || st.shapeType) {
 						st.strokeWidth = size;
@@ -757,29 +781,42 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			});
 
 			if (activeStampRef.current && getStampCategory(activeStampRef.current) === category) {
-				activeStampRef.current.size = size;
-				if (activeStampRef.current.category === 'shapes' || activeStampRef.current.shapeType) {
-					activeStampRef.current.strokeWidth = size;
+				if (
+					category !== 'shapes' ||
+					!shapeType ||
+					(activeStampRef.current.shapeType || 'rect') === shapeType
+				) {
+					activeStampRef.current.size = size;
+					if (activeStampRef.current.category === 'shapes' || activeStampRef.current.shapeType) {
+						activeStampRef.current.strokeWidth = size;
+					}
 				}
 			}
+
+			const shapeLabel =
+				shapeType === 'arrow'
+					? 'стрілок'
+					: shapeType === 'circle'
+						? 'кіл'
+						: 'прямокутників';
 
 			if (updatedCount > 0) {
 				saveHistory();
 				render();
 				onNotify(
 					category === 'shapes'
-						? `Товщину ліній ${updatedCount} фігур синхронізовано`
+						? `Товщину ліній ${updatedCount} ${shapeLabel} синхронізовано`
 						: `Синхронізовано ${updatedCount} елементів розділу`,
 				);
 			} else {
 				onNotify(
 					category === 'shapes'
-						? 'Товщину ліній фігур синхронізовано'
+						? `Товщину ліній ${shapeLabel} синхронізовано`
 						: 'Немає елементів цього розділу на полотні',
 				);
 			}
 		},
-		[onNotify, render, saveHistory],
+		[clampStampPosition, onNotify, render, saveHistory],
 	);
 
 	const initCanvas = useCallback((w: number, h: number, cssW: number, cssH: number) => {
@@ -1223,6 +1260,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 
+			//! Якщо в режимі 'stamp' активний штамп не відповідає поточному інструменту або формі — фіксуємо його
+			if (
+				currentMode === 'stamp' &&
+				activeStampRef.current &&
+				(getStampCategory(activeStampRef.current) !== stampCategory ||
+					(stampCategory === 'shapes' &&
+						(activeStampRef.current.shapeType || 'rect') !== selectedShape))
+			) {
+				commitActiveStamp(false);
+			}
+
 			//! Якщо в режимі 'select' активний штамп не підпадає під фільтр — знімаємо його активність
 			if (
 				currentMode === 'select' &&
@@ -1340,6 +1388,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					if (currentMode === 'stamp' && getStampCategory(l.stamp) !== stampCategory) {
 						continue;
 					}
+					//! У режимі 'stamp' для фігур дозволяємо взаємодіяти тільки з фігурами активного типу (rect, circle, arrow)
+					if (
+						currentMode === 'stamp' &&
+						stampCategory === 'shapes' &&
+						(l.stamp.shapeType || 'rect') !== selectedShape
+					) {
+						continue;
+					}
 					//! У режимі 'select' з активним фільтром категорій — дозволяємо тільки обрану категорію
 					if (
 						currentMode === 'select' &&
@@ -1354,18 +1410,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 						selectedStampIdsRef.current = [selected.id];
 						onSelectedCountChange?.(1);
 
-						if (selected.category === 'shapes' && selected.shapeType) {
-							lastShapePresetRef.current = {
-								shapeType: selected.shapeType,
-								width: selected.width || (selected.shapeType === 'rect' ? 80 : 60),
-								height: selected.height || (selected.shapeType === 'rect' ? 50 : 60),
+						if (selected.category === 'shapes' || selected.shapeType) {
+							const shapeT = selected.shapeType || 'rect';
+							lastShapePresetsRef.current[shapeT] = {
+								shapeType: shapeT,
+								width: selected.width || (shapeT === 'rect' ? 80 : 60),
+								height: selected.height || (shapeT === 'rect' ? 50 : 60),
 								rotation: selected.rotation || 0,
 								dx:
-									selected.shapeType === 'arrow' && selected.endX !== undefined
+									shapeT === 'arrow' && selected.endX !== undefined
 										? selected.endX - selected.x
 										: undefined,
 								dy:
-									selected.shapeType === 'arrow' && selected.endY !== undefined
+									shapeT === 'arrow' && selected.endY !== undefined
 										? selected.endY - selected.y
 										: undefined,
 								strokeWidth: selected.strokeWidth || selected.size || currentSize,
@@ -1488,18 +1545,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 			//! 4.1. Якщо обрано категорію фігур
 			if (stampCategory === 'shapes') {
-				if (active && active.category === 'shapes' && active.shapeType) {
-					lastShapePresetRef.current = {
-						shapeType: active.shapeType,
-						width: active.width || (active.shapeType === 'rect' ? 80 : 60),
-						height: active.height || (active.shapeType === 'rect' ? 50 : 60),
+				if (active && (active.category === 'shapes' || active.shapeType)) {
+					const shapeT = active.shapeType || 'rect';
+					lastShapePresetsRef.current[shapeT] = {
+						shapeType: shapeT,
+						width: active.width || (shapeT === 'rect' ? 80 : 60),
+						height: active.height || (shapeT === 'rect' ? 50 : 60),
 						rotation: active.rotation || 0,
 						dx:
-							active.shapeType === 'arrow' && active.endX !== undefined
+							shapeT === 'arrow' && active.endX !== undefined
 								? active.endX - active.x
 								: undefined,
 						dy:
-							active.shapeType === 'arrow' && active.endY !== undefined
+							shapeT === 'arrow' && active.endY !== undefined
 								? active.endY - active.y
 								: undefined,
 						strokeWidth: active.strokeWidth || active.size || currentSize,
@@ -1515,10 +1573,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				const canvasH = canvas?.height ?? 10000;
 				const U = uRef.current;
 				const shape = selectedShape || 'rect';
-				const preset =
-					lastShapePresetRef.current?.shapeType === shape
-						? lastShapePresetRef.current
-						: null;
+				const preset = lastShapePresetsRef.current[shape];
 				const initialLw = Math.max(1 * U, (preset?.strokeWidth ?? currentSize) * U);
 				const halfLw = initialLw / 2;
 
@@ -2635,10 +2690,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 				//! Якщо користувач просто клікнув без протягування — клонуємо попередню фігуру або застосовуємо розмір за замовчуванням
 				if (isTiny) {
-					const preset =
-						lastShapePresetRef.current?.shapeType === shape
-							? lastShapePresetRef.current
-							: null;
+					const preset = lastShapePresetsRef.current[shape];
 					if (shape === 'arrow') {
 						const dx = preset?.dx ?? 80 * U;
 						const dy = preset?.dy ?? 0;
@@ -2674,7 +2726,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 
 				// Оновлюємо пресет для наступного створення/клонування
-				lastShapePresetRef.current = {
+				lastShapePresetsRef.current[shape] = {
 					shapeType: shape,
 					width: active.width || (shape === 'rect' ? 80 : 60),
 					height: active.height || (shape === 'rect' ? 50 : 60),
