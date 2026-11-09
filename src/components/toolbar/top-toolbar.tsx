@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Box, Group, UnstyledButton } from '@mantine/core';
 import { Menu, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { RulerSettings } from '@/components/settings/ruler-settings';
@@ -95,12 +96,11 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	onClearRulers,
 }) => {
 	return (
-		<header id="top-bar">
+		<Box component="header" id="top-bar">
 			{/* Лівий кут: Анду / Реду */}
-			<div className="top-action-group">
-				<button
+			<Group gap={4} className="top-action-group">
+				<UnstyledButton
 					id="btn-undo"
-					type="button"
 					className="top-btn"
 					disabled={!canUndo}
 					aria-label="Скасувати дію"
@@ -108,10 +108,9 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 					onClick={onUndo}
 				>
 					<Undo2 className="icon" />
-				</button>
-				<button
+				</UnstyledButton>
+				<UnstyledButton
 					id="btn-redo"
-					type="button"
 					className="top-btn"
 					disabled={!canRedo}
 					aria-label="Повернути дію"
@@ -119,11 +118,11 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 					onClick={onRedo}
 				>
 					<Redo2 className="icon" />
-				</button>
-			</div>
+				</UnstyledButton>
+			</Group>
 
 			{/* Центр: Панель налаштувань інструменту */}
-			<div className="top-center-settings">
+			<Box className="top-center-settings">
 				{currentMode === 'ruler' ? (
 					compactRulers ? (
 						<RulerSettings
@@ -144,9 +143,8 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 							onClearRulers={onClearRulers}
 						/>
 					) : (
-						<div id="ruler-top-bar-action">
-							<button
-								type="button"
+						<Box id="ruler-top-bar-action">
+							<UnstyledButton
 								className="btn-clear-rulers"
 								onClick={onClearRulers}
 								disabled={!rulersCount || rulersCount === 0}
@@ -155,8 +153,8 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 							>
 								<Trash2 className="icon" />
 								<span>Очистити всі лінійки{rulersCount && rulersCount > 0 ? ` (${rulersCount})` : ''}</span>
-							</button>
-						</div>
+							</UnstyledButton>
+						</Box>
 					)
 				) : currentMode === 'select' ? (
 					<SelectSettings
@@ -186,21 +184,20 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 						onSyncCategorySizes={onSyncCategorySizes}
 					/>
 				)}
-			</div>
+			</Box>
 
 			{/* Правий кут: Кнопка Меню */}
-			<div className="top-action-group">
-				<button
+			<Group gap={4} className="top-action-group">
+				<UnstyledButton
 					id="btn-toggle-menu"
-					type="button"
 					className="top-btn menu-btn"
 					aria-label="Меню опцій та файлів"
 					title="Меню"
 					onClick={onToggleMenu}
 				>
 					<Menu className="icon" />
-				</button>
-			</div>
-		</header>
+				</UnstyledButton>
+			</Group>
+		</Box>
 	);
 };

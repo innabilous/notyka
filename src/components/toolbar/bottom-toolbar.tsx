@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Box, UnstyledButton } from '@mantine/core';
 import { Eraser, MousePointer, Pencil, Ruler, Stamp } from 'lucide-react';
 import { ToolMode } from '@/types/editor';
 
@@ -18,71 +19,66 @@ export const BottomToolbar: React.FC<BottomToolbarProps> = ({
 	const isVisible = (tool: ToolMode) => visibleTools?.[tool] ?? true;
 
 	return (
-		<div id="toolbar">
+		<Box id="toolbar">
 			{isVisible('select') && (
-				<button
+				<UnstyledButton
 					id="btn-select"
-					type="button"
 					className={`tool ${currentMode === 'select' ? 'active' : ''}`}
 					aria-label="Виділення"
 					title="Виділення (редагування об'єктів)"
 					onClick={() => onSelectMode('select')}
 				>
 					<MousePointer className="icon lg" />
-				</button>
+				</UnstyledButton>
 			)}
 
 			{isVisible('pencil') && (
-				<button
+				<UnstyledButton
 					id="btn-pencil"
-					type="button"
 					className={`tool ${currentMode === 'pencil' ? 'active' : ''}`}
 					aria-label="Олівець"
 					title="Олівець (малювання)"
 					onClick={() => onSelectMode('pencil')}
 				>
 					<Pencil className="icon lg" />
-				</button>
+				</UnstyledButton>
 			)}
 
 			{isVisible('stamp') && (
-				<button
+				<UnstyledButton
 					id="btn-stamp"
-					type="button"
 					className={`tool ${currentMode === 'stamp' ? 'active' : ''}`}
 					aria-label="Штамп нот"
 					title="Штамп (розмітка нот)"
 					onClick={() => onSelectMode('stamp')}
 				>
 					<Stamp className="icon lg" />
-				</button>
+				</UnstyledButton>
 			)}
 
 			{isVisible('ruler') && (
-				<button
+				<UnstyledButton
 					id="btn-ruler"
-					type="button"
 					className={`tool ${currentMode === 'ruler' ? 'active' : ''}`}
 					aria-label="Лінійка"
 					title="Лінійка (напрямні лінії)"
 					onClick={() => onSelectMode('ruler')}
 				>
 					<Ruler className="icon lg" />
-				</button>
+				</UnstyledButton>
 			)}
 
 			{isVisible('eraser') && (
-				<button
+				<UnstyledButton
 					id="btn-eraser"
-					type="button"
 					className={`tool ${currentMode === 'eraser' ? 'active' : ''}`}
 					aria-label="Гумка"
 					title="Гумка (стирання)"
 					onClick={() => onSelectMode('eraser')}
 				>
 					<Eraser className="icon lg" />
-				</button>
+				</UnstyledButton>
 			)}
-		</div>
+		</Box>
 	);
 };
