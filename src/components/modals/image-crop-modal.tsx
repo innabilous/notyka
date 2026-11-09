@@ -2,6 +2,17 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+	ActionIcon,
+	Box,
+	Button,
+	Group,
+	Modal,
+	Paper,
+	SegmentedControl,
+	Stack,
+	Tooltip,
+} from '@mantine/core';
+import {
 	Check,
 	Crop,
 	FlipHorizontal,
@@ -344,69 +355,55 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 	const isRotated90or270 = rotation % 180 !== 0;
 
 	return (
-		<div
-			style={{
-				position: 'fixed',
-				inset: 0,
-				zIndex: 9999,
-				backgroundColor: 'rgba(3, 7, 18, 0.96)',
-				backdropFilter: 'blur(10px)',
-				display: 'flex',
-				flexDirection: 'column',
-				justifyContent: 'space-between',
-				overflow: 'hidden',
+		<Modal
+			fullScreen
+			opened={opened}
+			onClose={onCancel}
+			withCloseButton={false}
+			padding={0}
+			styles={{
+				body: {
+					height: '100%',
+					display: 'flex',
+					flexDirection: 'column',
+					justifyContent: 'space-between',
+					padding: 0,
+					overflow: 'hidden',
+					backgroundColor: 'rgba(3, 7, 18, 0.96)',
+				},
 			}}
 		>
 			{/* Top Bar */}
-			<div
+			<Group
+				justify="space-between"
+				px="md"
+				py="xs"
 				style={{
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'space-between',
-					padding: '0.75rem 1rem',
 					borderBottom: '1px solid var(--line)',
 					background: 'rgba(31, 41, 55, 0.8)',
+					zIndex: 10,
 				}}
 			>
-				<button
-					type="button"
-					style={{
-						color: 'var(--muted)',
-						display: 'flex',
-						alignItems: 'center',
-						gap: '0.35rem',
-						fontSize: '0.9rem',
-						cursor: 'pointer',
-					}}
+				<Button
+					variant="subtle"
+					color="gray"
+					leftSection={<X size={18} />}
 					onClick={onCancel}
 				>
-					<X className="icon" />
-					<span>Скасувати</span>
-				</button>
+					Скасувати
+				</Button>
 
-				<button
-					type="button"
-					style={{
-						backgroundColor: 'var(--accent)',
-						color: '#ffffff',
-						borderRadius: '0.5rem',
-						padding: '0.4rem 0.85rem',
-						display: 'flex',
-						alignItems: 'center',
-						gap: '0.35rem',
-						fontWeight: 600,
-						fontSize: '0.9rem',
-						cursor: 'pointer',
-					}}
+				<Button
+					color="sky"
+					leftSection={<Check size={18} />}
 					onClick={handleApply}
 				>
-					<Check className="icon" />
-					<span>Готово</span>
-				</button>
-			</div>
+					Готово
+				</Button>
+			</Group>
 
 			{/* Center Preview with interactive crop box */}
-			<div
+			<Box
 				style={{
 					flex: 1,
 					display: 'flex',
@@ -418,7 +415,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 				}}
 			>
 				{imageElement && (
-					<div
+					<Box
 						ref={containerRef}
 						style={{
 							position: 'relative',
@@ -450,7 +447,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 						/>
 
 						{/* Dark overlay outside crop box */}
-						<div
+						<Box
 							style={{
 								position: 'absolute',
 								inset: 0,
@@ -460,7 +457,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 						/>
 
 						{/* Interactive Crop Frame */}
-						<div
+						<Box
 							style={{
 								position: 'absolute',
 								left: `${crop.x * 100}%`,
@@ -475,7 +472,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 							onPointerDown={(e) => onPointerDown('move', e)}
 						>
 							{/* 3x3 Grid lines */}
-							<div
+							<Box
 								style={{
 									position: 'absolute',
 									inset: 0,
@@ -485,39 +482,39 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 									pointerEvents: 'none',
 								}}
 							>
-								<div style={{ borderRight: '1px dashed rgba(255,255,255,0.4)' }} />
-								<div style={{ borderRight: '1px dashed rgba(255,255,255,0.4)' }} />
-								<div />
-								<div
+								<Box style={{ borderRight: '1px dashed rgba(255,255,255,0.4)' }} />
+								<Box style={{ borderRight: '1px dashed rgba(255,255,255,0.4)' }} />
+								<Box />
+								<Box
 									style={{
 										borderTop: '1px dashed rgba(255,255,255,0.4)',
 										borderRight: '1px dashed rgba(255,255,255,0.4)',
 									}}
 								/>
-								<div
+								<Box
 									style={{
 										borderTop: '1px dashed rgba(255,255,255,0.4)',
 										borderRight: '1px dashed rgba(255,255,255,0.4)',
 									}}
 								/>
-								<div style={{ borderTop: '1px dashed rgba(255,255,255,0.4)' }} />
-								<div
+								<Box style={{ borderTop: '1px dashed rgba(255,255,255,0.4)' }} />
+								<Box
 									style={{
 										borderTop: '1px dashed rgba(255,255,255,0.4)',
 										borderRight: '1px dashed rgba(255,255,255,0.4)',
 									}}
 								/>
-								<div
+								<Box
 									style={{
 										borderTop: '1px dashed rgba(255,255,255,0.4)',
 										borderRight: '1px dashed rgba(255,255,255,0.4)',
 									}}
 								/>
-								<div style={{ borderTop: '1px dashed rgba(255,255,255,0.4)' }} />
-							</div>
+								<Box style={{ borderTop: '1px dashed rgba(255,255,255,0.4)' }} />
+							</Box>
 
 							{/* Corner handles */}
-							<div
+							<Box
 								style={{
 									position: 'absolute',
 									left: -8,
@@ -530,7 +527,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 								}}
 								onPointerDown={(e) => onPointerDown('nw', e)}
 							/>
-							<div
+							<Box
 								style={{
 									position: 'absolute',
 									right: -8,
@@ -543,7 +540,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 								}}
 								onPointerDown={(e) => onPointerDown('ne', e)}
 							/>
-							<div
+							<Box
 								style={{
 									position: 'absolute',
 									right: -8,
@@ -556,7 +553,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 								}}
 								onPointerDown={(e) => onPointerDown('se', e)}
 							/>
-							<div
+							<Box
 								style={{
 									position: 'absolute',
 									left: -8,
@@ -569,198 +566,124 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 								}}
 								onPointerDown={(e) => onPointerDown('sw', e)}
 							/>
-						</div>
-					</div>
+						</Box>
+					</Box>
 				)}
-			</div>
+			</Box>
 
 			{/* Bottom Controls Bar */}
-			<div
+			<Stack
+				gap="xs"
+				px="sm"
+				py="xs"
 				style={{
 					background: 'rgba(31, 41, 55, 0.95)',
 					borderTop: '1px solid var(--line)',
-					padding: '0.65rem 0.75rem',
 					paddingBottom: 'calc(0.65rem + env(safe-area-inset-bottom, 0px))',
-					display: 'flex',
-					flexDirection: 'column',
-					gap: '0.5rem',
+					zIndex: 10,
 				}}
 			>
 				{/* Aspect ratio buttons */}
-				<div
-					style={{
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						gap: '0.35rem',
-						overflowX: 'auto',
-						padding: '0.1rem 0',
-					}}
-				>
+				<Group gap={6} justify="center" wrap="nowrap" style={{ overflowX: 'auto' }}>
 					{(['free', '1:1', '4:3', '16:9', '3:4'] as const).map((ratio) => (
-						<button
+						<Button
 							key={ratio}
-							type="button"
-							style={{
-								padding: '0.3rem 0.6rem',
-								borderRadius: '0.5rem',
-								fontSize: '0.75rem',
-								fontWeight: 600,
-								backgroundColor: aspectRatio === ratio ? 'var(--accent)' : 'var(--panel-2)',
-								color: aspectRatio === ratio ? '#ffffff' : 'var(--muted)',
-								border: '1px solid var(--line)',
-								cursor: 'pointer',
-								textTransform: 'uppercase',
-								flexShrink: 0,
-							}}
+							size="compact-xs"
+							variant={aspectRatio === ratio ? 'filled' : 'default'}
+							color="sky"
 							onClick={() => handleAspectChange(ratio)}
+							style={{ textTransform: 'uppercase' }}
 						>
 							{ratio === 'free' ? 'Вільний' : ratio}
-						</button>
+						</Button>
 					))}
-				</div>
+				</Group>
 
-				{/* Transform buttons: Rotate & Flip & Reset (Icon-only, compact & touch-friendly) */}
-				<div
-					style={{
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'center',
-						gap: '0.75rem',
-					}}
-				>
-					<button
-						type="button"
-						style={{
-							width: '2.5rem',
-							height: '2.5rem',
-							borderRadius: '50%',
-							background: 'var(--panel-2)',
-							border: '1px solid var(--line)',
-							color: 'var(--text)',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							cursor: 'pointer',
-						}}
-						onClick={handleRotateLeft}
-						title="Повернути проти годинникової стрілки (-90°)"
-						aria-label="Повернути проти годинникової стрілки"
-					>
-						<RotateCcw className="icon" />
-					</button>
+				{/* Transform buttons: Rotate & Flip & Reset */}
+				<Group gap="sm" justify="center">
+					<Tooltip label="Повернути проти годинникової стрілки (-90°)">
+						<ActionIcon
+							size={40}
+							radius="xl"
+							variant="default"
+							onClick={handleRotateLeft}
+							aria-label="Повернути проти годинникової стрілки"
+						>
+							<RotateCcw size={18} />
+						</ActionIcon>
+					</Tooltip>
 
-					<button
-						type="button"
-						style={{
-							width: '2.5rem',
-							height: '2.5rem',
-							borderRadius: '50%',
-							background: 'var(--panel-2)',
-							border: '1px solid var(--line)',
-							color: 'var(--text)',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							cursor: 'pointer',
-						}}
-						onClick={handleRotateRight}
-						title="Повернути за годинниковою стрілкою (+90°)"
-						aria-label="Повернути за годинниковою стрілкою"
-					>
-						<RotateCw className="icon" />
-					</button>
+					<Tooltip label="Повернути за годинниковою стрілкою (+90°)">
+						<ActionIcon
+							size={40}
+							radius="xl"
+							variant="default"
+							onClick={handleRotateRight}
+							aria-label="Повернути за годинниковою стрілкою"
+						>
+							<RotateCw size={18} />
+						</ActionIcon>
+					</Tooltip>
 
-					<button
-						type="button"
-						style={{
-							width: '2.5rem',
-							height: '2.5rem',
-							borderRadius: '50%',
-							background: flipH ? 'var(--accent)' : 'var(--panel-2)',
-							border: '1px solid var(--line)',
-							color: flipH ? '#ffffff' : 'var(--text)',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							cursor: 'pointer',
-						}}
-						onClick={handleToggleFlipH}
-						title="Віддзеркалити горизонтально"
-						aria-label="Віддзеркалити горизонтально"
-					>
-						<FlipHorizontal className="icon" />
-					</button>
+					<Tooltip label="Віддзеркалити горизонтально">
+						<ActionIcon
+							size={40}
+							radius="xl"
+							variant={flipH ? 'filled' : 'default'}
+							color="sky"
+							onClick={handleToggleFlipH}
+							aria-label="Віддзеркалити горизонтально"
+						>
+							<FlipHorizontal size={18} />
+						</ActionIcon>
+					</Tooltip>
 
-					<button
-						type="button"
-						style={{
-							width: '2.5rem',
-							height: '2.5rem',
-							borderRadius: '50%',
-							background: flipV ? 'var(--accent)' : 'var(--panel-2)',
-							border: '1px solid var(--line)',
-							color: flipV ? '#ffffff' : 'var(--text)',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							cursor: 'pointer',
-						}}
-						onClick={handleToggleFlipV}
-						title="Віддзеркалити вертикально"
-						aria-label="Віддзеркалити вертикально"
-					>
-						<FlipVertical className="icon" />
-					</button>
+					<Tooltip label="Віддзеркалити вертикально">
+						<ActionIcon
+							size={40}
+							radius="xl"
+							variant={flipV ? 'filled' : 'default'}
+							color="sky"
+							onClick={handleToggleFlipV}
+							aria-label="Віддзеркалити вертикально"
+						>
+							<FlipVertical size={18} />
+						</ActionIcon>
+					</Tooltip>
 
-					<button
-						type="button"
-						style={{
-							width: '2.5rem',
-							height: '2.5rem',
-							borderRadius: '50%',
-							background: enhanceClarity ? 'var(--accent-gradient)' : 'var(--panel-2)',
-							border: enhanceClarity ? 'none' : '1px solid var(--line)',
-							color: enhanceClarity ? '#ffffff' : 'var(--text)',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							cursor: 'pointer',
-							boxShadow: enhanceClarity ? '0 2px 8px rgba(56, 189, 248, 0.3)' : 'none',
-						}}
-						onClick={handleToggleEnhance}
-						title={
+					<Tooltip
+						label={
 							enhanceClarity
 								? 'Покращення чіткості увімкнено (натисніть, щоб вимкнути)'
 								: 'Покращити чіткість нот та контраст партитури'
 						}
-						aria-label="Покращити чіткість нот та контраст партитури"
 					>
-						<Sparkles className="icon" />
-					</button>
+						<ActionIcon
+							size={40}
+							radius="xl"
+							variant={enhanceClarity ? 'gradient' : 'default'}
+							gradient={{ from: 'sky', to: 'indigo', deg: 135 }}
+							onClick={handleToggleEnhance}
+							aria-label="Покращити чіткість нот та контраст партитури"
+						>
+							<Sparkles size={18} />
+						</ActionIcon>
+					</Tooltip>
 
-					<button
-						type="button"
-						style={{
-							width: '2.5rem',
-							height: '2.5rem',
-							borderRadius: '50%',
-							background: 'var(--panel-2)',
-							border: '1px solid var(--line)',
-							color: 'var(--muted)',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							cursor: 'pointer',
-						}}
-						onClick={handleReset}
-						title="Скинути налаштування"
-						aria-label="Скинути налаштування"
-					>
-						<Undo2 className="icon" />
-					</button>
-				</div>
-			</div>
-		</div>
+					<Tooltip label="Скинути налаштування">
+						<ActionIcon
+							size={40}
+							radius="xl"
+							variant="default"
+							color="gray"
+							onClick={handleReset}
+							aria-label="Скинути налаштування"
+						>
+							<Undo2 size={18} />
+						</ActionIcon>
+					</Tooltip>
+				</Group>
+			</Stack>
+		</Modal>
 	);
 };

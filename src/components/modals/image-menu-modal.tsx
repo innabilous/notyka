@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Box, Divider, NavLink, Paper, ScrollArea, Stack } from '@mantine/core';
 import {
 	Clock,
 	Download,
@@ -45,69 +46,89 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 	return (
 		<>
 			{/* Бекдроп для блокування взаємодії з полотном/штампами та закриття меню при кліку повз */}
-			<div
+			<Box
 				className="menu-backdrop"
 				onClick={handleBackdropClick}
 				onMouseDown={(e) => e.stopPropagation()}
 				onPointerDown={(e) => e.stopPropagation()}
 			/>
 
-			<div
+			<Paper
 				id="image-menu"
 				className="popup"
+				p={6}
+				withBorder
+				shadow="xl"
+				radius="md"
 				onClick={(e) => e.stopPropagation()}
 				onMouseDown={(e) => e.stopPropagation()}
 			>
-				{/* Група 1: Робота з полотном */}
-				<button id="btn-upload" type="button" className="c-indigo" onClick={onUploadClick}>
-					<ImagePlus className="icon" />
-					<span style={{ color: 'var(--text)' }}>Відкрити фото</span>
-				</button>
+				<ScrollArea.Autosize mah="calc(100dvh - 5rem)" type="hover" scrollbars="y" scrollbarSize={5} offsetScrollbars>
+					<Stack gap={2}>
+						{/* Група 1: Робота з полотном */}
+						<NavLink
+							leftSection={<ImagePlus size={18} />}
+							label="Відкрити фото"
+							onClick={onUploadClick}
+							style={{ borderRadius: 8 }}
+						/>
 
-				<button id="btn-new-blank" type="button" className="c-indigo-l" onClick={onNewBlank}>
-					<FilePlus className="icon" />
-					<span>Новий білий аркуш</span>
-				</button>
+						<NavLink
+							leftSection={<FilePlus size={18} />}
+							label="Новий білий аркуш"
+							onClick={onNewBlank}
+							style={{ borderRadius: 8 }}
+						/>
 
-				<button id="btn-history" type="button" className="c-indigo" onClick={onOpenHistory}>
-					<Clock className="icon" />
-					<span style={{ color: 'var(--text)' }}>Історія проектів</span>
-				</button>
+						<NavLink
+							leftSection={<Clock size={18} />}
+							label="Історія проектів"
+							onClick={onOpenHistory}
+							style={{ borderRadius: 8 }}
+						/>
 
-				<div className="menu-divider" />
+						<Divider my={4} />
 
-				{/* Група 2: Експорт */}
-				<button id="btn-save" type="button" className="c-green" onClick={onSave}>
-					<Download className="icon" />
-					<span>Зберегти фото</span>
-				</button>
+						{/* Група 2: Експорт */}
+						<NavLink
+							leftSection={<Download size={18} />}
+							label="Зберегти фото"
+							color="green"
+							onClick={onSave}
+							style={{ borderRadius: 8 }}
+						/>
 
-				<button id="btn-share" type="button" className="c-sky" onClick={onShare}>
-					<Share2 className="icon" />
-					<span>Поділитися</span>
-				</button>
+						<NavLink
+							leftSection={<Share2 size={18} />}
+							label="Поділитися"
+							color="sky"
+							onClick={onShare}
+							style={{ borderRadius: 8 }}
+						/>
 
-				<div className="menu-divider" />
+						<Divider my={4} />
 
-				{/* Група 3: Опції та очищення */}
-				<button
-					id="btn-settings-submenu"
-					type="button"
-					className="c-indigo"
-					onClick={(e) => {
-						e.stopPropagation();
-						onOpenSettings();
-					}}
-				>
-					<Settings className="icon" />
-					<span style={{ color: 'var(--text)', flex: 1 }}>Налаштування</span>
-				</button>
+						{/* Група 3: Опції та очищення */}
+						<NavLink
+							leftSection={<Settings size={18} />}
+							label="Налаштування"
+							onClick={(e) => {
+								e.stopPropagation();
+								onOpenSettings();
+							}}
+							style={{ borderRadius: 8 }}
+						/>
 
-				<button id="btn-clear" type="button" className="c-red" onClick={onClear}>
-					<RotateCcw className="icon" />
-					<span>Очистити аркуш</span>
-				</button>
-			</div>
+						<NavLink
+							leftSection={<RotateCcw size={18} />}
+							label="Очистити аркуш"
+							color="red"
+							onClick={onClear}
+							style={{ borderRadius: 8 }}
+						/>
+					</Stack>
+				</ScrollArea.Autosize>
+			</Paper>
 		</>
 	);
 };

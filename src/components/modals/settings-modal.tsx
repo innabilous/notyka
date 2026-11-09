@@ -2,10 +2,27 @@
 
 import React, { useState } from 'react';
 import {
+	Button,
+	Center,
+	Divider,
+	Group,
+	Modal,
+	Paper,
+	ScrollArea,
+	SegmentedControl,
+	Stack,
+	Switch,
+	Text,
+	UnstyledButton,
+	useMantineColorScheme,
+} from '@mantine/core';
+import {
 	Eraser,
 	Layers,
 	ListOrdered,
 	Maximize2,
+	Monitor,
+	Moon,
 	MousePointer,
 	Music,
 	Pencil,
@@ -16,9 +33,9 @@ import {
 	Settings,
 	Shapes,
 	Stamp,
+	Sun,
 	Trash2,
 	Type,
-	X,
 } from 'lucide-react';
 import { StampCategory, ToolMode } from '@/types/editor';
 
@@ -39,7 +56,7 @@ interface SettingsModalProps {
 	onClose: () => void;
 }
 
-const TOOLS_CONFIG: { id: ToolMode; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const TOOLS_CONFIG: { id: ToolMode; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
 	{ id: 'select', label: 'Виділення', icon: MousePointer },
 	{ id: 'pencil', label: 'Олівець', icon: Pencil },
 	{ id: 'stamp', label: 'Штамп', icon: Stamp },
@@ -50,7 +67,7 @@ const TOOLS_CONFIG: { id: ToolMode; label: string; icon: React.ComponentType<{ c
 const CATEGORIES_CONFIG: {
 	id: StampCategory;
 	label: string;
-	icon: React.ComponentType<{ className?: string }>;
+	icon: React.ComponentType<{ size?: number }>;
 }[] = [
 	{ id: 'notes', label: 'Ноти', icon: Music },
 	{ id: 'chords', label: 'Акорди', icon: Layers },
@@ -77,457 +94,307 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 	onClearAllData,
 	onClose,
 }) => {
+	const { colorScheme, setColorScheme } = useMantineColorScheme();
 	const [confirmModal, setConfirmModal] = useState<'settings' | 'all' | null>(null);
 
-	if (!opened) return null;
-
 	return (
-		<div
-			style={{
-				position: 'fixed',
-				inset: 0,
-				backgroundColor: 'rgba(0, 0, 0, 0.7)',
-				backdropFilter: 'blur(8px)',
-				zIndex: 100,
-				display: 'flex',
-				alignItems: 'center',
-				justifyContent: 'center',
-				padding: '1rem',
-			}}
-			onClick={onClose}
-		>
-			<div
-				style={{
-					position: 'relative',
-					backgroundColor: 'rgba(22, 23, 27, 0.98)',
-					border: '1px solid var(--line-strong)',
-					borderRadius: '0.875rem',
-					boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.7)',
-					width: 'min(440px, 100%)',
-					maxHeight: '85vh',
-					display: 'flex',
-					flexDirection: 'column',
-					overflow: 'hidden',
-				}}
-				onClick={(e) => e.stopPropagation()}
-			>
-				{/* Header */}
-				<div
-					style={{
-						display: 'flex',
-						alignItems: 'center',
-						justifyContent: 'space-between',
-						padding: '0.85rem 1rem',
-						borderBottom: '1px solid var(--line)',
-					}}
-				>
-					<div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-						<Settings className="icon" style={{ color: 'var(--text-secondary)' }} />
-						<span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text)' }}>
+		<>
+			<Modal
+				opened={opened}
+				onClose={onClose}
+				title={
+					<Group gap="xs">
+						<Settings size={20} />
+						<Text fw={600} size="md">
 							Налаштування
-						</span>
-					</div>
-					<button
-						type="button"
-						style={{
-							color: 'var(--muted)',
-							cursor: 'pointer',
-							padding: '0.25rem',
-							display: 'flex',
-							background: 'transparent',
-							border: 'none',
-						}}
-						onClick={onClose}
-						aria-label="Закрити"
-					>
-						<X className="icon" />
-					</button>
-				</div>
+						</Text>
+					</Group>
+				}
+				size="sm"
+				centered
+			>
+				<ScrollArea.Autosize mah="75vh" type="hover" scrollbarSize={5} offsetScrollbars>
+					<Stack gap="md" py="xs" pr="xs">
+					{/* Тема оформлення */}
+					<Stack gap="xs">
+						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
+							Тема оформлення
+						</Text>
+						<SegmentedControl
+							fullWidth
+							size="xs"
+							value={colorScheme}
+							onChange={(val) => setColorScheme(val as 'dark' | 'light' | 'auto')}
+							data={[
+								{
+									value: 'dark',
+									label: (
+										<Center style={{ gap: 6 }}>
+											<Moon size={14} />
+											<span>Темна</span>
+										</Center>
+									),
+								},
+								{
+									value: 'light',
+									label: (
+										<Center style={{ gap: 6 }}>
+											<Sun size={14} />
+											<span>Світла</span>
+										</Center>
+									),
+								},
+								{
+									value: 'auto',
+									label: (
+										<Center style={{ gap: 6 }}>
+											<Monitor size={14} />
+											<span>Системна</span>
+										</Center>
+									),
+								},
+							]}
+						/>
+					</Stack>
 
-				{/* Scrollable Content */}
-				<div
-					style={{
-						padding: '0.85rem 1rem',
-						overflowY: 'auto',
-						display: 'flex',
-						flexDirection: 'column',
-						gap: '1rem',
-					}}
-				>
+					<Divider />
+
 					{/* Група 1: Інструменти */}
-					<div>
-						<div
-							style={{
-								fontSize: '0.75rem',
-								fontWeight: 600,
-								color: 'var(--muted)',
-								textTransform: 'uppercase',
-								letterSpacing: '0.05em',
-								marginBottom: '0.5rem',
-							}}
-						>
+					<Stack gap="xs">
+						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
 							Інструменти
-						</div>
-						<div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+						</Text>
+						<Stack gap="xs">
 							{TOOLS_CONFIG.map(({ id, label, icon: Icon }) => {
 								const isChecked = visibleTools[id] ?? true;
 								return (
-									<button
-										key={id}
-										type="button"
-										style={{
-											display: 'flex',
-											alignItems: 'center',
-											justifyContent: 'space-between',
-											width: '100%',
-											padding: '0.6rem 0.75rem',
-											borderRadius: '0.5rem',
-											background: 'rgba(255, 255, 255, 0.03)',
-											border: '1px solid var(--line)',
-											cursor: 'pointer',
-											color: 'var(--text)',
-											textAlign: 'left',
-										}}
-										onClick={() => onToggleTool(id)}
-									>
-										<div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-											<Icon className="icon" />
-											<span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{label}</span>
-										</div>
-										<span className={`sw ${isChecked ? 'on' : ''}`} />
-									</button>
+									<Paper key={id} withBorder p="xs" radius="md">
+										<UnstyledButton
+											onClick={() => onToggleTool(id)}
+											style={{ width: '100%' }}
+											aria-label={`Перемкнути інструмент ${label}`}
+										>
+											<Group justify="space-between" wrap="nowrap">
+												<Group gap="sm" wrap="nowrap">
+													<Icon size={18} />
+													<Text size="sm" fw={500}>
+														{label}
+													</Text>
+												</Group>
+												<Switch
+													checked={isChecked}
+													onChange={() => onToggleTool(id)}
+													size="sm"
+													aria-label={label}
+												/>
+											</Group>
+										</UnstyledButton>
+									</Paper>
 								);
 							})}
-						</div>
-					</div>
+						</Stack>
+					</Stack>
+
+					<Divider />
 
 					{/* Група 2: Розділи штампу */}
-					<div>
-						<div
-							style={{
-								fontSize: '0.75rem',
-								fontWeight: 600,
-								color: 'var(--muted)',
-								textTransform: 'uppercase',
-								letterSpacing: '0.05em',
-								marginBottom: '0.5rem',
-							}}
-						>
+					<Stack gap="xs">
+						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
 							Розділи штампу
-						</div>
-						<div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+						</Text>
+						<Stack gap="xs">
 							{CATEGORIES_CONFIG.map(({ id, label, icon: Icon }) => {
 								const isChecked = visibleStampCategories[id] ?? true;
 								return (
-									<button
-										key={id}
-										type="button"
-										style={{
-											display: 'flex',
-											alignItems: 'center',
-											justifyContent: 'space-between',
-											width: '100%',
-											padding: '0.6rem 0.75rem',
-											borderRadius: '0.5rem',
-											background: 'rgba(255, 255, 255, 0.03)',
-											border: '1px solid var(--line)',
-											cursor: 'pointer',
-											color: 'var(--text)',
-											textAlign: 'left',
-										}}
-										onClick={() => onToggleStampCategory(id)}
-									>
-										<div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-											<Icon className="icon" />
-											<span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{label}</span>
-										</div>
-										<span className={`sw ${isChecked ? 'on' : ''}`} />
-									</button>
+									<Paper key={id} withBorder p="xs" radius="md">
+										<UnstyledButton
+											onClick={() => onToggleStampCategory(id)}
+											style={{ width: '100%' }}
+											aria-label={`Перемкнути категорію ${label}`}
+										>
+											<Group justify="space-between" wrap="nowrap">
+												<Group gap="sm" wrap="nowrap">
+													<Icon size={18} />
+													<Text size="sm" fw={500}>
+														{label}
+													</Text>
+												</Group>
+												<Switch
+													checked={isChecked}
+													onChange={() => onToggleStampCategory(id)}
+													size="sm"
+													aria-label={label}
+												/>
+											</Group>
+										</UnstyledButton>
+									</Paper>
 								);
 							})}
-						</div>
-					</div>
+						</Stack>
+					</Stack>
+
+					<Divider />
 
 					{/* Група 3: Керування на полотні */}
-					<div>
-						<div
-							style={{
-								fontSize: '0.75rem',
-								fontWeight: 600,
-								color: 'var(--muted)',
-								textTransform: 'uppercase',
-								letterSpacing: '0.05em',
-								marginBottom: '0.5rem',
-							}}
-						>
+					<Stack gap="xs">
+						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
 							Штамп на полотні
-						</div>
-						<div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-							<button
-								type="button"
-								style={{
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'space-between',
-									width: '100%',
-									padding: '0.6rem 0.75rem',
-									borderRadius: '0.5rem',
-									background: 'rgba(255, 255, 255, 0.03)',
-									border: '1px solid var(--line)',
-									cursor: 'pointer',
-									color: 'var(--text)',
-									textAlign: 'left',
-								}}
-								onClick={onToggleDeleteBtn}
-							>
-								<div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-									<Trash2 className="icon" />
-									<span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Кошик на штампі</span>
-								</div>
-								<span className={`sw ${deleteBtnOn ? 'on' : ''}`} />
-							</button>
+						</Text>
+						<Stack gap="xs">
+							<Paper withBorder p="xs" radius="md">
+								<UnstyledButton
+									onClick={onToggleDeleteBtn}
+									style={{ width: '100%' }}
+									aria-label="Кошик на штампі"
+								>
+									<Group justify="space-between" wrap="nowrap">
+										<Group gap="sm" wrap="nowrap">
+											<Trash2 size={18} />
+											<Text size="sm" fw={500}>
+												Кошик на штампі
+											</Text>
+										</Group>
+										<Switch
+											checked={deleteBtnOn}
+											onChange={onToggleDeleteBtn}
+											size="sm"
+											aria-label="Кошик на штампі"
+										/>
+									</Group>
+								</UnstyledButton>
+							</Paper>
 
-							<button
-								type="button"
-								style={{
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'space-between',
-									width: '100%',
-									padding: '0.6rem 0.75rem',
-									borderRadius: '0.5rem',
-									background: 'rgba(255, 255, 255, 0.03)',
-									border: '1px solid var(--line)',
-									cursor: 'pointer',
-									color: 'var(--text)',
-									textAlign: 'left',
-								}}
-								onClick={onToggleResizeHandles}
-							>
-								<div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-									<Maximize2 className="icon" />
-									<span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-										Хендли розміру на рамці
-									</span>
-								</div>
-								<span className={`sw ${resizeHandlesOn ? 'on' : ''}`} />
-							</button>
-						</div>
-					</div>
+							<Paper withBorder p="xs" radius="md">
+								<UnstyledButton
+									onClick={onToggleResizeHandles}
+									style={{ width: '100%' }}
+									aria-label="Хендли розміру на рамці"
+								>
+									<Group justify="space-between" wrap="nowrap">
+										<Group gap="sm" wrap="nowrap">
+											<Maximize2 size={18} />
+											<Text size="sm" fw={500}>
+												Хендли розміру на рамці
+											</Text>
+										</Group>
+										<Switch
+											checked={resizeHandlesOn}
+											onChange={onToggleResizeHandles}
+											size="sm"
+											aria-label="Хендли розміру на рамці"
+										/>
+									</Group>
+								</UnstyledButton>
+							</Paper>
+						</Stack>
+					</Stack>
+
+					<Divider />
 
 					{/* Група 4: Панель лінійок */}
-					<div>
-						<div
-							style={{
-								fontSize: '0.75rem',
-								fontWeight: 600,
-								color: 'var(--muted)',
-								textTransform: 'uppercase',
-								letterSpacing: '0.05em',
-								marginBottom: '0.5rem',
-							}}
-						>
+					<Stack gap="xs">
+						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
 							Панель лінійок
-						</div>
-						<button
-							type="button"
-							style={{
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'space-between',
-								width: '100%',
-								padding: '0.6rem 0.75rem',
-								borderRadius: '0.5rem',
-								background: 'rgba(255, 255, 255, 0.03)',
-								border: '1px solid var(--line)',
-								cursor: 'pointer',
-								color: 'var(--text)',
-								textAlign: 'left',
-							}}
-							onClick={onToggleCompactRulers}
-						>
-							<div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-								<Ruler className="icon" />
-								<div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-									<span style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-										Компактний вигляд у топбарі
-									</span>
-									<span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
-										{compactRulers
-											? 'Усі кнопки лінійок розташовані зверху в один рядок'
-											: 'Основний вигляд: панель у 2 колонки над футером'}
-									</span>
-								</div>
-							</div>
-							<span className={`sw ${compactRulers ? 'on' : ''}`} />
-						</button>
-					</div>
+						</Text>
+						<Paper withBorder p="xs" radius="md">
+							<UnstyledButton
+								onClick={onToggleCompactRulers}
+								style={{ width: '100%' }}
+								aria-label="Компактний вигляд у топбарі"
+							>
+								<Group justify="space-between" wrap="nowrap">
+									<Group gap="sm" wrap="nowrap">
+										<Ruler size={18} />
+										<Stack gap={2}>
+											<Text size="sm" fw={500}>
+												Компактний вигляд у топбарі
+											</Text>
+											<Text size="xs" c="dimmed">
+												{compactRulers
+													? 'Усі кнопки лінійок розташовані зверху в один рядок'
+													: 'Основний вигляд: панель у 2 колонки над футером'}
+											</Text>
+										</Stack>
+									</Group>
+									<Switch
+										checked={compactRulers}
+										onChange={onToggleCompactRulers}
+										size="sm"
+										aria-label="Компактний вигляд у топбарі"
+									/>
+								</Group>
+							</UnstyledButton>
+						</Paper>
+					</Stack>
+
+					<Divider />
 
 					{/* Група 5: Скидання */}
-					<div
-						style={{
-							paddingTop: '0.65rem',
-							borderTop: '1px solid var(--line)',
-							display: 'flex',
-							flexDirection: 'column',
-							gap: '0.5rem',
-						}}
-					>
-						{/* Кнопка 1: скидання тільки налаштувань */}
-						<button
-							type="button"
-							style={{
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
-								gap: '0.5rem',
-								width: '100%',
-								padding: '0.55rem 0.75rem',
-								borderRadius: '0.5rem',
-								background: 'transparent',
-								border: '1px solid rgba(239, 68, 68, 0.25)',
-								color: '#ef4444',
-								cursor: 'pointer',
-								fontWeight: 500,
-								fontSize: '0.85rem',
-							}}
+					<Stack gap="xs" pt="xs">
+						<Button
+							variant="light"
+							color="red"
+							leftSection={<RotateCcw size={16} />}
 							onClick={() => setConfirmModal('settings')}
+							fullWidth
 						>
-							<RotateCcw className="icon" style={{ width: '1rem', height: '1rem' }} />
-							<span>Скинути налаштування</span>
-						</button>
+							Скинути налаштування
+						</Button>
 
-						{/* Кнопка 2: повне очищення всіх даних */}
-						<button
-							type="button"
-							style={{
-								display: 'flex',
-								alignItems: 'center',
-								justifyContent: 'center',
-								gap: '0.5rem',
-								width: '100%',
-								padding: '0.65rem 0.75rem',
-								borderRadius: '0.5rem',
-								background: 'rgba(239, 68, 68, 0.1)',
-								border: '1px solid rgba(239, 68, 68, 0.35)',
-								color: '#ef4444',
-								cursor: 'pointer',
-								fontWeight: 600,
-								fontSize: '0.875rem',
-							}}
+						<Button
+							variant="filled"
+							color="red"
+							leftSection={<Trash2 size={16} />}
 							onClick={() => setConfirmModal('all')}
+							fullWidth
 						>
-							<Trash2 className="icon" style={{ width: '1rem', height: '1rem' }} />
-							<span>Очистити всі дані</span>
-						</button>
-					</div>
-				</div>
+							Очистити всі дані
+						</Button>
+					</Stack>
+				</Stack>
+				</ScrollArea.Autosize>
+			</Modal>
 
-				{/* Модальне вікно підтвердження */}
-				{confirmModal && (
-					<div
-						style={{
-							position: 'absolute',
-							inset: 0,
-							backgroundColor: 'rgba(0, 0, 0, 0.8)',
-							backdropFilter: 'blur(4px)',
-							zIndex: 20,
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-							padding: '1rem',
-						}}
-						onClick={() => setConfirmModal(null)}
-					>
-						<div
-							style={{
-								backgroundColor: 'rgba(24, 25, 30, 0.99)',
-								border: '1px solid var(--line-strong)',
-								borderRadius: '0.75rem',
-								padding: '1.25rem',
-								width: '100%',
-								maxWidth: '320px',
-								boxShadow: '0 16px 36px rgba(0, 0, 0, 0.8)',
+			{/* Модальне вікно підтвердження */}
+			<Modal
+				opened={!!confirmModal}
+				onClose={() => setConfirmModal(null)}
+				title={
+					<Text fw={600} size="md">
+						{confirmModal === 'settings' ? 'Скинути налаштування?' : 'Очистити всі дані?'}
+					</Text>
+				}
+				size="xs"
+				centered
+			>
+				<Stack gap="md">
+					<Text size="sm" c="dimmed">
+						{confirmModal === 'settings'
+							? 'Усі налаштування інструментів та штампів повернуться до початкових. Малюнок на полотні збережеться.'
+							: 'Буде повністю видалено історію проектів, сесію та налаштування. Додаток повернеться до початкового стану.'}
+					</Text>
+					<Group justify="flex-end" gap="xs">
+						<Button variant="default" size="xs" onClick={() => setConfirmModal(null)}>
+							Відміна
+						</Button>
+						<Button
+							color="red"
+							size="xs"
+							onClick={() => {
+								const action = confirmModal;
+								setConfirmModal(null);
+								if (action === 'settings') {
+									onResetSettings();
+								} else {
+									onClearAllData();
+								}
 							}}
-							onClick={(e) => e.stopPropagation()}
 						>
-							<div
-								style={{
-									fontWeight: 600,
-									fontSize: '0.95rem',
-									color: 'var(--text)',
-									marginBottom: '0.4rem',
-								}}
-							>
-								{confirmModal === 'settings'
-									? 'Скинути налаштування?'
-									: 'Очистити всі дані?'}
-							</div>
-							<div
-								style={{
-									fontSize: '0.825rem',
-									color: 'var(--muted)',
-									lineHeight: 1.4,
-									marginBottom: '1.25rem',
-								}}
-							>
-								{confirmModal === 'settings'
-									? 'Усі налаштування інструментів та штампів повернуться до початкових. Малюнок на полотні збережеться.'
-									: 'Буде повністю видалено історію проектів, сесію та налаштування. Додаток повернеться до початкового стану.'}
-							</div>
-							<div
-								style={{
-									display: 'flex',
-									gap: '0.5rem',
-									justifyContent: 'flex-end',
-								}}
-							>
-								<button
-									type="button"
-									style={{
-										padding: '0.45rem 0.85rem',
-										borderRadius: '0.375rem',
-										background: 'rgba(255, 255, 255, 0.08)',
-										border: '1px solid var(--line)',
-										color: 'var(--text)',
-										cursor: 'pointer',
-										fontSize: '0.825rem',
-										fontWeight: 500,
-									}}
-									onClick={() => setConfirmModal(null)}
-								>
-									Відміна
-								</button>
-								<button
-									type="button"
-									style={{
-										padding: '0.45rem 0.95rem',
-										borderRadius: '0.375rem',
-										background: '#dc2626',
-										border: 'none',
-										color: '#ffffff',
-										cursor: 'pointer',
-										fontSize: '0.825rem',
-										fontWeight: 600,
-									}}
-									onClick={() => {
-										const action = confirmModal;
-										setConfirmModal(null);
-										if (action === 'settings') {
-											onResetSettings();
-										} else {
-											onClearAllData();
-										}
-									}}
-								>
-									Так
-								</button>
-							</div>
-						</div>
-					</div>
-				)}
-			</div>
-		</div>
+							Так
+						</Button>
+					</Group>
+				</Stack>
+			</Modal>
+		</>
 	);
 };
-
