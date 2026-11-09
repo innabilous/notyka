@@ -1665,7 +1665,9 @@ export const PhotoEditor: React.FC = () => {
 			...prev,
 			stamp: { main: stamp.mainColor, stroke: stamp.strokeColor },
 		}));
-		const cat = (stamp.category as StampCategory) || (stamp.isDrawing ? 'draw' : 'custom');
+		const cat =
+			(stamp.category as StampCategory) ||
+			(stamp.shapeType ? 'shapes' : stamp.isDrawing ? 'draw' : 'custom');
 		setStampCategory(cat);
 		setCategoryColors((prev) => ({
 			...prev,

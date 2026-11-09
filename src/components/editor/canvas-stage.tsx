@@ -62,7 +62,9 @@ import {
 
 export function getStampCategory(stamp: StampItem): string {
 	if (stamp.category) return stamp.category;
+	if (stamp.shapeType) return 'shapes';
 	if (stamp.isDrawing) return 'draw';
+	if (stamp.isAutoCount) return 'count';
 	const t = (stamp.text || '').trim();
 	if (NOTES.some((n) => t.startsWith(n))) return 'notes';
 	if ((COUNT_ITEMS as readonly string[]).includes(t)) return 'count';
@@ -1202,6 +1204,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const ctx = canvas.getContext('2d');
 			if (!ctx) return;
 
+			//! Якщо в режимі 'stamp' активний штамп з іншої категорії — знімаємо його активність
+			if (currentMode === 'stamp' && activeStampRef.current) {
+				if (getStampCategory(activeStampRef.current) !== stampCategory) {
+					commitActiveStamp(false);
+				}
+			}
+
 			const active = activeStampRef.current;
 
 			// 0. Trash button click on active stamp
@@ -1304,35 +1313,47 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			// 3. Selection of existing stamps from top to bottom
 			for (let i = layersRef.current.length - 1; i >= 0; i--) {
 				const l = layersRef.current[i];
-				if (l.type === 'stamp' && isPointInStamp(pt, l.stamp, uRef.current, ctx)) {
-					commitActiveStamp(false);
-					const selected = l.stamp;
-					selectedStampIdsRef.current = [selected.id];
-					onSelectedCountChange?.(1);
-
-					if (selected.category === 'shapes' && selected.shapeType) {
-						lastShapePresetRef.current = {
-							shapeType: selected.shapeType,
-							width: selected.width || (selected.shapeType === 'rect' ? 80 : 60),
-							height: selected.height || (selected.shapeType === 'rect' ? 50 : 60),
-							rotation: selected.rotation || 0,
-							dx: selected.shapeType === 'arrow' && selected.endX !== undefined ? selected.endX - selected.x : undefined,
-							dy: selected.shapeType === 'arrow' && selected.endY !== undefined ? selected.endY - selected.y : undefined,
-							strokeWidth: selected.strokeWidth || selected.size || currentSize,
-							mainColor: selected.mainColor,
-							strokeColor: selected.strokeColor,
-						};
+				if (l.type === 'stamp') {
+					//! У режимі 'stamp' дозволяємо взаємодіяти тільки зі штампами поточної категорії
+					if (currentMode === 'stamp' && getStampCategory(l.stamp) !== stampCategory) {
+						continue;
 					}
-					activeStampRef.current = selected;
-					activeOrigRef.current = JSON.stringify(selected);
+					if (isPointInStamp(pt, l.stamp, uRef.current, ctx)) {
+						commitActiveStamp(false);
+						const selected = l.stamp;
+						selectedStampIdsRef.current = [selected.id];
+						onSelectedCountChange?.(1);
 
-					onSelectStamp(selected);
+						if (selected.category === 'shapes' && selected.shapeType) {
+							lastShapePresetRef.current = {
+								shapeType: selected.shapeType,
+								width: selected.width || (selected.shapeType === 'rect' ? 80 : 60),
+								height: selected.height || (selected.shapeType === 'rect' ? 50 : 60),
+								rotation: selected.rotation || 0,
+								dx:
+									selected.shapeType === 'arrow' && selected.endX !== undefined
+										? selected.endX - selected.x
+										: undefined,
+								dy:
+									selected.shapeType === 'arrow' && selected.endY !== undefined
+										? selected.endY - selected.y
+										: undefined,
+								strokeWidth: selected.strokeWidth || selected.size || currentSize,
+								mainColor: selected.mainColor,
+								strokeColor: selected.strokeColor,
+							};
+						}
+						activeStampRef.current = selected;
+						activeOrigRef.current = JSON.stringify(selected);
 
-					isDraggingStampRef.current = true;
-					dragOffsetRef.current = { x: pt.x - selected.x, y: pt.y - selected.y };
-					render();
-					onNotify('Штамп виділено');
-					return;
+						onSelectStamp(selected);
+
+						isDraggingStampRef.current = true;
+						dragOffsetRef.current = { x: pt.x - selected.x, y: pt.y - selected.y };
+						render();
+						onNotify('Штамп виділено');
+						return;
+					}
 				}
 			}
 
@@ -3119,6 +3140,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			scheduleRender();
 		}
 	}, [currentMode, onRulersCountChange, scheduleRender]);
+
+	//! Скидаємо активний штамп, якщо його категорія не відповідає поточній у режимі 'stamp'
+	useEffect(() => {
+		if (currentMode === 'stamp' && activeStampRef.current) {
+			if (getStampCategory(activeStampRef.current) !== stampCategory) {
+				commitActiveStamp(false);
+			}
+		}
+	}, [commitActiveStamp, currentMode, stampCategory]);
 
 	// Native gesture listeners on container
 	useEffect(() => {
