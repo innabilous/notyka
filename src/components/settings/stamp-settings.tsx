@@ -22,6 +22,7 @@ import {
 	CHORD_ROOTS,
 	COUNT_ITEMS,
 	NOTES,
+	STAMP_CATEGORIES,
 } from '@/constants/editor';
 import { AutoCountItem, ShapeType, StampCategory } from '@/types/editor';
 
@@ -132,15 +133,10 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 }) => {
 	const [isDeleteMode, setIsDeleteMode] = useState<boolean>(false);
 
-	const allCategories = [
-		{ label: 'Ноти', value: 'notes' },
-		{ label: 'Акорди', value: 'chords' },
-		{ label: 'Рахунок', value: 'count' },
-		{ label: 'Власні', value: 'custom' },
-		{ label: 'Текст', value: 'text' },
-		{ label: 'Малюнок', value: 'draw' },
-		{ label: 'Фігури', value: 'shapes' },
-	];
+	const allCategories = STAMP_CATEGORIES.map((c) => ({
+		label: c.label,
+		value: c.id,
+	}));
 
 	const availableCategories = allCategories.filter(
 		(c) => visibleCategories?.[c.value as StampCategory] ?? true,

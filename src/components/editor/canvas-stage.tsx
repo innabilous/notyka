@@ -23,9 +23,11 @@ import {
 	HistoryItem,
 	Point,
 	RulerItem,
+	SelectFilterCategory,
 	SelectionMode,
 	SelectionShape,
 	ShapeType,
+	StampCategory,
 	StampDrawingPath,
 	StampItem,
 	ToolMode,
@@ -98,7 +100,9 @@ interface CanvasStageProps {
 	areaSelectEnabled?: boolean;
 	selectionShape?: SelectionShape;
 	selectionMode?: SelectionMode;
+	selectFilterCategory?: SelectFilterCategory;
 	onSelectedCountChange?: (count: number) => void;
+	onAvailableStampCategoriesChange?: (categories: StampCategory[]) => void;
 	hasCanvas: boolean;
 	onSelectStamp: (stamp: StampItem) => void;
 	onChangeSize?: (newSize: number) => void;
@@ -166,6 +170,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	areaSelectEnabled = false,
 	selectionShape = 'rect',
 	selectionMode = 'inside',
+	selectFilterCategory = 'all',
 	hasCanvas,
 	onSelectStamp,
 	onChangeSize,
@@ -174,6 +179,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	onScaleChange,
 	onRulersCountChange,
 	onSelectedCountChange,
+	onAvailableStampCategoriesChange,
 	onNotify,
 	onInitBlank,
 	onResetCanvas,
@@ -323,11 +329,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		onScaleChange?.(1);
 	}, [applyTransform, onScaleChange]);
 
+	const updateAvailableStampCategories = useCallback(() => {
+		const cats = new Set<StampCategory>();
+		stampsListRef.current.forEach((st) => {
+			cats.add(getStampCategory(st) as StampCategory);
+		});
+		onAvailableStampCategoriesChange?.(Array.from(cats));
+	}, [onAvailableStampCategoriesChange]);
+
 	const updateUndoRedo = useCallback(() => {
 		const canUndo = historyStepRef.current > 0;
 		const canRedo = historyStepRef.current < historyStackRef.current.length - 1;
 		onHistoryChange(canUndo, canRedo);
-	}, [onHistoryChange]);
+		updateAvailableStampCategories();
+	}, [onHistoryChange, updateAvailableStampCategories]);
+
+	useEffect(() => {
+		updateAvailableStampCategories();
+	}, [updateAvailableStampCategories]);
 
 	const render = useCallback(() => {
 		exportTokenRef.current++;
@@ -1211,6 +1230,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 
+			//! Якщо в режимі 'select' активний штамп не підпадає під фільтр — знімаємо його активність
+			if (
+				currentMode === 'select' &&
+				selectFilterCategory !== 'all' &&
+				activeStampRef.current &&
+				getStampCategory(activeStampRef.current) !== selectFilterCategory
+			) {
+				commitActiveStamp(false);
+			}
+
 			const active = activeStampRef.current;
 
 			// 0. Trash button click on active stamp
@@ -1316,6 +1345,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				if (l.type === 'stamp') {
 					//! У режимі 'stamp' дозволяємо взаємодіяти тільки зі штампами поточної категорії
 					if (currentMode === 'stamp' && getStampCategory(l.stamp) !== stampCategory) {
+						continue;
+					}
+					//! У режимі 'select' з активним фільтром категорій — дозволяємо тільки обрану категорію
+					if (
+						currentMode === 'select' &&
+						selectFilterCategory !== 'all' &&
+						getStampCategory(l.stamp) !== selectFilterCategory
+					) {
 						continue;
 					}
 					if (isPointInStamp(pt, l.stamp, uRef.current, ctx)) {
@@ -1631,6 +1668,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			selectedAccidental,
 			selectedNote,
 			selectedShape,
+			selectFilterCategory,
 			stampBadgeMode,
 			stampCategory,
 			strokeColor,
@@ -2534,6 +2572,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				if (ctx) {
 					const matchedIds: string[] = [];
 					stampsListRef.current.forEach((st) => {
+						//! Враховуємо фільтр категорій інструмента виділення
+						if (
+							selectFilterCategory !== 'all' &&
+							getStampCategory(st) !== selectFilterCategory
+						) {
+							return;
+						}
 						if (isStampInSelection(st, shape, mode, pts, uRef.current, ctx)) {
 							matchedIds.push(st.id);
 						}
@@ -3149,6 +3194,29 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			}
 		}
 	}, [commitActiveStamp, currentMode, stampCategory]);
+
+	//! Якщо змінили фільтр категорій у режимі 'select' — фільтруємо невідповідні виділення
+	useEffect(() => {
+		if (currentMode === 'select' && selectFilterCategory !== 'all') {
+			if (
+				activeStampRef.current &&
+				getStampCategory(activeStampRef.current) !== selectFilterCategory
+			) {
+				commitActiveStamp(false);
+			}
+			if (selectedStampIdsRef.current.length > 0) {
+				const filtered = selectedStampIdsRef.current.filter((id) => {
+					const s = stampsListRef.current.find((item) => item.id === id);
+					return s && getStampCategory(s) === selectFilterCategory;
+				});
+				if (filtered.length !== selectedStampIdsRef.current.length) {
+					selectedStampIdsRef.current = filtered;
+					onSelectedCountChange?.(filtered.length);
+					scheduleRender();
+				}
+			}
+		}
+	}, [commitActiveStamp, currentMode, onSelectedCountChange, scheduleRender, selectFilterCategory]);
 
 	// Native gesture listeners on container
 	useEffect(() => {

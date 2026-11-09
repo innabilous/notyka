@@ -1,4 +1,19 @@
-import { StampCategory, ToolMode } from '@/types/editor';
+import { SelectFilterCategory, StampCategory, ToolMode } from '@/types/editor';
+
+export const STAMP_CATEGORIES: readonly { id: StampCategory; label: string }[] = [
+	{ id: 'notes', label: 'Ноти' },
+	{ id: 'chords', label: 'Акорди' },
+	{ id: 'count', label: 'Рахунок' },
+	{ id: 'custom', label: 'Власні' },
+	{ id: 'text', label: 'Текст' },
+	{ id: 'draw', label: 'Малюнок' },
+	{ id: 'shapes', label: 'Фігури' },
+] as const;
+
+export const SELECT_FILTER_CATEGORIES: readonly { id: SelectFilterCategory; label: string }[] = [
+	{ id: 'all', label: 'Всі' },
+	...STAMP_CATEGORIES,
+] as const;
 
 export const NOTES = ['До', 'Ре', 'Мі', 'Фа', 'Соль', 'Ля', 'Сі'] as const;
 export const ACCIDENTALS = ['♯', '♭'] as const;

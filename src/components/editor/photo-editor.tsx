@@ -10,6 +10,7 @@ import { ProjectsHistoryModal } from '@/components/modals/projects-history-modal
 import { SettingsModal } from '@/components/modals/settings-modal';
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { RulerSettings } from '@/components/settings/ruler-settings';
+import { SelectCategoryBar } from '@/components/settings/select-category-bar';
 import { SideSizeSlider } from '@/components/settings/side-size-slider';
 import { StampCategory, StampSettings } from '@/components/settings/stamp-settings';
 import { BottomToolbar } from '@/components/toolbar/bottom-toolbar';
@@ -28,7 +29,15 @@ import {
 	MIN_COUNT_PATTERN_LENGTH,
 	NOTES,
 } from '@/constants/editor';
-import { AutoCountItem, SelectionMode, SelectionShape, ShapeType, StampItem, ToolMode } from '@/types/editor';
+import {
+	AutoCountItem,
+	SelectFilterCategory,
+	SelectionMode,
+	SelectionShape,
+	ShapeType,
+	StampItem,
+	ToolMode,
+} from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import {
 	clearAllStorage,
@@ -136,6 +145,8 @@ export const PhotoEditor: React.FC = () => {
 	const [areaSelectEnabled, setAreaSelectEnabled] = useState<boolean>(false);
 	const [selectionShape, setSelectionShape] = useState<SelectionShape>('rect');
 	const [selectionMode, setSelectionMode] = useState<SelectionMode>('inside');
+	const [selectFilterCategory, setSelectFilterCategory] = useState<SelectFilterCategory>('all');
+	const [availableStampCategories, setAvailableStampCategories] = useState<StampCategory[]>([]);
 	const [selectedStampsCount, setSelectedStampsCount] = useState<number>(0);
 	const [rulersCount, setRulersCount] = useState<number>(0);
 	const [compactRulers, setCompactRulers] = useState<boolean>(false); //! Опція компактного вигляду лінійок у топбарі
@@ -165,6 +176,16 @@ export const PhotoEditor: React.FC = () => {
 			setToastText('');
 		}, 1800);
 	}, []);
+
+	//! Якщо обрана категорія зникла з полотна — скидаємо фільтр на 'all'
+	useEffect(() => {
+		if (
+			selectFilterCategory !== 'all' &&
+			!availableStampCategories.includes(selectFilterCategory as StampCategory)
+		) {
+			setSelectFilterCategory('all');
+		}
+	}, [availableStampCategories, selectFilterCategory]);
 
 	// Outside click listener for popups
 	useEffect(() => {
@@ -2133,7 +2154,9 @@ export const PhotoEditor: React.FC = () => {
 				areaSelectEnabled={areaSelectEnabled}
 				selectionShape={selectionShape}
 				selectionMode={selectionMode}
+				selectFilterCategory={selectFilterCategory}
 				onSelectedCountChange={setSelectedStampsCount}
+				onAvailableStampCategoriesChange={setAvailableStampCategories}
 				hasCanvas={hasCanvas}
 				onSelectStamp={handleSelectStampFromCanvas}
 				onChangeSize={handleChangeSize}
@@ -2295,6 +2318,14 @@ export const PhotoEditor: React.FC = () => {
 							onAddSteps={handleAddSteps}
 							onRemoveSteps={handleRemoveSteps}
 							onToggleAutoCount={handleToggleAutoCount}
+						/>
+					)}
+
+					{currentMode === 'select' && (
+						<SelectCategoryBar
+							category={selectFilterCategory}
+							availableCategories={availableStampCategories}
+							onChangeCategory={setSelectFilterCategory}
 						/>
 					)}
 

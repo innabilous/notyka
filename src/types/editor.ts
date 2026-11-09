@@ -1,5 +1,6 @@
 export type ToolMode = 'select' | 'pencil' | 'stamp' | 'eraser' | 'ruler';
 export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw' | 'shapes';
+export type SelectFilterCategory = 'all' | StampCategory;
 export type ShapeType = 'rect' | 'circle' | 'arrow';
 export type SelectionShape = 'lasso' | 'rect';
 export type SelectionMode = 'inside' | 'intersect';
