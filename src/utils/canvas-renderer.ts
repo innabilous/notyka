@@ -849,7 +849,7 @@ export function drawStamp(
 					? stamp.strokeColor
 					: hasFill && stamp.mainColor !== 'transparent'
 						? stamp.mainColor
-						: '#ed1c24';
+						: '#ef4444';
 			const baseHeadLen = Math.max(12 * U, lw * 4.5);
 			const headLen = Math.min(len * 0.45, baseHeadLen);
 
@@ -909,7 +909,7 @@ export function drawStamp(
 					ctx.lineWidth = lw;
 					ctx.stroke();
 				} else if (!hasFill) {
-					ctx.strokeStyle = '#ed1c24';
+					ctx.strokeStyle = '#ef4444';
 					ctx.lineWidth = lw;
 					ctx.stroke();
 				}
@@ -927,7 +927,7 @@ export function drawStamp(
 					ctx.lineWidth = lw;
 					ctx.stroke();
 				} else if (!hasFill) {
-					ctx.strokeStyle = '#ed1c24';
+					ctx.strokeStyle = '#ef4444';
 					ctx.lineWidth = lw;
 					ctx.stroke();
 				}
@@ -1455,11 +1455,11 @@ export function drawRulers(
 
 		ctx.save();
 		if (isActive) {
-			ctx.strokeStyle = '#4f46e5';
+			ctx.strokeStyle = '#0284c7';
 			ctx.lineWidth = 1.5 * U;
 			ctx.setLineDash([6 * U, 4 * U]);
 		} else {
-			ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+			ctx.strokeStyle = 'rgba(14, 165, 233, 0.5)';
 			ctx.lineWidth = 1 * U;
 			ctx.setLineDash([5 * U, 5 * U]);
 		}
@@ -1511,7 +1511,7 @@ export function drawRulers(
 			const midY = (r1.y + r2.y) / 2;
 
 			ctx.save();
-			ctx.strokeStyle = 'rgba(99, 102, 241, 0.5)';
+			ctx.strokeStyle = 'rgba(14, 165, 233, 0.5)';
 			ctx.lineWidth = 1 * U;
 			ctx.setLineDash([3 * U, 3 * U]);
 			ctx.beginPath();
@@ -1529,7 +1529,7 @@ export function drawRulers(
 			const by = midY - bh / 2;
 
 			// Фон бейджа в кольорі лінійок замість чорного
-			ctx.fillStyle = '#4f46e5';
+			ctx.fillStyle = '#0284c7';
 			ctx.setLineDash([]);
 			ctx.beginPath();
 			if (typeof ctx.roundRect === 'function') {

@@ -25,7 +25,7 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 	currentMode,
 	stampCategory,
 	canvasScale = 1,
-	mainColor = '#ed1c24',
+	mainColor = '#ef4444',
 	strokeColor = 'transparent',
 }) => {
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -111,7 +111,7 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 	const isTransparent = isStamp && strokeColor === 'transparent';
 	const previewBorder = isStamp
 		? isTransparent
-			? 'rgba(255, 255, 255, 0.4)'
+			? 'var(--line-strong)'
 			: strokeColor
 		: 'transparent';
 

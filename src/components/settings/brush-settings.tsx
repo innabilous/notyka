@@ -53,18 +53,18 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				? 'transparent'
 				: mainColor;
 
-	let previewBorderColor = 'rgba(255, 255, 255, 0.35)';
+	let previewBorderColor = 'var(--line-strong)';
 	if (isStamp) {
 		previewBorderColor = isShapes
 			? strokeColor !== 'transparent'
 				? strokeColor
-				: 'rgba(255, 255, 255, 0.4)'
+				: 'var(--line-strong)'
 			: isFillTransparent
 				? isStrokeTransparent
-					? 'rgba(255, 255, 255, 0.4)'
+					? 'var(--line-strong)'
 					: strokeColor
 				: isStrokeTransparent
-					? 'rgba(255, 255, 255, 0.4)'
+					? 'var(--line-strong)'
 					: strokeColor;
 	}
 

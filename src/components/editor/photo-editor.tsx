@@ -69,21 +69,21 @@ export const PhotoEditor: React.FC = () => {
 	const [toolColors, setToolColors] = useState<
 		Record<'pencil' | 'stamp', { main: string; stroke: string }>
 	>({
-		pencil: { main: '#ed1c24', stroke: '#000000' },
-		stamp: { main: '#ed1c24', stroke: 'transparent' },
+		pencil: { main: '#ef4444', stroke: '#000000' },
+		stamp: { main: '#ef4444', stroke: 'transparent' },
 	});
 
 	// Independent color memory per stamp category
 	const [categoryColors, setCategoryColors] = useState<
 		Record<StampCategory, { main: string; stroke: string }>
 	>({
-		notes: { main: '#ed1c24', stroke: 'transparent' },
-		chords: { main: '#ed1c24', stroke: 'transparent' },
-		count: { main: '#ed1c24', stroke: 'transparent' },
-		custom: { main: '#ed1c24', stroke: 'transparent' },
-		text: { main: '#ed1c24', stroke: 'transparent' },
-		draw: { main: '#ed1c24', stroke: 'transparent' },
-		shapes: { main: 'transparent', stroke: '#ed1c24' },
+		notes: { main: '#ef4444', stroke: 'transparent' },
+		chords: { main: '#ef4444', stroke: 'transparent' },
+		count: { main: '#ef4444', stroke: 'transparent' },
+		custom: { main: '#ef4444', stroke: 'transparent' },
+		text: { main: '#ef4444', stroke: 'transparent' },
+		draw: { main: '#ef4444', stroke: 'transparent' },
+		shapes: { main: 'transparent', stroke: '#ef4444' },
 	});
 
 	// Selected shape type and independent sizes and colors for shapes
@@ -96,9 +96,9 @@ export const PhotoEditor: React.FC = () => {
 	const [shapeColors, setShapeColors] = useState<
 		Record<ShapeType, { main: string; stroke: string }>
 	>({
-		rect: { main: 'transparent', stroke: '#ed1c24' },
-		circle: { main: 'transparent', stroke: '#ed1c24' },
-		arrow: { main: '#ed1c24', stroke: '#ed1c24' },
+		rect: { main: 'transparent', stroke: '#ef4444' },
+		circle: { main: 'transparent', stroke: '#ef4444' },
+		arrow: { main: '#ef4444', stroke: '#ef4444' },
 	});
 
 	// Independent tool sizes
@@ -432,12 +432,12 @@ export const PhotoEditor: React.FC = () => {
 						? shapeColors.arrow.stroke
 						: shapeColors.arrow.main && shapeColors.arrow.main !== 'transparent'
 							? shapeColors.arrow.main
-							: '#ed1c24';
+							: '#ef4444';
 				return arrowColor;
 			}
 			return shapeColors[selectedShape]?.main ?? 'transparent';
 		}
-		return categoryColors[stampCategory]?.main ?? '#ed1c24';
+		return categoryColors[stampCategory]?.main ?? '#ef4444';
 	}, [
 		categoryColors,
 		currentMode,
@@ -456,10 +456,10 @@ export const PhotoEditor: React.FC = () => {
 						? shapeColors.arrow.stroke
 						: shapeColors.arrow.main && shapeColors.arrow.main !== 'transparent'
 							? shapeColors.arrow.main
-							: '#ed1c24';
+							: '#ef4444';
 				return arrowColor;
 			}
-			return shapeColors[selectedShape]?.stroke ?? '#ed1c24';
+			return shapeColors[selectedShape]?.stroke ?? '#ef4444';
 		}
 		return categoryColors[stampCategory]?.stroke ?? 'transparent';
 	}, [
@@ -1769,7 +1769,7 @@ export const PhotoEditor: React.FC = () => {
 					...prev,
 					[shape]: {
 						main: stamp.mainColor || 'transparent',
-						stroke: stamp.strokeColor || '#ed1c24',
+						stroke: stamp.strokeColor || '#ef4444',
 					},
 				}));
 			}
@@ -1878,24 +1878,24 @@ export const PhotoEditor: React.FC = () => {
 			ruler: 24,
 		});
 		setToolColors({
-			pencil: { main: '#ed1c24', stroke: '#000000' },
-			stamp: { main: '#ed1c24', stroke: 'transparent' },
+			pencil: { main: '#ef4444', stroke: '#000000' },
+			stamp: { main: '#ef4444', stroke: 'transparent' },
 		});
 		setCategoryColors({
-			notes: { main: '#ed1c24', stroke: 'transparent' },
-			chords: { main: '#ed1c24', stroke: 'transparent' },
-			count: { main: '#ed1c24', stroke: 'transparent' },
-			custom: { main: '#ed1c24', stroke: 'transparent' },
-			text: { main: '#ed1c24', stroke: 'transparent' },
-			draw: { main: '#ed1c24', stroke: 'transparent' },
-			shapes: { main: 'transparent', stroke: '#ed1c24' },
+			notes: { main: '#ef4444', stroke: 'transparent' },
+			chords: { main: '#ef4444', stroke: 'transparent' },
+			count: { main: '#ef4444', stroke: 'transparent' },
+			custom: { main: '#ef4444', stroke: 'transparent' },
+			text: { main: '#ef4444', stroke: 'transparent' },
+			draw: { main: '#ef4444', stroke: 'transparent' },
+			shapes: { main: 'transparent', stroke: '#ef4444' },
 		});
 		setSelectedShape('rect');
 		setShapeSizes({ rect: 2, circle: 2, arrow: 2 });
 		setShapeColors({
-			rect: { main: 'transparent', stroke: '#ed1c24' },
-			circle: { main: 'transparent', stroke: '#ed1c24' },
-			arrow: { main: '#ed1c24', stroke: '#ed1c24' },
+			rect: { main: 'transparent', stroke: '#ef4444' },
+			circle: { main: 'transparent', stroke: '#ef4444' },
+			arrow: { main: '#ef4444', stroke: '#ef4444' },
 		});
 		setSelectedNote('До');
 		setSelectedAccidental('');
