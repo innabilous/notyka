@@ -29,7 +29,7 @@ export interface StampItem {
 	mainColor: string;
 	strokeColor: string;
 	badgeMode?: boolean;
-	category?: string;
+	category?: StampCategory;
 	isDrawing?: boolean;
 	initialSize?: number;
 	rawBounds?: { width: number; height: number };

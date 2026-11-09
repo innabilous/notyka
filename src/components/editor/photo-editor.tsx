@@ -39,6 +39,7 @@ import {
 	ToolMode,
 } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
+import { getStampCategory } from '@/utils/canvas-renderer';
 import {
 	clearAllStorage,
 	deleteProject,
@@ -1686,9 +1687,7 @@ export const PhotoEditor: React.FC = () => {
 			...prev,
 			stamp: { main: stamp.mainColor, stroke: stamp.strokeColor },
 		}));
-		const cat =
-			(stamp.category as StampCategory) ||
-			(stamp.shapeType ? 'shapes' : stamp.isDrawing ? 'draw' : 'custom');
+		const cat = getStampCategory(stamp);
 		setStampCategory(cat);
 		setCategoryColors((prev) => ({
 			...prev,

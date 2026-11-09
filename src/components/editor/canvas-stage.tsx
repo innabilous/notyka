@@ -4,8 +4,6 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { FilePlus } from 'lucide-react';
 import { BrandLogo } from '@/components/common/brand-logo';
 import {
-	CHORD_ROOTS,
-	COUNT_ITEMS,
 	DEFAULT_BLANK_HEIGHT,
 	DEFAULT_BLANK_WIDTH,
 	DRAG_SLOP,
@@ -15,7 +13,6 @@ import {
 	MAX_SIDE,
 	MIN_CANVAS_SIDE,
 	MIN_SCALE,
-	NOTES,
 	SMOOTH,
 } from '@/constants/editor';
 import {
@@ -58,21 +55,10 @@ import {
 	isPointInRotateHandle,
 	isPointInRulerDelete,
 	isPointInStamp,
+	getStampCategory,
 	isStampAttachedToRuler,
 	SnapGuide,
 } from '@/utils/canvas-renderer';
-
-export function getStampCategory(stamp: StampItem): string {
-	if (stamp.category) return stamp.category;
-	if (stamp.shapeType) return 'shapes';
-	if (stamp.isDrawing) return 'draw';
-	if (stamp.isAutoCount) return 'count';
-	const t = (stamp.text || '').trim();
-	if (NOTES.some((n) => t.startsWith(n))) return 'notes';
-	if ((COUNT_ITEMS as readonly string[]).includes(t)) return 'count';
-	if (CHORD_ROOTS.some((r) => t.startsWith(r))) return 'chords';
-	return 'custom';
-}
 
 interface CanvasStageProps {
 	currentMode: ToolMode;
@@ -84,7 +70,7 @@ interface CanvasStageProps {
 	selectedShape?: ShapeType;
 	activeStampText?: string;
 	stampBadgeMode?: boolean;
-	stampCategory?: string;
+	stampCategory?: StampCategory;
 	drawDuplicateMode?: boolean;
 	isAutoCountMode?: boolean;
 	currentAutoCountIndex?: number;
@@ -130,7 +116,7 @@ export interface CanvasStageHandle {
 	duplicateActiveStamp: () => void;
 	deleteSelectedStamps: () => void;
 	clearSelection: () => void;
-	syncCategorySizes: (category: string, size: number) => void;
+	syncCategorySizes: (category: StampCategory, size: number) => void;
 	prepareExport: () => void;
 	getExportBlob: () => Promise<Blob | null>;
 	serializeProject: (title?: string) => Promise<ProjectItem | null>;
@@ -329,12 +315,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		onScaleChange?.(1);
 	}, [applyTransform, onScaleChange]);
 
+	const prevAvailableCategoriesKeyRef = useRef<string>('');
+
 	const updateAvailableStampCategories = useCallback(() => {
 		const cats = new Set<StampCategory>();
 		stampsListRef.current.forEach((st) => {
-			cats.add(getStampCategory(st) as StampCategory);
+			cats.add(getStampCategory(st));
 		});
-		onAvailableStampCategoriesChange?.(Array.from(cats));
+		const sortedKey = Array.from(cats).sort().join(',');
+		if (sortedKey !== prevAvailableCategoriesKeyRef.current) {
+			prevAvailableCategoriesKeyRef.current = sortedKey;
+			onAvailableStampCategoriesChange?.(Array.from(cats));
+		}
 	}, [onAvailableStampCategoriesChange]);
 
 	const updateUndoRedo = useCallback(() => {
@@ -729,7 +721,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	);
 
 	const syncCategorySizes = useCallback(
-		(category: string, size: number) => {
+		(category: StampCategory, size: number) => {
 			let updatedCount = 0;
 			layersRef.current.forEach((layer) => {
 				if (layer.type === 'stamp' && getStampCategory(layer.stamp) === category) {

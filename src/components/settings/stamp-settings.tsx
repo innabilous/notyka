@@ -28,6 +28,11 @@ import { AutoCountItem, ShapeType, StampCategory } from '@/types/editor';
 
 export type { StampCategory };
 
+const ALL_STAMP_CATEGORIES_DATA = STAMP_CATEGORIES.map((c) => ({
+	label: c.label,
+	value: c.id,
+}));
+
 interface StampSettingsProps {
 	selectedNote: string;
 	selectedAccidental: string;
@@ -133,15 +138,11 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 }) => {
 	const [isDeleteMode, setIsDeleteMode] = useState<boolean>(false);
 
-	const allCategories = STAMP_CATEGORIES.map((c) => ({
-		label: c.label,
-		value: c.id,
-	}));
-
-	const availableCategories = allCategories.filter(
-		(c) => visibleCategories?.[c.value as StampCategory] ?? true,
-	);
-	const displayedCategories = availableCategories.length > 0 ? availableCategories : allCategories;
+	const availableCategories = visibleCategories
+		? ALL_STAMP_CATEGORIES_DATA.filter((c) => visibleCategories[c.value as StampCategory] ?? true)
+		: ALL_STAMP_CATEGORIES_DATA;
+	const displayedCategories =
+		availableCategories.length > 0 ? availableCategories : ALL_STAMP_CATEGORIES_DATA;
 
 	return (
 		<div id="stamp-settings">

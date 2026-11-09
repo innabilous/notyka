@@ -1,11 +1,26 @@
+import { CHORD_ROOTS, COUNT_ITEMS, NOTES } from '@/constants/editor';
 import {
 	BoundingBox,
 	Point,
 	RulerItem,
 	SelectionMode,
 	SelectionShape,
+	StampCategory,
 	StampItem,
 } from '@/types/editor';
+
+//! Визначаємо категорію штампа на основі його властивостей або префіксів тексту
+export function getStampCategory(stamp: StampItem): StampCategory {
+	if (stamp.category) return stamp.category;
+	if (stamp.shapeType) return 'shapes';
+	if (stamp.isDrawing) return 'draw';
+	if (stamp.isAutoCount) return 'count';
+	const t = (stamp.text || '').trim();
+	if (NOTES.some((n) => t.startsWith(n))) return 'notes';
+	if ((COUNT_ITEMS as readonly string[]).includes(t)) return 'count';
+	if (CHORD_ROOTS.some((r) => t.startsWith(r))) return 'chords';
+	return 'custom';
+}
 
 let trashPaths: Path2D[] | null = null;
 let rotatePaths: Path2D[] | null = null;

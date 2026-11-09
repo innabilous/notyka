@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { SegmentedControl } from '@mantine/core';
 import { SELECT_FILTER_CATEGORIES } from '@/constants/editor';
 import { SelectFilterCategory, StampCategory } from '@/types/editor';
@@ -16,11 +16,16 @@ export const SelectCategoryBar: React.FC<SelectCategoryBarProps> = ({
 	availableCategories = [],
 	onChangeCategory,
 }) => {
-	const data = SELECT_FILTER_CATEGORIES.map((c) => ({
-		label: c.label,
-		value: c.id,
-		disabled: c.id !== 'all' && !availableCategories.includes(c.id as StampCategory),
-	}));
+	const availableSet = useMemo(() => new Set(availableCategories), [availableCategories]);
+	const data = useMemo(
+		() =>
+			SELECT_FILTER_CATEGORIES.map((c) => ({
+				label: c.label,
+				value: c.id,
+				disabled: c.id !== 'all' && !availableSet.has(c.id as StampCategory),
+			})),
+		[availableSet],
+	);
 
 	return (
 		<div id="select-category-settings" aria-label="Фільтр категорій для виділення">
