@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Box, Group, UnstyledButton } from '@mantine/core';
 import { ArrowUpDown, Lock, Minus, Plus, Unlock } from 'lucide-react';
 import { StampCategory, ToolMode } from '@/types/editor';
 
@@ -76,10 +77,9 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	};
 
 	return (
-		<div id="brush-settings">
-			<button
+		<Group gap={4} id="brush-settings">
+			<UnstyledButton
 				id="btn-size-lock"
-				type="button"
 				className={`${sizeLocked ? 'locked' : ''} ${!isStamp ? 'hidden' : ''}`}
 				aria-label={
 					sizeLocked ? 'Спільний розмір для всіх нот' : 'Кожна нота має власний розмір'
@@ -87,34 +87,31 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				onClick={onToggleLock}
 			>
 				{sizeLocked ? <Lock className="icon" /> : <Unlock className="icon" />}
-			</button>
+			</UnstyledButton>
 
 			{isStamp && onSyncCategorySizes && (
-				<button
+				<UnstyledButton
 					id="btn-size-sync-category"
-					type="button"
 					className="btn-size-step"
 					aria-label="Підлаштувати розмір решти елементів під поточний"
 					title="Підлаштувати розмір решти елементів розділу під поточний"
 					onClick={onSyncCategorySizes}
 				>
 					<ArrowUpDown className="icon" />
-				</button>
+				</UnstyledButton>
 			)}
 
-			<div className="size-stepper-wrap">
-				<button
-					type="button"
+			<Group gap={0} className="size-stepper-wrap">
+				<UnstyledButton
 					className="btn-size-step"
 					aria-label="Зменшити розмір"
 					title="Зменшити (-1)"
 					onClick={handleDecrease}
 				>
 					<Minus className="icon" />
-				</button>
+				</UnstyledButton>
 
-				<button
-					type="button"
+				<UnstyledButton
 					className={`btn-size-value ${isSideSliderOpen ? 'active' : ''}`}
 					aria-label={`Розмір: ${brushSize}px. Натисніть для повзунка`}
 					title="Змінити розмір повзунком"
@@ -122,27 +119,25 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				>
 					<span>{brushSize}</span>
 					<span className="unit">px</span>
-				</button>
+				</UnstyledButton>
 
-				<button
-					type="button"
+				<UnstyledButton
 					className="btn-size-step"
 					aria-label="Збільшити розмір"
 					title="Збільшити (+1)"
 					onClick={handleIncrease}
 				>
 					<Plus className="icon" />
-				</button>
-			</div>
+				</UnstyledButton>
+			</Group>
 
-			<button
+			<UnstyledButton
 				id="btn-toggle-palette"
-				type="button"
 				className={isEraser ? 'hidden' : ''}
 				aria-label="Кольори"
 				onClick={onTogglePalette}
 			>
-				<div
+				<Box
 					id="color-preview"
 					style={{
 						backgroundColor: previewBgColor,
@@ -155,8 +150,8 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 					>
 						✕
 					</span>
-				</div>
-			</button>
-		</div>
+				</Box>
+			</UnstyledButton>
+		</Group>
 	);
 };

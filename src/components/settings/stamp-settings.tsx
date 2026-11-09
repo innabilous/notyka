@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SegmentedControl, Textarea } from '@mantine/core';
+import { Box, SegmentedControl, Text, Textarea, UnstyledButton } from '@mantine/core';
 import {
 	Circle,
 	Copy,
@@ -145,9 +145,9 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 		availableCategories.length > 0 ? availableCategories : ALL_STAMP_CATEGORIES_DATA;
 
 	return (
-		<div id="stamp-settings">
+		<Box id="stamp-settings">
 			{/* Рівень 1: Mantine SegmentedControl для категорій */}
-			<div className="stamp-category-tabs">
+			<Box className="stamp-category-tabs">
 				<SegmentedControl
 					fullWidth
 					size="xs"
@@ -167,80 +167,75 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 						label: 'stamp-segmented-label',
 					}}
 				/>
-			</div>
+			</Box>
 
 			{/* Рівень 2: Чипи відповідно до категорії */}
-			<div
+			<Box
 				className={`stamp-chips-scroll ${category === 'chords' || category === 'text' || (category === 'count' && isAutoCountMode) ? 'multi-row' : ''}`}
 			>
 				{/* 1. Ноти та знаки альтерації */}
 				{category === 'notes' && (
-					<div className="stamp-chips-row fit-width">
+					<Box className="stamp-chips-row fit-width">
 						{NOTES.map((note) => {
 							const isNoteActive = selectedNote === note;
 							return (
-								<button
+								<UnstyledButton
 									key={note}
-									type="button"
 									className={`chip note-btn ${isNoteActive ? 'active' : ''}`}
 									onClick={() => onSelectNote(note)}
 								>
 									{note}
-								</button>
+								</UnstyledButton>
 							);
 						})}
-						<div className="sep" />
+						<Box className="sep" />
 						{ACCIDENTALS.map((acc) => {
 							const isAccActive = selectedAccidental === acc;
 							return (
-								<button
+								<UnstyledButton
 									key={acc}
-									type="button"
 									className={`chip accidental-btn ${isAccActive ? 'active' : ''}`}
 									onClick={() => onSelectAccidental(acc)}
 								>
 									{acc}
-								</button>
+								</UnstyledButton>
 							);
 						})}
-					</div>
+					</Box>
 				)}
 
 				{/* 2. Акорди: тоніки, слеш-бас та структуровані позначення без скролу */}
 				{category === 'chords' && (
-					<div className="stamp-chords-container">
+					<Box className="stamp-chords-container">
 						{/* Ряд 1: Літери тонік (A B C D E F G), альтерації (#, b) та слеш-опція (/) */}
-						<div className="stamp-chips-row fit-width">
+						<Box className="stamp-chips-row fit-width">
 							{CHORD_ROOTS.map((root) => {
 								const isRootActive = selectedChordRoot === root;
 								return (
-									<button
+									<UnstyledButton
 										key={root}
-										type="button"
 										className={`chip chord-root-btn ${isRootActive ? 'active' : ''}`}
 										onClick={() => onSelectChordRoot(root)}
 									>
 										{root}
-									</button>
+									</UnstyledButton>
 								);
 							})}
-							<div className="sep" />
+							<Box className="sep" />
 							{CHORD_ACCIDENTALS.map((acc) => {
 								const isAccActive = selectedChordAccidental === acc;
 								return (
-									<button
+									<UnstyledButton
 										key={acc}
-										type="button"
 										className={`chip accidental-btn ${isAccActive ? 'active' : ''}`}
 										onClick={() => onSelectChordAccidental(acc)}
 									>
 										{acc}
-									</button>
+									</UnstyledButton>
 								);
 							})}
-							<div className="sep" />
-							<button
-								type="button"
+							<Box className="sep" />
+							<UnstyledButton
 								className={`chip chord-slash-btn ${selectedChordSlash ? 'active' : ''}`}
 								title="Слеш-акорд (басова нота)"
 								aria-label="Слеш-акорд (басова нота)"
@@ -249,122 +244,115 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 								{selectedChordSlash && selectedChordBassRoot
 									? `/${selectedChordBassRoot}${selectedChordBassAccidental}`
 									: '/'}
-							</button>
-						</div>
+							</UnstyledButton>
+						</Box>
 
 						{/* Ряд Басу (з'являється при увімкненні /) */}
 						{selectedChordSlash && (
-							<div className="stamp-chips-row fit-width stamp-chord-bass-row">
-								<span className="stamp-chord-bass-lbl">/</span>
+							<Box className="stamp-chips-row fit-width stamp-chord-bass-row">
+								<Text component="span" className="stamp-chord-bass-lbl">/</Text>
 								{CHORD_ROOTS.map((root) => {
 									const isBassActive = selectedChordBassRoot === root;
 									return (
-										<button
+										<UnstyledButton
 											key={root}
-											type="button"
 											className={`chip chord-root-btn ${isBassActive ? 'active' : ''}`}
 											onClick={() => onSelectChordBassRoot(root)}
 										>
 											{root}
-										</button>
+										</UnstyledButton>
 									);
 								})}
-								<div className="sep" />
+								<Box className="sep" />
 								{CHORD_ACCIDENTALS.map((acc) => {
 									const isAccActive = selectedChordBassAccidental === acc;
 									return (
-										<button
+										<UnstyledButton
 											key={acc}
-											type="button"
 											className={`chip accidental-btn ${isAccActive ? 'active' : ''}`}
 											onClick={() => onSelectChordBassAccidental(acc)}
 										>
 											{acc}
-										</button>
+										</UnstyledButton>
 									);
 								})}
-							</div>
+							</Box>
 						)}
 
 						{/* Ряд 2: Базові позначення (m, 7, maj7, m7, sus4, sus2, dim, aug) - рівномірно на всю ширину */}
-						<div className="stamp-chips-row fit-width">
+						<Box className="stamp-chips-row fit-width">
 							{CHORD_QUALITIES.map((qual) => {
 								const isQualActive = selectedChordModifier === qual;
 								return (
-									<button
+									<UnstyledButton
 										key={qual}
-										type="button"
 										className={`chip chord-chip ${isQualActive ? 'active' : ''}`}
 										onClick={() => onSelectChordModifier(qual)}
 									>
 										{qual}
-									</button>
+									</UnstyledButton>
 								);
 							})}
-						</div>
+						</Box>
 
 						{/* Ряд 3: Розширення (6, m6, 9, maj9, m9, add9, m7b5, 5) - рівномірно на всю ширину */}
-						<div className="stamp-chips-row fit-width">
+						<Box className="stamp-chips-row fit-width">
 							{CHORD_EXTENSIONS.map((ext) => {
 								const isExtActive = selectedChordModifier === ext;
 								return (
-									<button
+									<UnstyledButton
 										key={ext}
-										type="button"
 										className={`chip chord-chip ${isExtActive ? 'active' : ''}`}
 										onClick={() => onSelectChordModifier(ext)}
 									>
 										{ext}
-									</button>
+									</UnstyledButton>
 								);
 							})}
-						</div>
-					</div>
+						</Box>
+					</Box>
 				)}
 
 				{/* 3. Рахунок: Чипи + 32-кроковий секвенсор для Авторахунку */}
 				{category === 'count' && (
-					<div className="stamp-count-container">
+					<Box className="stamp-count-container">
 						{isAutoCountMode && (
-							<div className="step-sequencer-wrapper">
-								<div className="step-sequencer-header">
-									<span className="step-sequencer-title">
+							<Box className="step-sequencer-wrapper">
+								<Box className="step-sequencer-header">
+									<Text component="span" className="step-sequencer-title">
 										Патерн ({countPattern.length} кр.):
-									</span>
-									<div className="step-sequencer-header-actions">
+									</Text>
+									<Box className="step-sequencer-header-actions">
 										{countPattern.length > 16 && (
-											<button
-												type="button"
+											<UnstyledButton
 												className="step-action-mini-btn"
 												title="Прибрати 16 кроків"
 												onClick={onRemoveSteps}
 											>
 												<span>-16</span>
-											</button>
+											</UnstyledButton>
 										)}
 										{countPattern.length < 64 && (
-											<button
-												type="button"
+											<UnstyledButton
 												className="step-action-mini-btn"
 												title="Додати 16 кроків (макс. 64)"
 												onClick={onAddSteps}
 											>
 												<span>+16</span>
-											</button>
+											</UnstyledButton>
 										)}
-										<button
-											type="button"
+										<UnstyledButton
 											className="step-action-mini-btn"
 											title="Скинути до стандартного (16 кроків)"
 											onClick={onResetCountPattern}
 										>
 											<RotateCcw className="icon" />
 											<span>Скинути</span>
-										</button>
-									</div>
-								</div>
-								<div className="step-cubes-scroll">
-									<div className="step-cubes-grid">
+										</UnstyledButton>
+									</Box>
+								</Box>
+								<Box className="step-cubes-scroll">
+									<Box className="step-cubes-grid">
 										{countPattern.map((token, idx) => {
 											const isCurrent = idx === selectedStepIndex;
 											const isNext = idx === currentAutoCountIndex;
@@ -381,31 +369,29 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 											}
 
 											return (
-												<button
+												<UnstyledButton
 													key={idx}
-													type="button"
 													className={`step-cube ${isFilled ? 'filled' : 'empty'} ${isNext ? 'is-next' : ''} ${isCurrent ? 'is-current' : ''} ${isBeatStart ? 'beat-start' : ''}`}
 													onClick={() => onSelectStep?.(idx)}
 													title={`Крок ${idx + 1}: «${token || 'порожньо'}»${statusTitle}`}
 												>
 													<span className="step-cube-num">{idx + 1}</span>
 													<span className="step-cube-val">{token || '·'}</span>
-												</button>
+												</UnstyledButton>
 											);
 										})}
-									</div>
-								</div>
-							</div>
+									</Box>
+								</Box>
+							</Box>
 						)}
 
-						<div className="stamp-custom-container">
-							<div className="stamp-custom-chips-scroll">
+						<Box className="stamp-custom-container">
+							<Box className="stamp-custom-chips-scroll">
 								{COUNT_ITEMS.map((item) => {
 									const isActive = !isAutoCountMode && activeStampText === item;
 									return (
-										<button
+										<UnstyledButton
 											key={item}
-											type="button"
 											className={`chip count-btn ${isActive ? 'active' : ''}`}
 											onClick={() => {
 												if (isAutoCountMode) {
@@ -421,72 +407,67 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 											}
 										>
 											{item}
-										</button>
+										</UnstyledButton>
 									);
 								})}
 
 								{isAutoCountMode && (
-									<button
-										type="button"
+									<UnstyledButton
 										className="chip count-btn clear-step-btn"
 										onClick={onClearCurrentStep}
 										title={`Очистити клітинку ${(selectedStepIndex ?? 0) + 1}`}
 									>
 										<Eraser className="icon" />
-									</button>
+									</UnstyledButton>
 								)}
-							</div>
+							</Box>
 
 							{/* Кнопка перемикання авторахунку справа */}
-							<div className="stamp-custom-actions">
-								<button
-									type="button"
+							<Box className="stamp-custom-actions">
+								<UnstyledButton
 									className={`chip custom-chip auto-count-toggle-btn ${isAutoCountMode ? 'active' : ''}`}
 									title={isAutoCountMode ? 'Вимкнути авторахунок' : 'Увімкнути авторахунок'}
 									aria-label="Авторахунок"
 									onClick={onToggleAutoCount}
 								>
 									<ListOrdered className="icon" />
-								</button>
-							</div>
-						</div>
-					</div>
+								</UnstyledButton>
+							</Box>
+						</Box>
+					</Box>
 				)}
 
 				{/* 4. Власні елементи */}
 				{category === 'custom' && (
 					customStamps.length === 0 ? (
 						//! Якщо власних елементів ще немає — плюс по центру
-						<div className="stamp-custom-empty-row">
-							<button
-								type="button"
+						<Box className="stamp-custom-empty-row">
+							<UnstyledButton
 								className="stamp-custom-btn-add"
 								aria-label="Додати власний штамп"
 								title="Додати власний штамп"
 								onClick={onOpenAddCustomModal}
 							>
 								<Plus className="icon" />
-							</button>
-						</div>
+							</UnstyledButton>
+						</Box>
 					) : (
 						//! Якщо є елементи — список скролиться зліва, а плюс і кошик закріплені справа
-						<div className="stamp-custom-container">
-							<div className="stamp-custom-chips-scroll">
+						<Box className="stamp-custom-container">
+							<Box className="stamp-custom-chips-scroll">
 								{customStamps.map((text) => {
 									const isCustomActive = activeStampText === text;
 									return (
-										<div key={text} className="stamp-custom-chip-wrap">
-											<button
-												type="button"
+										<Box key={text} className="stamp-custom-chip-wrap">
+											<UnstyledButton
 												className={`chip custom-chip ${isCustomActive ? 'active' : ''}`}
 												onClick={() => onSelectStampText(text)}
 											>
 												{text}
-											</button>
+											</UnstyledButton>
 
 											{isDeleteMode && (
-												<button
-													type="button"
+												<UnstyledButton
 													className="stamp-custom-item-delete-btn"
 													aria-label={`Видалити штамп ${text}`}
 													title="Видалити"
@@ -496,41 +477,39 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 													}}
 												>
 													<X className="icon" />
-												</button>
+												</UnstyledButton>
 											)}
-										</div>
+										</Box>
 									);
 								})}
-							</div>
+							</Box>
 
-							<div className="stamp-custom-actions">
-								<button
-									type="button"
+							<Box className="stamp-custom-actions">
+								<UnstyledButton
 									className="stamp-custom-btn-add"
 									aria-label="Додати власний штамп"
 									title="Додати власний штамп"
 									onClick={onOpenAddCustomModal}
 								>
 									<Plus className="icon" />
-								</button>
+								</UnstyledButton>
 
-								<button
-									type="button"
+								<UnstyledButton
 									className={`stamp-custom-btn-trash-toggle ${isDeleteMode ? 'active' : ''}`}
 									aria-label={isDeleteMode ? 'Завершити видалення' : 'Режим видалення'}
 									title={isDeleteMode ? 'Завершити видалення' : 'Видалити власні штампи'}
 									onClick={() => setIsDeleteMode((prev) => !prev)}
 								>
 									<Trash2 className="icon" />
-								</button>
-							</div>
-						</div>
+								</UnstyledButton>
+							</Box>
+						</Box>
 					)
 				)}
 
 				{/* 5. Довільний текст */}
 				{category === 'text' && (
-					<div className="stamp-text-input-wrap">
+					<Box className="stamp-text-input-wrap">
 						<Textarea
 							autosize
 							minRows={1}
@@ -543,12 +522,12 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 								input: 'stamp-textarea-input',
 							}}
 						/>
-					</div>
+					</Box>
 				)}
 
 				{/* 6. Режим довільного малювання */}
 				{category === 'draw' && (
-					<div
+					<Box
 						className="stamp-draw-actions"
 						style={{
 							display: 'flex',
@@ -561,7 +540,8 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							boxSizing: 'border-box',
 						}}
 					>
-						<span
+						<Text
+							component="span"
 							title="Малюйте штрихи, вони автоматично об'єднаються у штамп через 1 секунду"
 							style={{
 								fontSize: '0.75rem',
@@ -574,10 +554,9 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							}}
 						>
 							Об&apos;єднується через 1 секунду
-						</span>
+						</Text>
 						{onToggleDrawDuplicateMode && (
-							<button
-								type="button"
+							<UnstyledButton
 								className={`chip custom-chip ${isDrawDuplicateMode ? 'active' : ''}`}
 								onClick={onToggleDrawDuplicateMode}
 								title={
@@ -596,13 +575,13 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							>
 								<Copy className="icon" style={{ width: '0.85rem', height: '0.85rem' }} />
 								<span>Дублювати</span>
-							</button>
+							</UnstyledButton>
 						)}
-					</div>
+					</Box>
 				)}
 				{/* 7. Фігури (прямокутник, коло, стрілка) */}
 				{category === 'shapes' && (
-					<div
+					<Box
 						className="stamp-chips-row fit-width"
 						style={{
 							display: 'flex',
@@ -612,8 +591,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							justifyContent: 'center',
 						}}
 					>
-						<button
-							type="button"
+						<UnstyledButton
 							className={`chip shape-chip ${selectedShape === 'rect' ? 'active' : ''}`}
 							onClick={() => onSelectShape?.('rect')}
 							title="Прямокутник"
@@ -626,10 +604,9 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							}}
 						>
 							<Square className="icon" style={{ width: '1rem', height: '1rem' }} />
-						</button>
+						</UnstyledButton>
 
-						<button
-							type="button"
+						<UnstyledButton
 							className={`chip shape-chip ${selectedShape === 'circle' ? 'active' : ''}`}
 							onClick={() => onSelectShape?.('circle')}
 							title="Коло / Овал"
@@ -642,10 +619,9 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							}}
 						>
 							<Circle className="icon" style={{ width: '1rem', height: '1rem' }} />
-						</button>
+						</UnstyledButton>
 
-						<button
-							type="button"
+						<UnstyledButton
 							className={`chip shape-chip ${selectedShape === 'arrow' ? 'active' : ''}`}
 							onClick={() => onSelectShape?.('arrow')}
 							title="Стрілка"
@@ -658,10 +634,10 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							}}
 						>
 							<MoveRight className="icon" style={{ width: '1rem', height: '1rem' }} />
-						</button>
-					</div>
+						</UnstyledButton>
+					</Box>
 				)}
-			</div>
-		</div>
+			</Box>
+		</Box>
 	);
 };

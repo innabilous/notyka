@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Indicator } from '@mantine/core';
+import { Box, Group, Indicator, UnstyledButton } from '@mantine/core';
 import { BoxSelect, LassoSelect, Trash2 } from 'lucide-react';
 import { SelectionMode, SelectionShape } from '@/types/editor';
 
@@ -28,11 +28,10 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 	onDeleteSelected,
 }) => {
 	return (
-		<div id="select-settings" aria-label="Панель налаштувань виділення">
+		<Box id="select-settings" aria-label="Панель налаштувань виділення">
 			{/* Перемикач режиму обведення (за замовчуванням вимкнений, працює тільки клік) */}
-			<div className="select-setting-group">
-				<button
-					type="button"
+			<Group gap={4} className="select-setting-group">
+				<UnstyledButton
 					className={`select-setting-btn ${areaSelectEnabled ? 'active' : ''}`}
 					onClick={onToggleAreaSelect}
 					title={
@@ -48,18 +47,17 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 						<BoxSelect className="icon" />
 					)}
 					<span className="btn-label">Обведення</span>
-				</button>
-			</div>
+				</UnstyledButton>
+			</Group>
 
 			{/* Параметри форми та критерію обведення доступні коли режим увімкнено */}
 			{areaSelectEnabled && (
 				<>
-					<div className="select-settings-divider" />
+					<Box className="select-settings-divider" />
 
 					{/* Форма виділення: Рамка (за замовчуванням) або Ласо */}
-					<div className="select-setting-group">
-						<button
-							type="button"
+					<Group gap={4} className="select-setting-group">
+						<UnstyledButton
 							className={`select-setting-btn ${selectionShape === 'rect' ? 'active' : ''}`}
 							onClick={() => onChangeShape('rect')}
 							title="Рамка (прямокутне виділення)"
@@ -67,9 +65,8 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 						>
 							<BoxSelect className="icon" />
 							<span className="btn-label">Рамка</span>
-						</button>
-						<button
-							type="button"
+						</UnstyledButton>
+						<UnstyledButton
 							className={`select-setting-btn ${selectionShape === 'lasso' ? 'active' : ''}`}
 							onClick={() => onChangeShape('lasso')}
 							title="Ласо (довільне виділення контуром)"
@@ -77,15 +74,14 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 						>
 							<LassoSelect className="icon" />
 							<span className="btn-label">Ласо</span>
-						</button>
-					</div>
+						</UnstyledButton>
+					</Group>
 
-					<div className="select-settings-divider" />
+					<Box className="select-settings-divider" />
 
 					{/* Критерій включення: Повністю або Перетин */}
-					<div className="select-setting-group">
-						<button
-							type="button"
+					<Group gap={4} className="select-setting-group">
+						<UnstyledButton
 							className={`select-setting-btn ${selectionMode === 'inside' ? 'active' : ''}`}
 							onClick={() => onChangeMode('inside')}
 							title="Повністю (об'єкт має повністю увійти в область виділення)"
@@ -107,9 +103,8 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 								<rect x="8" y="8" width="8" height="8" rx="1.5" fill="currentColor" stroke="none" />
 							</svg>
 							<span className="btn-label">Повністю</span>
-						</button>
-						<button
-							type="button"
+						</UnstyledButton>
+						<UnstyledButton
 							className={`select-setting-btn ${selectionMode === 'intersect' ? 'active' : ''}`}
 							onClick={() => onChangeMode('intersect')}
 							title="Перетин (достатньо перетнути або торкнутися об'єкта)"
@@ -140,17 +135,16 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 								/>
 							</svg>
 							<span className="btn-label">Перетин</span>
-						</button>
-					</div>
+						</UnstyledButton>
+					</Group>
 				</>
 			)}
 
 			{/* Якщо є виділені елементи — кнопка видалення з бейджем Indicator на іконці кошика */}
 			{selectedCount > 0 && (
 				<>
-					<div className="select-settings-divider" />
-					<button
-						type="button"
+					<Box className="select-settings-divider" />
+					<UnstyledButton
 						className="select-setting-btn danger"
 						onClick={onDeleteSelected}
 						title={`Видалити виділені елементи (${selectedCount})`}
@@ -167,9 +161,9 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 							<Trash2 className="icon" />
 						</Indicator>
 						<span className="btn-label">Видалити</span>
-					</button>
+					</UnstyledButton>
 				</>
 			)}
-		</div>
+		</Box>
 	);
 };

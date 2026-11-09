@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Box, Text, UnstyledButton } from '@mantine/core';
 import { Minus, Plus } from 'lucide-react';
 import { StampCategory, ToolMode } from '@/types/editor';
 
@@ -124,7 +125,8 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 	const previewDiameter = Math.max(2, Math.round(basePx * canvasScale));
 
 	return (
-		<aside
+		<Box
+			component="aside"
 			ref={containerRef}
 			id="side-size-slider"
 			className={`floating ${isDragging || isHovered ? 'active' : ''}`}
@@ -132,17 +134,16 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 			onMouseLeave={() => setIsHovered(false)}
 			aria-label="Бічний слайдер розміру"
 		>
-			<button
-				type="button"
+			<UnstyledButton
 				className="side-slider-step-btn"
 				onClick={() => onChange(Math.min(100, value + 1))}
 				title="Збільшити (+1)"
 				aria-label="Збільшити розмір"
 			>
 				<Plus className="icon" />
-			</button>
+			</UnstyledButton>
 
-			<div
+			<Box
 				ref={trackRef}
 				className="side-slider-track"
 				onPointerDown={handleTrackPointerDown}
@@ -150,24 +151,23 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 				onPointerUp={handleTrackPointerUp}
 				onPointerCancel={handleTrackPointerUp}
 			>
-				<div className="side-slider-bar" style={{ height: `${fillPercent}%` }} />
-				<div className="side-slider-thumb" style={{ bottom: `${fillPercent}%` }} />
-			</div>
+				<Box className="side-slider-bar" style={{ height: `${fillPercent}%` }} />
+				<Box className="side-slider-thumb" style={{ bottom: `${fillPercent}%` }} />
+			</Box>
 
-			<button
-				type="button"
+			<UnstyledButton
 				className="side-slider-step-btn"
 				onClick={() => onChange(Math.max(1, value - 1))}
 				title="Зменшити (-1)"
 				aria-label="Зменшити розмір"
 			>
 				<Minus className="icon" />
-			</button>
+			</UnstyledButton>
 
 			{/* Спливаючий бабл з числовим значенням (кружечок прев'ю 1:1 тільки для малювання та гумки) */}
-			<div className="side-slider-bubble">
+			<Box className="side-slider-bubble">
 				{showPreviewDot && (
-					<div
+					<Box
 						className="side-slider-preview-dot"
 						style={{
 							width: `${previewDiameter}px`,
@@ -179,9 +179,9 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 						}}
 					/>
 				)}
-				<span className="side-slider-bubble-text">{value} px</span>
-			</div>
-		</aside>
+				<Text component="span" className="side-slider-bubble-text">{value} px</Text>
+			</Box>
+		</Box>
 	);
 };
 

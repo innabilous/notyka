@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { SegmentedControl } from '@mantine/core';
+import { Box, SegmentedControl } from '@mantine/core';
 import { SELECT_FILTER_CATEGORIES } from '@/constants/editor';
 import { SelectFilterCategory, StampCategory } from '@/types/editor';
 
@@ -28,8 +28,8 @@ export const SelectCategoryBar: React.FC<SelectCategoryBarProps> = ({
 	);
 
 	return (
-		<div id="select-category-settings" aria-label="Фільтр категорій для виділення">
-			<div className="stamp-category-tabs">
+		<Box id="select-category-settings" aria-label="Фільтр категорій для виділення">
+			<Box className="stamp-category-tabs">
 				<SegmentedControl
 					fullWidth
 					size="xs"
@@ -44,8 +44,8 @@ export const SelectCategoryBar: React.FC<SelectCategoryBarProps> = ({
 						label: 'stamp-segmented-label',
 					}}
 				/>
-			</div>
-		</div>
+			</Box>
+		</Box>
 	);
 };
 

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Box, UnstyledButton } from '@mantine/core';
 import {
 	AlignVerticalDistributeCenter,
 	Columns3,
@@ -51,13 +52,13 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 	const canDistribute = rulersCount > 2;
 
 	return (
-		<div
+		<Box
+			component="nav"
 			id="ruler-settings"
 			className={compact ? 'compact' : ''}
 			aria-label="Панель налаштувань лінійок"
 		>
-			<button
-				type="button"
+			<UnstyledButton
 				className={`ruler-setting-btn ${visible ? 'active' : ''}`}
 				onClick={onToggleVisible}
 				title={visible ? 'Приховати лінійки' : 'Показати лінійки'}
@@ -65,10 +66,9 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			>
 				{visible ? <Eye className="icon" /> : <EyeOff className="icon" />}
 				<span>{visible ? 'Показати' : 'Приховати'}</span>
-			</button>
+			</UnstyledButton>
 
-			<button
-				type="button"
+			<UnstyledButton
 				className={`ruler-setting-btn ${snap ? 'active' : ''}`}
 				onClick={onToggleSnap}
 				title="Прив'язка до лінійок"
@@ -76,10 +76,9 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			>
 				<Magnet className="icon" />
 				<span>Прив&apos;язка</span>
-			</button>
+			</UnstyledButton>
 
-			<button
-				type="button"
+			<UnstyledButton
 				className={`ruler-setting-btn ${snapItems ? 'active' : ''}`}
 				onClick={onToggleSnapItems}
 				title="Снеп нот між лінійками (Smart Guides)"
@@ -87,10 +86,9 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			>
 				<Columns3 className="icon" />
 				<span>Снеп нот</span>
-			</button>
+			</UnstyledButton>
 
-			<button
-				type="button"
+			<UnstyledButton
 				className={`ruler-setting-btn ${attachContent ? 'active' : ''}`}
 				onClick={onToggleAttachContent}
 				title="Рухати контент разом з лінійкою"
@@ -98,10 +96,9 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			>
 				{attachContent ? <Link className="icon" /> : <Unlink className="icon" />}
 				<span>{compact ? 'З контентом' : 'Рух з контентом'}</span>
-			</button>
+			</UnstyledButton>
 
-			<button
-				type="button"
+			<UnstyledButton
 				className={`ruler-setting-btn ${showDistance ? 'active' : ''}`}
 				onClick={onToggleShowDistance}
 				title="Показувати відстань між лінійками"
@@ -109,10 +106,9 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			>
 				<MoveVertical className="icon" />
 				<span>Відстань</span>
-			</button>
+			</UnstyledButton>
 
-			<button
-				type="button"
+			<UnstyledButton
 				className={`ruler-setting-btn ${lockEqualDistance ? 'active' : ''}`}
 				onClick={onToggleLockEqualDistance}
 				title={
@@ -127,11 +123,10 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			>
 				<AlignVerticalDistributeCenter className="icon" />
 				<span>Рівна відстань</span>
-			</button>
+			</UnstyledButton>
 
 			{compact && onClearRulers && (
-				<button
-					type="button"
+				<UnstyledButton
 					className="ruler-setting-btn ruler-clear-btn"
 					onClick={onClearRulers}
 					title="Очистити всі лінійки"
@@ -143,8 +138,8 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 				>
 					<Trash2 className="icon" />
 					<span>Очистити</span>
-				</button>
+				</UnstyledButton>
 			)}
-		</div>
+		</Box>
 	);
 };
