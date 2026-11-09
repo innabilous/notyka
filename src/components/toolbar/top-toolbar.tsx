@@ -18,6 +18,7 @@ interface TopToolbarProps {
 	strokeColor: string;
 	isSideSliderOpen?: boolean;
 	compactRulers?: boolean;
+	areaSelectEnabled?: boolean;
 	selectionShape?: SelectionShape;
 	selectionMode?: SelectionMode;
 	selectedCount?: number;
@@ -35,6 +36,7 @@ interface TopToolbarProps {
 	onToggleLock: (e: React.MouseEvent) => void;
 	onTogglePalette: (e: React.MouseEvent) => void;
 	onToggleSideSlider?: () => void;
+	onToggleAreaSelect?: () => void;
 	onChangeSelectionShape?: (shape: SelectionShape) => void;
 	onChangeSelectionMode?: (mode: SelectionMode) => void;
 	onDeleteSelected?: () => void;
@@ -60,7 +62,8 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	strokeColor,
 	isSideSliderOpen,
 	compactRulers = false,
-	selectionShape = 'lasso',
+	areaSelectEnabled = false,
+	selectionShape = 'rect',
 	selectionMode = 'inside',
 	selectedCount = 0,
 	rulersVisible = true,
@@ -77,6 +80,7 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	onToggleLock,
 	onTogglePalette,
 	onToggleSideSlider,
+	onToggleAreaSelect,
 	onChangeSelectionShape,
 	onChangeSelectionMode,
 	onDeleteSelected,
@@ -156,9 +160,11 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 					)
 				) : currentMode === 'select' ? (
 					<SelectSettings
+						areaSelectEnabled={areaSelectEnabled}
 						selectionShape={selectionShape}
 						selectionMode={selectionMode}
 						selectedCount={selectedCount}
+						onToggleAreaSelect={() => onToggleAreaSelect?.()}
 						onChangeShape={(s) => onChangeSelectionShape?.(s)}
 						onChangeMode={(m) => onChangeSelectionMode?.(m)}
 						onDeleteSelected={() => onDeleteSelected?.()}
