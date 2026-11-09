@@ -23,9 +23,11 @@ import {
 	HistoryItem,
 	Point,
 	RulerItem,
+	SelectFilterCategory,
 	SelectionMode,
 	SelectionShape,
 	ShapeType,
+	StampCategory,
 	StampDrawingPath,
 	StampItem,
 	ToolMode,
@@ -39,6 +41,8 @@ import {
 	drawStamp,
 	drawAreaSelectionOverlay,
 	drawMultiSelectionBox,
+	getMultiSelectionBounds,
+	isPointInStampBounds,
 	isStampInSelection,
 	findRulerNearPoint,
 	getClosestRulerY,
@@ -60,7 +64,9 @@ import {
 
 export function getStampCategory(stamp: StampItem): string {
 	if (stamp.category) return stamp.category;
+	if (stamp.shapeType) return 'shapes';
 	if (stamp.isDrawing) return 'draw';
+	if (stamp.isAutoCount) return 'count';
 	const t = (stamp.text || '').trim();
 	if (NOTES.some((n) => t.startsWith(n))) return 'notes';
 	if ((COUNT_ITEMS as readonly string[]).includes(t)) return 'count';
@@ -94,7 +100,9 @@ interface CanvasStageProps {
 	areaSelectEnabled?: boolean;
 	selectionShape?: SelectionShape;
 	selectionMode?: SelectionMode;
+	selectFilterCategory?: SelectFilterCategory;
 	onSelectedCountChange?: (count: number) => void;
+	onAvailableStampCategoriesChange?: (categories: StampCategory[]) => void;
 	hasCanvas: boolean;
 	onSelectStamp: (stamp: StampItem) => void;
 	onChangeSize?: (newSize: number) => void;
@@ -162,6 +170,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	areaSelectEnabled = false,
 	selectionShape = 'rect',
 	selectionMode = 'inside',
+	selectFilterCategory = 'all',
 	hasCanvas,
 	onSelectStamp,
 	onChangeSize,
@@ -170,6 +179,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	onScaleChange,
 	onRulersCountChange,
 	onSelectedCountChange,
+	onAvailableStampCategoriesChange,
 	onNotify,
 	onInitBlank,
 	onResetCanvas,
@@ -253,7 +263,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const isDraggingMultiRef = useRef<boolean>(false);
 	const multiDragStartPtRef = useRef<Point | null>(null);
 	const multiDragOffsetsRef = useRef<
-		{ id: string; x: number; y: number; endX?: number; endY?: number }[]
+		{
+			id: string;
+			x: number;
+			y: number;
+			endX?: number;
+			endY?: number;
+			minDx: number;
+			maxDx: number;
+			minDy: number;
+			maxDy: number;
+		}[]
 	>([]);
 
 	// Drawing mode within stamp
@@ -309,11 +329,24 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		onScaleChange?.(1);
 	}, [applyTransform, onScaleChange]);
 
+	const updateAvailableStampCategories = useCallback(() => {
+		const cats = new Set<StampCategory>();
+		stampsListRef.current.forEach((st) => {
+			cats.add(getStampCategory(st) as StampCategory);
+		});
+		onAvailableStampCategoriesChange?.(Array.from(cats));
+	}, [onAvailableStampCategoriesChange]);
+
 	const updateUndoRedo = useCallback(() => {
 		const canUndo = historyStepRef.current > 0;
 		const canRedo = historyStepRef.current < historyStackRef.current.length - 1;
 		onHistoryChange(canUndo, canRedo);
-	}, [onHistoryChange]);
+		updateAvailableStampCategories();
+	}, [onHistoryChange, updateAvailableStampCategories]);
+
+	useEffect(() => {
+		updateAvailableStampCategories();
+	}, [updateAvailableStampCategories]);
 
 	const render = useCallback(() => {
 		exportTokenRef.current++;
@@ -1190,6 +1223,23 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const ctx = canvas.getContext('2d');
 			if (!ctx) return;
 
+			//! Якщо в режимі 'stamp' активний штамп з іншої категорії — знімаємо його активність
+			if (currentMode === 'stamp' && activeStampRef.current) {
+				if (getStampCategory(activeStampRef.current) !== stampCategory) {
+					commitActiveStamp(false);
+				}
+			}
+
+			//! Якщо в режимі 'select' активний штамп не підпадає під фільтр — знімаємо його активність
+			if (
+				currentMode === 'select' &&
+				selectFilterCategory !== 'all' &&
+				activeStampRef.current &&
+				getStampCategory(activeStampRef.current) !== selectFilterCategory
+			) {
+				commitActiveStamp(false);
+			}
+
 			const active = activeStampRef.current;
 
 			// 0. Trash button click on active stamp
@@ -1242,61 +1292,105 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				return;
 			}
 
-			// 2. Stamp body drag
-			if (active && isPointInStamp(pt, active, uRef.current, ctx)) {
-				isDraggingStampRef.current = true;
-				dragOffsetRef.current = { x: pt.x - active.x, y: pt.y - active.y };
-				return;
-			}
-
-			// 2.5. Перетягування групи виділених елементів
+			// 2. Перетягування групи виділених елементів (за будь-яку точку всієї області прямокутника)
 			if (selectedStampIdsRef.current.length > 1) {
-				const hitSelected = stampsListRef.current.find(
-					(s) => selectedStampIdsRef.current.includes(s.id) && isPointInStamp(pt, s, uRef.current, ctx),
+				const selectedStamps = stampsListRef.current.filter((s) =>
+					selectedStampIdsRef.current.includes(s.id),
 				);
-				if (hitSelected) {
+				const bounds = getMultiSelectionBounds(selectedStamps, uRef.current, ctx);
+				const isInMultiBox =
+					bounds &&
+					pt.x >= bounds.minX &&
+					pt.x <= bounds.maxX &&
+					pt.y >= bounds.minY &&
+					pt.y <= bounds.maxY;
+
+				if (isInMultiBox) {
 					isDraggingMultiRef.current = true;
 					multiDragStartPtRef.current = pt;
-					multiDragOffsetsRef.current = stampsListRef.current
-						.filter((s) => selectedStampIdsRef.current.includes(s.id))
-						.map((s) => ({ id: s.id, x: s.x, y: s.y, endX: s.endX, endY: s.endY }));
+					multiDragOffsetsRef.current = selectedStamps.map((s) => {
+						const posMin = clampStampPosition(-1e9, -1e9, s, uRef.current, ctx);
+						const posMax = clampStampPosition(1e9, 1e9, s, uRef.current, ctx);
+						return {
+							id: s.id,
+							x: s.x,
+							y: s.y,
+							endX: s.endX,
+							endY: s.endY,
+							minDx: posMin.x - s.x,
+							maxDx: posMax.x - s.x,
+							minDy: posMin.y - s.y,
+							maxDy: posMax.y - s.y,
+						};
+					});
 					dragMovedRef.current = false;
 					return;
 				}
 			}
 
+			// 2.5. Перетягування активного штампа (за тіло або за всю область його прямокутної рамки)
+			if (
+				active &&
+				(isPointInStamp(pt, active, uRef.current, ctx) ||
+					isPointInStampBounds(pt, active, uRef.current, ctx))
+			) {
+				isDraggingStampRef.current = true;
+				dragOffsetRef.current = { x: pt.x - active.x, y: pt.y - active.y };
+				return;
+			}
+
 			// 3. Selection of existing stamps from top to bottom
 			for (let i = layersRef.current.length - 1; i >= 0; i--) {
 				const l = layersRef.current[i];
-				if (l.type === 'stamp' && isPointInStamp(pt, l.stamp, uRef.current, ctx)) {
-					commitActiveStamp(false);
-					const selected = l.stamp;
-					selectedStampIdsRef.current = [selected.id];
-					onSelectedCountChange?.(1);
-
-					if (selected.category === 'shapes' && selected.shapeType) {
-						lastShapePresetRef.current = {
-							shapeType: selected.shapeType,
-							width: selected.width || (selected.shapeType === 'rect' ? 80 : 60),
-							height: selected.height || (selected.shapeType === 'rect' ? 50 : 60),
-							rotation: selected.rotation || 0,
-							dx: selected.shapeType === 'arrow' && selected.endX !== undefined ? selected.endX - selected.x : undefined,
-							dy: selected.shapeType === 'arrow' && selected.endY !== undefined ? selected.endY - selected.y : undefined,
-							strokeWidth: selected.strokeWidth || selected.size || currentSize,
-							mainColor: selected.mainColor,
-							strokeColor: selected.strokeColor,
-						};
+				if (l.type === 'stamp') {
+					//! У режимі 'stamp' дозволяємо взаємодіяти тільки зі штампами поточної категорії
+					if (currentMode === 'stamp' && getStampCategory(l.stamp) !== stampCategory) {
+						continue;
 					}
-					activeStampRef.current = selected;
-					activeOrigRef.current = JSON.stringify(selected);
+					//! У режимі 'select' з активним фільтром категорій — дозволяємо тільки обрану категорію
+					if (
+						currentMode === 'select' &&
+						selectFilterCategory !== 'all' &&
+						getStampCategory(l.stamp) !== selectFilterCategory
+					) {
+						continue;
+					}
+					if (isPointInStamp(pt, l.stamp, uRef.current, ctx)) {
+						commitActiveStamp(false);
+						const selected = l.stamp;
+						selectedStampIdsRef.current = [selected.id];
+						onSelectedCountChange?.(1);
 
-					onSelectStamp(selected);
+						if (selected.category === 'shapes' && selected.shapeType) {
+							lastShapePresetRef.current = {
+								shapeType: selected.shapeType,
+								width: selected.width || (selected.shapeType === 'rect' ? 80 : 60),
+								height: selected.height || (selected.shapeType === 'rect' ? 50 : 60),
+								rotation: selected.rotation || 0,
+								dx:
+									selected.shapeType === 'arrow' && selected.endX !== undefined
+										? selected.endX - selected.x
+										: undefined,
+								dy:
+									selected.shapeType === 'arrow' && selected.endY !== undefined
+										? selected.endY - selected.y
+										: undefined,
+								strokeWidth: selected.strokeWidth || selected.size || currentSize,
+								mainColor: selected.mainColor,
+								strokeColor: selected.strokeColor,
+							};
+						}
+						activeStampRef.current = selected;
+						activeOrigRef.current = JSON.stringify(selected);
 
-					isDraggingStampRef.current = true;
-					dragOffsetRef.current = { x: pt.x - selected.x, y: pt.y - selected.y };
-					render();
-					onNotify('Штамп виділено');
-					return;
+						onSelectStamp(selected);
+
+						isDraggingStampRef.current = true;
+						dragOffsetRef.current = { x: pt.x - selected.x, y: pt.y - selected.y };
+						render();
+						onNotify('Штамп виділено');
+						return;
+					}
 				}
 			}
 
@@ -1574,6 +1668,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			selectedAccidental,
 			selectedNote,
 			selectedShape,
+			selectFilterCategory,
 			stampBadgeMode,
 			stampCategory,
 			strokeColor,
@@ -2349,30 +2444,43 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					return;
 				}
 
-				//! 0.1. Переміщення групи виділених елементів
+				//! 0.1. Переміщення групи виділених елементів як єдиного жорсткого блоку
 				if (isDraggingMultiRef.current) {
 					dragMovedRef.current = true;
 					const start = multiDragStartPtRef.current;
 					if (start) {
-						const dx = pt.x - start.x;
-						const dy = pt.y - start.y;
-						const canvas = canvasRef.current;
-						const ctx = canvas?.getContext('2d');
+						const rawDx = pt.x - start.x;
+						const rawDy = pt.y - start.y;
+
+						let groupMinDx = -Infinity;
+						let groupMaxDx = Infinity;
+						let groupMinDy = -Infinity;
+						let groupMaxDy = Infinity;
+
+						multiDragOffsetsRef.current.forEach((item) => {
+							if (item.minDx > groupMinDx) groupMinDx = item.minDx;
+							if (item.maxDx < groupMaxDx) groupMaxDx = item.maxDx;
+							if (item.minDy > groupMinDy) groupMinDy = item.minDy;
+							if (item.maxDy < groupMaxDy) groupMaxDy = item.maxDy;
+						});
+
+						const clampedDx =
+							groupMaxDx >= groupMinDx
+								? Math.max(groupMinDx, Math.min(groupMaxDx, rawDx))
+								: 0;
+						const clampedDy =
+							groupMaxDy >= groupMinDy
+								? Math.max(groupMinDy, Math.min(groupMaxDy, rawDy))
+								: 0;
+
 						multiDragOffsetsRef.current.forEach(({ id, x, y, endX, endY }) => {
 							const st = stampsListRef.current.find((s) => s.id === id);
 							if (!st) return;
-							let nextX = x + dx;
-							let nextY = y + dy;
-							if (ctx) {
-								const clamped = clampStampPosition(nextX, nextY, st, uRef.current, ctx);
-								nextX = clamped.x;
-								nextY = clamped.y;
-							}
-							st.x = nextX;
-							st.y = nextY;
+							st.x = x + clampedDx;
+							st.y = y + clampedDy;
 							if (st.shapeType === 'arrow' && endX !== undefined && endY !== undefined) {
-								st.endX = endX + (nextX - x);
-								st.endY = endY + (nextY - y);
+								st.endX = endX + clampedDx;
+								st.endY = endY + clampedDy;
 							}
 						});
 						scheduleRender();
@@ -2464,6 +2572,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				if (ctx) {
 					const matchedIds: string[] = [];
 					stampsListRef.current.forEach((st) => {
+						//! Враховуємо фільтр категорій інструмента виділення
+						if (
+							selectFilterCategory !== 'all' &&
+							getStampCategory(st) !== selectFilterCategory
+						) {
+							return;
+						}
 						if (isStampInSelection(st, shape, mode, pts, uRef.current, ctx)) {
 							matchedIds.push(st.id);
 						}
@@ -3070,6 +3185,38 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			scheduleRender();
 		}
 	}, [currentMode, onRulersCountChange, scheduleRender]);
+
+	//! Скидаємо активний штамп, якщо його категорія не відповідає поточній у режимі 'stamp'
+	useEffect(() => {
+		if (currentMode === 'stamp' && activeStampRef.current) {
+			if (getStampCategory(activeStampRef.current) !== stampCategory) {
+				commitActiveStamp(false);
+			}
+		}
+	}, [commitActiveStamp, currentMode, stampCategory]);
+
+	//! Якщо змінили фільтр категорій у режимі 'select' — фільтруємо невідповідні виділення
+	useEffect(() => {
+		if (currentMode === 'select' && selectFilterCategory !== 'all') {
+			if (
+				activeStampRef.current &&
+				getStampCategory(activeStampRef.current) !== selectFilterCategory
+			) {
+				commitActiveStamp(false);
+			}
+			if (selectedStampIdsRef.current.length > 0) {
+				const filtered = selectedStampIdsRef.current.filter((id) => {
+					const s = stampsListRef.current.find((item) => item.id === id);
+					return s && getStampCategory(s) === selectFilterCategory;
+				});
+				if (filtered.length !== selectedStampIdsRef.current.length) {
+					selectedStampIdsRef.current = filtered;
+					onSelectedCountChange?.(filtered.length);
+					scheduleRender();
+				}
+			}
+		}
+	}, [commitActiveStamp, currentMode, onSelectedCountChange, scheduleRender, selectFilterCategory]);
 
 	// Native gesture listeners on container
 	useEffect(() => {
