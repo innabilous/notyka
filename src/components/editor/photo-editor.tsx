@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Box } from '@mantine/core';
 import { AppPreloader } from '@/components/common/app-preloader';
 import { ColorPaletteModal } from '@/components/modals/color-palette-modal';
 import { CustomStampModal } from '@/components/modals/custom-stamp-modal';
@@ -2070,7 +2071,7 @@ export const PhotoEditor: React.FC = () => {
 	);
 
 	return (
-		<div
+		<Box
 			style={{
 				display: 'flex',
 				flexDirection: 'column',
@@ -2273,7 +2274,7 @@ export const PhotoEditor: React.FC = () => {
 			{isLoading ? (
 				<ToolbarSkeleton />
 			) : (
-				<footer>
+				<Box component="footer">
 					{currentMode === 'stamp' && (
 						<StampSettings
 							selectedNote={selectedNote}
@@ -2351,12 +2352,12 @@ export const PhotoEditor: React.FC = () => {
 						visibleTools={visibleTools}
 						onSelectMode={handleSelectMode}
 					/>
-				</footer>
+				</Box>
 			)}
 
-			<div id="toast" className={toastText ? 'show' : ''}>
+			<Box id="toast" className={toastText ? 'show' : ''}>
 				{toastText}
-			</div>
-		</div>
+			</Box>
+		</Box>
 	);
 };

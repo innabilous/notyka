@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Box, Stack } from '@mantine/core';
 import { BrandLogo } from './brand-logo';
 
 interface AppPreloaderProps {
@@ -24,7 +25,7 @@ export const AppPreloader: React.FC<AppPreloaderProps> = ({ isLoading }) => {
 	if (!shouldRender) return null;
 
 	return (
-		<div
+		<Box
 			style={{
 				position: 'fixed',
 				inset: 0,
@@ -39,17 +40,10 @@ export const AppPreloader: React.FC<AppPreloaderProps> = ({ isLoading }) => {
 				pointerEvents: isLoading ? 'auto' : 'none',
 			}}
 		>
-			<div
-				style={{
-					display: 'flex',
-					flexDirection: 'column',
-					alignItems: 'center',
-					gap: '1rem',
-				}}
-			>
+			<Stack align="center" gap="1rem">
 				{/* Animated Bespoke Logo with PRO badge */}
 				<BrandLogo size={76} animated={true} showText={true} />
-			</div>
-		</div>
+			</Stack>
+		</Box>
 	);
 };

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef } from 'react';
+import { Box, Button, Text, Title } from '@mantine/core';
 import { FilePlus } from 'lucide-react';
 import { BrandLogo } from '@/components/common/brand-logo';
 import {
@@ -3547,11 +3548,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	]);
 
 	return (
-		<main id="canvas-container" ref={containerRef}>
-			<div id="placeholder" className={hasCanvas ? 'hidden' : ''}>
-				<div style={{ marginBottom: '1.25rem' }}>
+		<Box component="main" id="canvas-container" ref={containerRef}>
+			<Box id="placeholder" className={hasCanvas ? 'hidden' : ''}>
+				<Box style={{ marginBottom: '1.25rem' }}>
 					<BrandLogo size={56} showBadge={true} showText={true} />
-				</div>
+				</Box>
 				<h2>Нотний редактор</h2>
 				<p>Створіть чистий білий аркуш або відкрийте фото чи партитуру для розмітки</p>
 				<button
@@ -3563,9 +3564,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					<FilePlus className="icon" />
 					<span>Новий білий аркуш</span>
 				</button>
-			</div>
+			</Box>
 
 			<canvas id="editor-canvas" ref={canvasRef} className={!hasCanvas ? 'hidden' : ''} />
-		</main>
+		</Box>
 	);
 };

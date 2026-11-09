@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Box } from '@mantine/core';
 import { Music } from 'lucide-react';
 
 interface BrandLogoProps {
@@ -25,7 +26,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 	const innerBorderRadius = Math.max(0, borderRadius - borderWidth);
 
 	return (
-		<div
+		<Box
 			className={className.trim()}
 			style={{
 				display: 'inline-flex',
@@ -48,7 +49,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 			{showBadge ? (
 				animated ? (
 					/* Анімований бордер: повний видимий контур із сяючим світловим променем */
-					<div
+					<Box
 						style={{
 							position: 'relative',
 							width: numericSize,
@@ -68,7 +69,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 						aria-label="Notyka Logo"
 					>
 						{/* Шлейф (хвіст) променя: м'який індиго-ціановий шлейф позаду голови */}
-						<div
+						<Box
 							className="notyka-border-glow-tail"
 							style={{
 								position: 'absolute',
@@ -84,7 +85,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 							}}
 						/>
 						{/* Сяюча голова променя: плавне біле ядро з м'якими краями */}
-						<div
+						<Box
 							className="notyka-border-glow-head"
 							style={{
 								position: 'absolute',
@@ -100,7 +101,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 							}}
 						/>
 						{/* Внутрішній фон бейджа: гарантовано поверх градієнтів, щоб промінь не вилазив на логотип */}
-						<div
+						<Box
 							style={{
 								position: 'relative',
 								zIndex: 10,
@@ -124,11 +125,11 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 									filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))',
 								}}
 							/>
-						</div>
-					</div>
+						</Box>
+					</Box>
 				) : (
 					/* Статичний бейдж для звичайного відображення */
-					<div
+					<Box
 						style={{
 							position: 'relative',
 							width: numericSize,
@@ -156,7 +157,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 								filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))',
 							}}
 						/>
-					</div>
+					</Box>
 				)
 			) : (
 				/* Чиста іконка без підкладки */
@@ -172,7 +173,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 			)}
 
 			{showText && (
-				<div
+				<Box
 					style={{
 						display: 'inline-flex',
 						flexDirection: 'column',
@@ -208,8 +209,8 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 					>
 						pro
 					</span>
-				</div>
+				</Box>
 			)}
-		</div>
+		</Box>
 	);
 };
