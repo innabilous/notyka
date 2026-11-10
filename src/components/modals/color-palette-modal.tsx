@@ -12,9 +12,11 @@ import {
 	Text,
 	Tooltip,
 } from '@mantine/core';
+import clsx from 'clsx';
 import { Ban, Check, Pipette } from 'lucide-react';
 import { PALETTE_COLORS } from '@/constants/editor';
 import { ShapeType, StampCategory, ToolMode } from '@/types/editor';
+import classes from './color-palette-modal.module.css';
 
 interface ColorPaletteModalProps {
 	opened: boolean;
@@ -29,10 +31,10 @@ interface ColorPaletteModalProps {
 	onToggleBadgeMode?: (isBadge: boolean) => void;
 }
 
-const isLightColor = (color: string): boolean => {
+function isLightColor(color: string): boolean {
 	const c = color.toLowerCase();
 	return c === '#ffffff' || c === '#fff200' || c === '#ffff00' || c === '#f59e0b';
-};
+}
 
 interface PaletteGridProps {
 	selectedColor: string;
@@ -45,7 +47,7 @@ interface PaletteGridProps {
 	ariaPrefix: string;
 }
 
-const PaletteGrid: React.FC<PaletteGridProps> = ({
+function PaletteGrid({
 	selectedColor,
 	onSelectColor,
 	showTransparent = false,
@@ -54,20 +56,11 @@ const PaletteGrid: React.FC<PaletteGridProps> = ({
 	transparentTooltip = 'Без кольору (прозоро)',
 	onSelectTransparent,
 	ariaPrefix,
-}) => {
+}: PaletteGridProps) {
 	const normSelected = selectedColor.toLowerCase();
 
 	return (
-		<Box
-			style={{
-				display: 'grid',
-				gridTemplateColumns: 'repeat(11, 1fr)',
-				gap: 5,
-				alignItems: 'center',
-				justifyItems: 'center',
-				padding: '4px 2px',
-			}}
-		>
+		<Box className={classes.grid}>
 			{PALETTE_COLORS.map((color) => {
 				const isSelected = normSelected === color.toLowerCase();
 				const isLight = isLightColor(color);
@@ -80,18 +73,7 @@ const PaletteGrid: React.FC<PaletteGridProps> = ({
 						color={color}
 						size={24}
 						radius="xl"
-						style={{
-							cursor: 'pointer',
-							flexShrink: 0,
-							border: 'none',
-							boxShadow: isSelected
-								? '0 0 0 2px var(--panel), 0 0 0 3.5px var(--accent)'
-								: 'inset 0 0 0 1px rgba(0, 0, 0, 0.15)',
-							transition: 'box-shadow 0.12s ease',
-							display: 'inline-flex',
-							alignItems: 'center',
-							justifyContent: 'center',
-						}}
+						className={clsx(classes.swatch, isSelected && classes.swatchSelected)}
 						onClick={() => onSelectColor(color)}
 						aria-label={`Обрати ${ariaPrefix} ${color}`}
 					>
@@ -100,7 +82,7 @@ const PaletteGrid: React.FC<PaletteGridProps> = ({
 								size={13}
 								strokeWidth={3}
 								color={isLight ? '#000000' : '#ffffff'}
-								style={{ display: 'block', pointerEvents: 'none' }}
+								className={classes.checkIcon}
 							/>
 						)}
 					</ColorSwatch>
@@ -113,14 +95,10 @@ const PaletteGrid: React.FC<PaletteGridProps> = ({
 						variant="subtle"
 						size={24}
 						radius="xl"
-						style={{
-							flexShrink: 0,
-							background: 'transparent',
-							boxShadow: isTransparentSelected
-								? '0 0 0 2px var(--panel), 0 0 0 3.5px #ef4444'
-								: 'inset 0 0 0 1px rgba(0, 0, 0, 0.15)',
-							transition: 'box-shadow 0.12s ease',
-						}}
+						className={clsx(
+							classes.transparentBtn,
+							isTransparentSelected && classes.transparentBtnSelected,
+						)}
 						disabled={isTransparentDisabled}
 						onClick={onSelectTransparent}
 						aria-label="Вимкнути колір"
@@ -137,47 +115,31 @@ const PaletteGrid: React.FC<PaletteGridProps> = ({
 			)}
 		</Box>
 	);
-};
+}
 
 interface PipettePickerProps {
 	value: string;
 	onChange: (color: string) => void;
 }
 
-const PipettePicker: React.FC<PipettePickerProps> = ({ value, onChange }) => (
-	<Box
-		component="label"
-		style={{
-			display: 'inline-flex',
-			alignItems: 'center',
-			gap: 4,
-			cursor: 'pointer',
-			color: 'var(--muted)',
-			fontSize: '0.75rem',
-			opacity: 0.75,
-			transition: 'opacity 0.12s ease',
-		}}
-		onMouseEnter={(e) => {
-			e.currentTarget.style.opacity = '1';
-		}}
-		onMouseLeave={(e) => {
-			e.currentTarget.style.opacity = '0.75';
-		}}
-	>
-		<Pipette size={12} strokeWidth={2} />
-		<Text size="xs" c="dimmed">
-			Свій
-		</Text>
-		<input
-			type="color"
-			value={value.startsWith('#') ? value : '#ef4444'}
-			onChange={(e) => onChange(e.target.value)}
-			style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-		/>
-	</Box>
-);
+function PipettePicker({ value, onChange }: PipettePickerProps) {
+	return (
+		<Box component="label" className={classes.pipetteLabel}>
+			<Pipette size={12} strokeWidth={2} />
+			<Text size="xs" c="dimmed">
+				Свій
+			</Text>
+			<input
+				type="color"
+				value={value.startsWith('#') ? value : '#ef4444'}
+				onChange={(e) => onChange(e.target.value)}
+				className={classes.pipetteInput}
+			/>
+		</Box>
+	);
+}
 
-export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
+export function ColorPaletteModal({
 	opened,
 	currentMode,
 	stampCategory,
@@ -188,13 +150,13 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 	onChangeMainColor,
 	onChangeStrokeColor,
 	onToggleBadgeMode,
-}) => {
+}: ColorPaletteModalProps) {
 	if (!opened) return null;
 
 	const isStamp = currentMode === 'stamp' || currentMode === 'select';
 	const isShapes = isStamp && stampCategory === 'shapes';
 
-	//! Для стрілки відображаємо тільки один колір стрілки (без заливок/прозоростей)
+	// Arrow shape uses a single color without fill/stroke split
 	if (isShapes && selectedShape === 'arrow') {
 		const arrowColor =
 			strokeColor && strokeColor !== 'transparent'
@@ -203,10 +165,10 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 					? mainColor
 					: '#ef4444';
 
-		const handleSetArrowColor = (color: string) => {
+		function handleSetArrowColor(color: string) {
 			onChangeMainColor(color);
 			onChangeStrokeColor(color);
-		};
+		}
 
 		return (
 			<Paper
@@ -236,7 +198,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 		);
 	}
 
-	//! Для прямокутника та кола/овалу: може бути і обводка, і заливка, але не обидві прозорі одночасно
+	// Rectangle and circle/oval allow independent fill and stroke, but at least one must remain visible
 	if (isShapes && (selectedShape === 'rect' || selectedShape === 'circle')) {
 		const isFillTransparent = mainColor === 'transparent';
 		const isStrokeTransparent = strokeColor === 'transparent';
@@ -251,7 +213,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 				onClick={(e) => e.stopPropagation()}
 			>
 				<Stack gap="xs">
-					{/* 1. Заливка фігури */}
+					{/* 1. Shape fill color */}
 					<Stack gap={6}>
 						<Group justify="space-between" align="center">
 							<Text size="xs" fw={600} c="dimmed">
@@ -278,7 +240,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 						/>
 					</Stack>
 
-					{/* 2. Обводка фігури */}
+					{/* 2. Shape stroke color */}
 					<Stack gap={6}>
 						<Group justify="space-between" align="center">
 							<Text size="xs" fw={600} c="dimmed">
@@ -344,7 +306,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 							<PipettePicker value={strokeColor} onChange={onChangeStrokeColor} />
 						</Group>
 
-						{/* Перемикач стилю: обводка або суцільна плашка */}
+						{/* Style switcher: outline stroke or solid badge */}
 						<SegmentedControl
 							fullWidth
 							size="xs"
@@ -371,4 +333,4 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 			</Stack>
 		</Paper>
 	);
-};
+}

@@ -1,0 +1,62 @@
+.grid {
+	display: grid;
+	grid-template-columns: repeat(11, 1fr);
+	gap: 0.3125rem;
+	align-items: center;
+	justify-items: center;
+	padding: 0.25rem 0.125rem;
+}
+
+.swatch {
+	cursor: pointer;
+	flex-shrink: 0;
+	border: none;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+	transition: box-shadow 0.12s ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.swatchSelected {
+	box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--accent);
+}
+
+.checkIcon {
+	display: block;
+	pointer-events: none;
+}
+
+.transparentBtn {
+	flex-shrink: 0;
+	background: transparent;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+	transition: box-shadow 0.12s ease;
+}
+
+.transparentBtnSelected {
+	box-shadow: 0 0 0 2px var(--panel), 0 0 0 3.5px var(--danger);
+}
+
+.pipetteLabel {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	cursor: pointer;
+	color: var(--muted);
+	font-size: 0.75rem;
+	opacity: 0.75;
+	transition: opacity 0.12s ease;
+}
+
+.pipetteLabel:hover {
+	opacity: 1;
+}
+
+.pipetteInput {
+	opacity: 0;
+	width: 0;
+	height: 0;
+	position: absolute;
+}
+

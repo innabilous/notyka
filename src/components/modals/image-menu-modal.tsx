@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Box, Divider, NavLink, Paper, ScrollArea, Stack } from '@mantine/core';
+import clsx from 'clsx';
 import {
 	Clock,
 	Download,
@@ -11,6 +12,7 @@ import {
 	Settings,
 	Share2,
 } from 'lucide-react';
+import classes from './image-menu-modal.module.css';
 
 interface ImageMenuModalProps {
 	opened: boolean;
@@ -24,7 +26,7 @@ interface ImageMenuModalProps {
 	onShare: () => void;
 }
 
-export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
+export function ImageMenuModal({
 	opened,
 	onClose,
 	onUploadClick,
@@ -34,18 +36,18 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 	onClear,
 	onSave,
 	onShare,
-}) => {
+}: ImageMenuModalProps) {
 	if (!opened) return null;
 
-	const handleBackdropClick = (e: React.MouseEvent) => {
+	function handleBackdropClick(e: React.MouseEvent) {
 		e.stopPropagation();
 		e.preventDefault();
 		onClose?.();
-	};
+	}
 
 	return (
 		<>
-			{/* Бекдроп для блокування взаємодії з полотном/штампами та закриття меню при кліку повз */}
+			{/* Backdrop blocking canvas/stamp pointer events and closing menu on outside click */}
 			<Box
 				className="menu-backdrop"
 				onClick={handleBackdropClick}
@@ -55,16 +57,21 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 
 			<Paper
 				id="image-menu"
-				className="popup"
-				p={6}
+				className={clsx('popup', classes.menuPaper)}
 				shadow="none"
 				radius="lg"
 				onClick={(e) => e.stopPropagation()}
 				onMouseDown={(e) => e.stopPropagation()}
 			>
-				<ScrollArea.Autosize mah="calc(100dvh - 5rem)" type="hover" scrollbars="y" scrollbarSize={5} offsetScrollbars>
+				<ScrollArea.Autosize
+					className={classes.scrollArea}
+					type="hover"
+					scrollbars="y"
+					scrollbarSize={5}
+					offsetScrollbars
+				>
 					<Stack gap={2}>
-						{/* Група 1: Робота з полотном */}
+						{/* Group 1: Canvas actions */}
 						<NavLink
 							leftSection={<ImagePlus size={16} />}
 							label="Відкрити фото"
@@ -85,7 +92,7 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 
 						<Divider my={4} />
 
-						{/* Група 2: Експорт */}
+						{/* Group 2: Export */}
 						<NavLink
 							leftSection={<Download size={16} />}
 							label="Зберегти фото"
@@ -100,7 +107,7 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 
 						<Divider my={4} />
 
-						{/* Група 3: Опції та очищення */}
+						{/* Group 3: Settings & Clear */}
 						<NavLink
 							leftSection={<Settings size={16} />}
 							label="Налаштування"
@@ -121,4 +128,4 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 			</Paper>
 		</>
 	);
-};
+}

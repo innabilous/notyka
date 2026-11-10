@@ -47,6 +47,7 @@ import {
 	isDarkSurfaceTone,
 	isLightSurfaceTone,
 } from '@/types/editor';
+import classes from './settings-modal.module.css';
 
 function isColorSchemeMode(val: string): val is 'dark' | 'light' | 'auto' {
 	return val === 'dark' || val === 'light' || val === 'auto';
@@ -72,7 +73,7 @@ interface SettingsModalProps {
 const TOOLS_CONFIG: {
 	id: ToolMode;
 	label: string;
-	icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+	icon: React.ComponentType<{ size?: number; className?: string }>;
 }[] = [
 	{ id: 'select', label: 'Виділення', icon: MousePointer },
 	{ id: 'pencil', label: 'Олівець', icon: Pencil },
@@ -84,7 +85,7 @@ const TOOLS_CONFIG: {
 const CATEGORIES_CONFIG: {
 	id: StampCategory;
 	label: string;
-	icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+	icon: React.ComponentType<{ size?: number; className?: string }>;
 }[] = [
 	{ id: 'notes', label: 'Ноти', icon: Music },
 	{ id: 'chords', label: 'Акорди', icon: Layers },
@@ -95,7 +96,7 @@ const CATEGORIES_CONFIG: {
 	{ id: 'shapes', label: 'Фігури', icon: Shapes },
 ];
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({
+export function SettingsModal({
 	opened,
 	visibleTools,
 	visibleStampCategories,
@@ -110,7 +111,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 	onResetSettings,
 	onClearAllData,
 	onClose,
-}) => {
+}: SettingsModalProps) {
 	const { colorScheme, setColorScheme } = useMantineColorScheme({ keepTransitions: true });
 	const computedColorScheme = useComputedColorScheme('dark');
 	const { config, setAccentSkin, setDarkTone, setLightTone, resetAppearance } = useAppearance();
@@ -132,374 +133,400 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 				size="sm"
 				centered
 			>
-				<ScrollArea.Autosize mah="75vh" type="hover" scrollbarSize={4}>
+				<ScrollArea.Autosize className={classes.scrollArea} type="hover" scrollbarSize={4}>
 					<Stack gap="md" py="xs">
-					{/* Тема оформлення */}
-					<Stack gap="xs">
-						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
-							Тема оформлення
-						</Text>
-						<SegmentedControl
-							fullWidth
-							size="xs"
-							value={colorScheme}
-							onChange={(val) => {
-								if (isColorSchemeMode(val)) setColorScheme(val);
-							}}
-							data={[
-								{
-									value: 'auto',
-									label: (
-										<Center style={{ gap: 6 }}>
-											<Monitor size={14} />
-											<span>Системна</span>
-										</Center>
-									),
-								},
-								{
-									value: 'dark',
-									label: (
-										<Center style={{ gap: 6 }}>
-											<Moon size={14} />
-											<span>Темна</span>
-										</Center>
-									),
-								},
-								{
-									value: 'light',
-									label: (
-										<Center style={{ gap: 6 }}>
-											<Sun size={14} />
-											<span>Світла</span>
-										</Center>
-									),
-								},
-							]}
-						/>
-
-						{/* Тон поверхні */}
-						<Stack gap={4} mt={4}>
-							<Text size="xs" c="dimmed">
-								Тон поверхні ({computedColorScheme === 'dark' ? 'темний' : 'світлий'})
-							</Text>
-							{computedColorScheme === 'dark' ? (
-								<SegmentedControl
-									fullWidth
-									size="xs"
-									value={config.darkTone}
-									onChange={(val) => {
-										if (isDarkSurfaceTone(val)) setDarkTone(val);
-									}}
-									styles={{
-										root: { padding: 2 },
-										label: { padding: '4px 2px', fontSize: '11px' },
-									}}
-									data={[
-										{ value: 'oled', label: 'Pure OLED' },
-										{ value: 'obsidian', label: 'Obsidian' },
-										{ value: 'carbon', label: 'Carbon' },
-										{ value: 'tinted', label: 'Tinted' },
-									]}
-								/>
-							) : (
-								<SegmentedControl
-									fullWidth
-									size="xs"
-									value={config.lightTone}
-									onChange={(val) => {
-										if (isLightSurfaceTone(val)) setLightTone(val);
-									}}
-									styles={{
-										root: { padding: 2 },
-										label: { padding: '4px 2px', fontSize: '11px' },
-									}}
-									data={[
-										{ value: 'pure', label: 'Pure White' },
-										{ value: 'anodized', label: 'Anodized' },
-										{ value: 'cotton', label: 'Cotton' },
-										{ value: 'tinted', label: 'Tinted' },
-									]}
-								/>
-							)}
-						</Stack>
-
-						{/* Акцентний скін */}
-						<Stack gap={4} mt={4}>
-							<Text size="xs" c="dimmed">
-								Акцентний скін
+						{/* Appearance theme */}
+						<Stack gap="xs">
+							<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
+								Тема оформлення
 							</Text>
 							<SegmentedControl
 								fullWidth
 								size="xs"
-								value={config.accentSkin}
+								value={colorScheme}
 								onChange={(val) => {
-									if (isAccentSkin(val)) setAccentSkin(val);
+									if (isColorSchemeMode(val)) setColorScheme(val);
 								}}
-								styles={{
-									root: {
-										padding: 2,
-									},
-									label: {
-										padding: '4px 2px',
-									},
-								}}
-								data={ACCENT_SKIN_ORDER.map((skinId) => {
-									const meta = ACCENT_SKIN_METADATA[skinId];
-									return {
-										value: skinId,
+								data={[
+									{
+										value: 'auto',
 										label: (
-											<Stack gap={3} align="center" justify="center" style={{ minWidth: 0 }}>
-												<div
-													style={{
-														width: 8,
-														height: 8,
-														borderRadius: '50%',
-														background: meta.primaryHex,
-														flexShrink: 0,
-													}}
-												/>
-												<span
-													style={{
-														fontSize: '10px',
-														lineHeight: 1,
-														fontWeight: 500,
-														whiteSpace: 'nowrap',
-													}}
-												>
-													{meta.shortLabel}
-												</span>
-											</Stack>
+											<Center className={classes.segmentLabelContent}>
+												<Monitor size={14} />
+												<span>Системна</span>
+											</Center>
 										),
-									};
-								})}
+									},
+									{
+										value: 'dark',
+										label: (
+											<Center className={classes.segmentLabelContent}>
+												<Moon size={14} />
+												<span>Темна</span>
+											</Center>
+										),
+									},
+									{
+										value: 'light',
+										label: (
+											<Center className={classes.segmentLabelContent}>
+												<Sun size={14} />
+												<span>Світла</span>
+											</Center>
+										),
+									},
+								]}
 							/>
-						</Stack>
-					</Stack>
 
-					<Divider />
-
-					{/* Група 1: Інструменти */}
-					<Stack gap="xs">
-						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
-							Інструменти
-						</Text>
-						<Stack gap="xs">
-							{TOOLS_CONFIG.map(({ id, label, icon: Icon }) => {
-								const isChecked = visibleTools[id] ?? true;
-								return (
-									<Paper key={id} p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
-										<UnstyledButton
-											onClick={() => onToggleTool(id)}
-											style={{ width: '100%', display: 'flex', alignItems: 'center' }}
-											aria-label={`Перемкнути інструмент ${label}`}
-										>
-											<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
-												<Group gap="sm" align="center" wrap="nowrap">
-													<Icon size={18} style={{ display: 'block', flexShrink: 0 }} />
-													<Text size="sm" fw={500}>
-														{label}
-													</Text>
-												</Group>
-												<Switch
-													checked={isChecked}
-													onChange={() => onToggleTool(id)}
-													size="sm"
-													style={{ pointerEvents: 'none', flexShrink: 0 }}
-													aria-label={label}
-												/>
-											</Group>
-										</UnstyledButton>
-									</Paper>
-								);
-							})}
-						</Stack>
-					</Stack>
-
-					<Divider />
-
-					{/* Група 2: Розділи штампу */}
-					<Stack gap="xs">
-						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
-							Розділи штампу
-						</Text>
-						<Stack gap="xs">
-							{CATEGORIES_CONFIG.map(({ id, label, icon: Icon }) => {
-								const isChecked = visibleStampCategories[id] ?? true;
-								return (
-									<Paper key={id} p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
-										<UnstyledButton
-											onClick={() => onToggleStampCategory(id)}
-											style={{ width: '100%', display: 'flex', alignItems: 'center' }}
-											aria-label={`Перемкнути категорію ${label}`}
-										>
-											<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
-												<Group gap="sm" align="center" wrap="nowrap">
-													<Icon size={18} style={{ display: 'block', flexShrink: 0 }} />
-													<Text size="sm" fw={500}>
-														{label}
-													</Text>
-												</Group>
-												<Switch
-													checked={isChecked}
-													onChange={() => onToggleStampCategory(id)}
-													size="sm"
-													style={{ pointerEvents: 'none', flexShrink: 0 }}
-													aria-label={label}
-												/>
-											</Group>
-										</UnstyledButton>
-									</Paper>
-								);
-							})}
-						</Stack>
-					</Stack>
-
-					<Divider />
-
-					{/* Група 3: Керування на полотні */}
-					<Stack gap="xs">
-						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
-							Штамп на полотні
-						</Text>
-						<Stack gap="xs">
-							<Paper p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
-								<UnstyledButton
-									onClick={onToggleDeleteBtn}
-									style={{ width: '100%', display: 'flex', alignItems: 'center' }}
-									aria-label="Кошик на штампі"
-								>
-									<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
-										<Group gap="sm" align="center" wrap="nowrap">
-											<Trash2 size={18} style={{ display: 'block', flexShrink: 0 }} />
-											<Text size="sm" fw={500}>
-												Кошик на штампі
-											</Text>
-										</Group>
-										<Switch
-											checked={deleteBtnOn}
-											onChange={onToggleDeleteBtn}
-											size="sm"
-											style={{ pointerEvents: 'none', flexShrink: 0 }}
-											aria-label="Кошик на штампі"
-										/>
-									</Group>
-								</UnstyledButton>
-							</Paper>
-
-							<Paper p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
-								<UnstyledButton
-									onClick={onToggleResizeHandles}
-									style={{ width: '100%', display: 'flex', alignItems: 'center' }}
-									aria-label="Хендли розміру на рамці"
-								>
-									<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
-										<Group gap="sm" align="center" wrap="nowrap">
-											<Maximize2 size={18} style={{ display: 'block', flexShrink: 0 }} />
-											<Text size="sm" fw={500}>
-												Хендли розміру на рамці
-											</Text>
-										</Group>
-										<Switch
-											checked={resizeHandlesOn}
-											onChange={onToggleResizeHandles}
-											size="sm"
-											style={{ pointerEvents: 'none', flexShrink: 0 }}
-											aria-label="Хендли розміру на рамці"
-										/>
-									</Group>
-								</UnstyledButton>
-							</Paper>
-						</Stack>
-					</Stack>
-
-					<Divider />
-
-					{/* Група 4: Панель лінійок */}
-					<Stack gap="xs">
-						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
-							Панель лінійок
-						</Text>
-						<Paper p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
-							<UnstyledButton
-								onClick={onToggleCompactRulers}
-								style={{ width: '100%', display: 'flex', alignItems: 'center' }}
-								aria-label="Компактний вигляд у топбарі"
-							>
-								<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
-									<Group gap="sm" align="center" wrap="nowrap">
-										<Ruler size={18} style={{ display: 'block', flexShrink: 0 }} />
-										<Stack gap={2}>
-											<Text size="sm" fw={500}>
-												Компактний вигляд у топбарі
-											</Text>
-											<Text size="xs" c="dimmed">
-												{compactRulers
-													? 'Усі кнопки лінійок розташовані зверху в один рядок'
-													: 'Основний вигляд: панель у 2 колонки над футером'}
-											</Text>
-										</Stack>
-									</Group>
-									<Switch
-										checked={compactRulers}
-										onChange={onToggleCompactRulers}
-										size="sm"
-										style={{ pointerEvents: 'none', flexShrink: 0 }}
-										aria-label="Компактний вигляд у топбарі"
+							{/* Surface tone */}
+							<Stack gap={4} mt={4}>
+								<Text size="xs" c="dimmed">
+									Тон поверхні (
+									{computedColorScheme === 'dark' ? 'темний' : 'світлий'})
+								</Text>
+								{computedColorScheme === 'dark' ? (
+									<SegmentedControl
+										fullWidth
+										size="xs"
+										value={config.darkTone}
+										onChange={(val) => {
+											if (isDarkSurfaceTone(val)) setDarkTone(val);
+										}}
+										classNames={{
+											root: classes.compactSegmentRoot,
+											label: classes.compactSegmentLabel,
+										}}
+										data={[
+											{ value: 'oled', label: 'Pure OLED' },
+											{ value: 'obsidian', label: 'Obsidian' },
+											{ value: 'carbon', label: 'Carbon' },
+											{ value: 'tinted', label: 'Tinted' },
+										]}
 									/>
-								</Group>
-							</UnstyledButton>
-						</Paper>
-					</Stack>
-
-					<Divider />
-
-					{/* Група 5: Небезпечна зона */}
-					<Stack gap="xs" pt="xs">
-						<Text size="xs" fw={700} c="red" tt="uppercase" lts="0.05em">
-							Небезпечна зона
-						</Text>
-						<Paper
-							p="xs"
-							radius="lg"
-							style={{
-								background: 'var(--danger-subtle)',
-								border: 'none',
-							}}
-						>
-							<Stack gap="xs">
-								<Button
-									variant="light"
-									color="red"
-									leftSection={<RotateCcw size={16} />}
-									onClick={() => setConfirmModal('settings')}
-									fullWidth
-								>
-									Скинути налаштування
-								</Button>
-
-								<Button
-									variant="filled"
-									color="red"
-									leftSection={<Trash2 size={16} />}
-									onClick={() => setConfirmModal('all')}
-									fullWidth
-								>
-									Очистити всі дані
-								</Button>
+								) : (
+									<SegmentedControl
+										fullWidth
+										size="xs"
+										value={config.lightTone}
+										onChange={(val) => {
+											if (isLightSurfaceTone(val)) setLightTone(val);
+										}}
+										classNames={{
+											root: classes.compactSegmentRoot,
+											label: classes.compactSegmentLabel,
+										}}
+										data={[
+											{ value: 'pure', label: 'Pure White' },
+											{ value: 'anodized', label: 'Anodized' },
+											{ value: 'cotton', label: 'Cotton' },
+											{ value: 'tinted', label: 'Tinted' },
+										]}
+									/>
+								)}
 							</Stack>
-						</Paper>
+
+							{/* Accent skin */}
+							<Stack gap={4} mt={4}>
+								<Text size="xs" c="dimmed">
+									Акцентний скін
+								</Text>
+								<SegmentedControl
+									fullWidth
+									size="xs"
+									value={config.accentSkin}
+									onChange={(val) => {
+										if (isAccentSkin(val)) setAccentSkin(val);
+									}}
+									classNames={{
+										root: classes.compactSegmentRoot,
+										label: classes.skinSegmentLabel,
+									}}
+									data={ACCENT_SKIN_ORDER.map((skinId) => {
+										const meta = ACCENT_SKIN_METADATA[skinId];
+										return {
+											value: skinId,
+											label: (
+												<Stack
+													gap={3}
+													align="center"
+													justify="center"
+													className={classes.skinOptionStack}
+												>
+													<div
+														className={classes.skinDot}
+														data-skin={skinId}
+													/>
+													<span className={classes.skinLabelText}>
+														{meta.shortLabel}
+													</span>
+												</Stack>
+											),
+										};
+									})}
+								/>
+							</Stack>
+						</Stack>
+
+						<Divider />
+
+						{/* Group 1: Tools */}
+						<Stack gap="xs">
+							<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
+								Інструменти
+							</Text>
+							<Stack gap="xs">
+								{TOOLS_CONFIG.map(({ id, label, icon: Icon }) => {
+									const isChecked = visibleTools[id] ?? true;
+									return (
+										<Paper
+											key={id}
+											p="xs"
+											radius="lg"
+											className={classes.rowCard}
+										>
+											<UnstyledButton
+												onClick={() => onToggleTool(id)}
+												className={classes.rowButton}
+												aria-label={`Перемкнути інструмент ${label}`}
+											>
+												<Group
+													justify="space-between"
+													align="center"
+													wrap="nowrap"
+													className={classes.rowGroup}
+												>
+													<Group gap="sm" align="center" wrap="nowrap">
+														<Icon
+															size={18}
+															className={classes.rowIcon}
+														/>
+														<Text size="sm" fw={500}>
+															{label}
+														</Text>
+													</Group>
+													<Switch
+														checked={isChecked}
+														onChange={() => onToggleTool(id)}
+														size="sm"
+														className={classes.rowSwitch}
+														aria-label={label}
+													/>
+												</Group>
+											</UnstyledButton>
+										</Paper>
+									);
+								})}
+							</Stack>
+						</Stack>
+
+						<Divider />
+
+						{/* Group 2: Stamp categories */}
+						<Stack gap="xs">
+							<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
+								Розділи штампу
+							</Text>
+							<Stack gap="xs">
+								{CATEGORIES_CONFIG.map(({ id, label, icon: Icon }) => {
+									const isChecked = visibleStampCategories[id] ?? true;
+									return (
+										<Paper
+											key={id}
+											p="xs"
+											radius="lg"
+											className={classes.rowCard}
+										>
+											<UnstyledButton
+												onClick={() => onToggleStampCategory(id)}
+												className={classes.rowButton}
+												aria-label={`Перемкнути категорію ${label}`}
+											>
+												<Group
+													justify="space-between"
+													align="center"
+													wrap="nowrap"
+													className={classes.rowGroup}
+												>
+													<Group gap="sm" align="center" wrap="nowrap">
+														<Icon
+															size={18}
+															className={classes.rowIcon}
+														/>
+														<Text size="sm" fw={500}>
+															{label}
+														</Text>
+													</Group>
+													<Switch
+														checked={isChecked}
+														onChange={() => onToggleStampCategory(id)}
+														size="sm"
+														className={classes.rowSwitch}
+														aria-label={label}
+													/>
+												</Group>
+											</UnstyledButton>
+										</Paper>
+									);
+								})}
+							</Stack>
+						</Stack>
+
+						<Divider />
+
+						{/* Group 3: Canvas stamp controls */}
+						<Stack gap="xs">
+							<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
+								Штамп на полотні
+							</Text>
+							<Stack gap="xs">
+								<Paper p="xs" radius="lg" className={classes.rowCard}>
+									<UnstyledButton
+										onClick={onToggleDeleteBtn}
+										className={classes.rowButton}
+										aria-label="Кошик на штампі"
+									>
+										<Group
+											justify="space-between"
+											align="center"
+											wrap="nowrap"
+											className={classes.rowGroup}
+										>
+											<Group gap="sm" align="center" wrap="nowrap">
+												<Trash2 size={18} className={classes.rowIcon} />
+												<Text size="sm" fw={500}>
+													Кошик на штампі
+												</Text>
+											</Group>
+											<Switch
+												checked={deleteBtnOn}
+												onChange={onToggleDeleteBtn}
+												size="sm"
+												className={classes.rowSwitch}
+												aria-label="Кошик на штампі"
+											/>
+										</Group>
+									</UnstyledButton>
+								</Paper>
+
+								<Paper p="xs" radius="lg" className={classes.rowCard}>
+									<UnstyledButton
+										onClick={onToggleResizeHandles}
+										className={classes.rowButton}
+										aria-label="Хендли розміру на рамці"
+									>
+										<Group
+											justify="space-between"
+											align="center"
+											wrap="nowrap"
+											className={classes.rowGroup}
+										>
+											<Group gap="sm" align="center" wrap="nowrap">
+												<Maximize2 size={18} className={classes.rowIcon} />
+												<Text size="sm" fw={500}>
+													Хендли розміру на рамці
+												</Text>
+											</Group>
+											<Switch
+												checked={resizeHandlesOn}
+												onChange={onToggleResizeHandles}
+												size="sm"
+												className={classes.rowSwitch}
+												aria-label="Хендли розміру на рамці"
+											/>
+										</Group>
+									</UnstyledButton>
+								</Paper>
+							</Stack>
+						</Stack>
+
+						<Divider />
+
+						{/* Group 4: Ruler toolbar layout */}
+						<Stack gap="xs">
+							<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
+								Панель лінійок
+							</Text>
+							<Paper p="xs" radius="lg" className={classes.rowCard}>
+								<UnstyledButton
+									onClick={onToggleCompactRulers}
+									className={classes.rowButton}
+									aria-label="Компактний вигляд у топбарі"
+								>
+									<Group
+										justify="space-between"
+										align="center"
+										wrap="nowrap"
+										className={classes.rowGroup}
+									>
+										<Group gap="sm" align="center" wrap="nowrap">
+											<Ruler size={18} className={classes.rowIcon} />
+											<Stack gap={2}>
+												<Text size="sm" fw={500}>
+													Компактний вигляд у топбарі
+												</Text>
+												<Text size="xs" c="dimmed">
+													{compactRulers
+														? 'Усі кнопки лінійок розташовані зверху в один рядок'
+														: 'Основний вигляд: панель у 2 колонки над футером'}
+												</Text>
+											</Stack>
+										</Group>
+										<Switch
+											checked={compactRulers}
+											onChange={onToggleCompactRulers}
+											size="sm"
+											className={classes.rowSwitch}
+											aria-label="Компактний вигляд у топбарі"
+										/>
+									</Group>
+								</UnstyledButton>
+							</Paper>
+						</Stack>
+
+						<Divider />
+
+						{/* Group 5: Danger zone */}
+						<Stack gap="xs" pt="xs">
+							<Text size="xs" fw={700} c="red" tt="uppercase" lts="0.05em">
+								Небезпечна зона
+							</Text>
+							<Paper p="xs" radius="lg" className={classes.dangerCard}>
+								<Stack gap="xs">
+									<Button
+										variant="light"
+										color="red"
+										leftSection={<RotateCcw size={16} />}
+										onClick={() => setConfirmModal('settings')}
+										fullWidth
+									>
+										Скинути налаштування
+									</Button>
+
+									<Button
+										variant="filled"
+										color="red"
+										leftSection={<Trash2 size={16} />}
+										onClick={() => setConfirmModal('all')}
+										fullWidth
+									>
+										Очистити всі дані
+									</Button>
+								</Stack>
+							</Paper>
+						</Stack>
 					</Stack>
-				</Stack>
 				</ScrollArea.Autosize>
 			</Modal>
 
-			{/* Модальне вікно підтвердження */}
+			{/* Confirmation dialog */}
 			<Modal
 				opened={!!confirmModal}
 				onClose={() => setConfirmModal(null)}
 				title={
 					<Text fw={600} size="md">
-						{confirmModal === 'settings' ? 'Скинути налаштування?' : 'Очистити всі дані?'}
+						{confirmModal === 'settings'
+							? 'Скинути налаштування?'
+							: 'Очистити всі дані?'}
 					</Text>
 				}
 				size="xs"
@@ -539,4 +566,4 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 			</Modal>
 		</>
 	);
-};
+}

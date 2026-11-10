@@ -16,6 +16,7 @@ import {
 } from '@mantine/core';
 import { Clock, Trash2 } from 'lucide-react';
 import { ProjectItem } from '@/types/storage';
+import classes from './projects-history-modal.module.css';
 
 interface ProjectsHistoryModalProps {
 	opened: boolean;
@@ -25,32 +26,32 @@ interface ProjectsHistoryModalProps {
 	onClose: () => void;
 }
 
-export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
+export function formatDate(timestamp: number): string {
+	const d = new Date(timestamp);
+	return d.toLocaleString('uk-UA', {
+		month: 'short',
+		day: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+	});
+}
+
+export function formatElementsCount(count: number): string {
+	const mod10 = count % 10;
+	const mod100 = count % 100;
+	if (mod100 >= 11 && mod100 <= 14) return `${count} елементів`;
+	if (mod10 === 1) return `${count} елемент`;
+	if (mod10 >= 2 && mod10 <= 4) return `${count} елементи`;
+	return `${count} елементів`;
+}
+
+export function ProjectsHistoryModal({
 	opened,
 	projects,
 	onSelectProject,
 	onDeleteProject,
 	onClose,
-}) => {
-	const formatDate = (timestamp: number) => {
-		const d = new Date(timestamp);
-		return d.toLocaleString('uk-UA', {
-			month: 'short',
-			day: 'numeric',
-			hour: '2-digit',
-			minute: '2-digit',
-		});
-	};
-
-	const formatElementsCount = (count: number) => {
-		const mod10 = count % 10;
-		const mod100 = count % 100;
-		if (mod100 >= 11 && mod100 <= 14) return `${count} елементів`;
-		if (mod10 === 1) return `${count} елемент`;
-		if (mod10 >= 2 && mod10 <= 4) return `${count} елементи`;
-		return `${count} елементів`;
-	};
-
+}: ProjectsHistoryModalProps) {
 	return (
 		<Modal
 			opened={opened}
@@ -61,16 +62,7 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 					<Text fw={600} size="sm">
 						Історія проектів
 					</Text>
-					<Badge
-						size="xs"
-						style={{
-							fontFamily: 'var(--mantine-font-family-monospace)',
-							background: 'var(--panel-3)',
-							color: 'var(--muted)',
-							border: 'none',
-							fontWeight: 600,
-						}}
-					>
+					<Badge size="xs" className={classes.countBadge}>
 						{projects.length}/50
 					</Badge>
 				</Group>
@@ -78,7 +70,12 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 			size="sm"
 			centered
 		>
-			<ScrollArea.Autosize mah="65vh" type="hover" scrollbarSize={5} offsetScrollbars>
+			<ScrollArea.Autosize
+				className={classes.scrollList}
+				type="hover"
+				scrollbarSize={5}
+				offsetScrollbars
+			>
 				{projects.length === 0 ? (
 					<Text c="dimmed" size="sm" ta="center" py="xl">
 						Немає збережених проектів
@@ -86,35 +83,15 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 				) : (
 					<Stack gap="xs">
 						{projects.map((item) => (
-							<Paper
-								key={item.id}
-								p="xs"
-								radius="lg"
-								style={{
-									background: 'var(--panel-2)',
-								}}
-							>
+							<Paper key={item.id} p="xs" radius="lg" className={classes.projectCard}>
 								<Group justify="space-between" wrap="nowrap">
 									<UnstyledButton
 										onClick={() => onSelectProject(item)}
-										style={{ flex: 1, minWidth: 0 }}
+										className={classes.cardButton}
 										aria-label={`Відкрити проект ${item.title}`}
 									>
 										<Group gap="sm" wrap="nowrap">
-											<Box
-												w={46}
-												h={46}
-												style={{
-													background: 'var(--panel-3)',
-													border: 'none',
-													borderRadius: 10,
-													overflow: 'hidden',
-													flexShrink: 0,
-													display: 'flex',
-													alignItems: 'center',
-													justifyContent: 'center',
-												}}
-											>
+											<Box w={46} h={46} className={classes.thumbnailBox}>
 												{item.thumbnail ? (
 													<Image
 														src={item.thumbnail}
@@ -124,16 +101,21 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 														h="100%"
 													/>
 												) : (
-													<Box w="100%" h="100%" style={{ background: 'var(--panel-3)' }} />
+													<Box
+														w="100%"
+														h="100%"
+														className={classes.thumbnailFallback}
+													/>
 												)}
 											</Box>
 
-											<Stack gap={2} style={{ minWidth: 0, overflow: 'hidden' }}>
+											<Stack gap={2} className={classes.cardContent}>
 												<Text size="sm" fw={600} truncate>
 													{item.title}
 												</Text>
 												<Text size="xs" c="dimmed">
-													{formatDate(item.updatedAt)} • {formatElementsCount(item.stamps.length)}
+													{formatDate(item.updatedAt)} •{' '}
+													{formatElementsCount(item.stamps.length)}
 												</Text>
 											</Stack>
 										</Group>
@@ -145,10 +127,7 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 										onClick={(e) => onDeleteProject(item.id, e)}
 										aria-label="Видалити проект"
 										title="Видалити проект"
-										style={{
-											color: 'var(--danger)',
-											borderRadius: 10,
-										}}
+										className={classes.deleteBtn}
 									>
 										<Trash2 size={16} />
 									</ActionIcon>
@@ -160,4 +139,4 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 			</ScrollArea.Autosize>
 		</Modal>
 	);
-};
+}

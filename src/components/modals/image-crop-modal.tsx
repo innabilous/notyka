@@ -1,20 +1,10 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-	ActionIcon,
-	Box,
-	Button,
-	Group,
-	Modal,
-	Paper,
-	SegmentedControl,
-	Stack,
-	Tooltip,
-} from '@mantine/core';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ActionIcon, Box, Button, Group, Modal, Stack, Tooltip } from '@mantine/core';
+import clsx from 'clsx';
 import {
 	Check,
-	Crop,
 	FlipHorizontal,
 	FlipVertical,
 	RotateCcw,
@@ -23,6 +13,7 @@ import {
 	Undo2,
 	X,
 } from 'lucide-react';
+import classes from './image-crop-modal.module.css';
 
 interface ImageCropModalProps {
 	opened: boolean;
@@ -41,14 +32,16 @@ interface NormalizedRect {
 	h: number; // 0..1
 }
 
-export const ImageCropModal: React.FC<ImageCropModalProps> = ({
+export function ImageCropModal({
 	opened,
 	imageSrc,
 	fileName,
 	onApply,
 	onCancel,
-}) => {
+}: ImageCropModalProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
+	const imgRef = useRef<HTMLImageElement>(null);
+	const cropFrameRef = useRef<HTMLDivElement>(null);
 	const [imageElement, setImageElement] = useState<HTMLImageElement | null>(null);
 
 	const [rotation, setRotation] = useState<number>(0); // 0, 90, 180, 270
@@ -82,6 +75,39 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 		};
 		img.src = imageSrc;
 	}, [imageSrc, opened]);
+
+	const isRotated90or270 = rotation % 180 !== 0;
+
+	// Sync dynamic crop frame and image transform variables without inline style props
+	useLayoutEffect(() => {
+		const container = containerRef.current;
+		if (container && imageElement) {
+			const nw = imageElement.naturalWidth || imageElement.width;
+			const nh = imageElement.naturalHeight || imageElement.height;
+			const aspect = isRotated90or270 ? `${nh} / ${nw}` : `${nw} / ${nh}`;
+			container.style.setProperty('--crop-aspect', aspect);
+		}
+
+		const img = imgRef.current;
+		if (img) {
+			img.style.setProperty(
+				'--img-transform',
+				`rotate(${rotation}deg) scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})`,
+			);
+			img.style.setProperty(
+				'--img-filter',
+				enhanceClarity ? 'contrast(1.14) brightness(1.02)' : 'none',
+			);
+		}
+
+		const frame = cropFrameRef.current;
+		if (frame) {
+			frame.style.setProperty('--crop-left', `${crop.x * 100}%`);
+			frame.style.setProperty('--crop-top', `${crop.y * 100}%`);
+			frame.style.setProperty('--crop-width', `${crop.w * 100}%`);
+			frame.style.setProperty('--crop-height', `${crop.h * 100}%`);
+		}
+	}, [imageElement, isRotated90or270, rotation, flipH, flipV, enhanceClarity, crop]);
 
 	// Adjust crop rect when aspect ratio changes
 	const applyAspect = useCallback(
@@ -121,48 +147,47 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 		[rotation],
 	);
 
-	const handleAspectChange = (ratio: AspectRatio) => {
+	function handleAspectChange(ratio: AspectRatio) {
 		setAspectRatio(ratio);
 		if (!imageElement) return;
 		const nw = imageElement.naturalWidth || imageElement.width;
 		const nh = imageElement.naturalHeight || imageElement.height;
 		setCrop((prev) => applyAspect(ratio, prev, nw, nh));
-	};
+	}
 
-	const handleRotateLeft = () => {
+	function handleRotateLeft() {
 		setRotation((prev) => (prev + 270) % 360);
-	};
+	}
 
-	const handleRotateRight = () => {
+	function handleRotateRight() {
 		setRotation((prev) => (prev + 90) % 360);
-	};
+	}
 
-	const handleToggleFlipH = () => {
+	function handleToggleFlipH() {
 		setFlipH((prev) => !prev);
-	};
+	}
 
-	const handleToggleFlipV = () => {
+	function handleToggleFlipV() {
 		setFlipV((prev) => !prev);
-	};
+	}
 
-	const handleToggleEnhance = () => {
+	function handleToggleEnhance() {
 		setEnhanceClarity((prev) => !prev);
-	};
+	}
 
-	const handleReset = () => {
+	function handleReset() {
 		setRotation(0);
 		setFlipH(false);
 		setFlipV(false);
 		setEnhanceClarity(false);
 		setAspectRatio('free');
 		setCrop({ x: 0, y: 0, w: 1, h: 1 });
-	};
+	}
 
-	// Start dragging
-	const onPointerDown = (
+	function onPointerDown(
 		mode: 'move' | 'nw' | 'ne' | 'se' | 'sw',
 		e: React.PointerEvent<HTMLDivElement>,
-	) => {
+	) {
 		e.stopPropagation();
 		e.preventDefault();
 		dragModeRef.current = mode;
@@ -171,11 +196,11 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 			clientY: e.clientY,
 			startCrop: { ...crop },
 		};
-	};
+	}
 
 	// Pointer move / up listeners on window
 	useEffect(() => {
-		const handlePointerMove = (e: PointerEvent) => {
+		function handlePointerMove(e: PointerEvent) {
 			if (!dragModeRef.current || !containerRef.current || !imageElement) return;
 			const rect = containerRef.current.getBoundingClientRect();
 			if (rect.width <= 0 || rect.height <= 0) return;
@@ -194,7 +219,6 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 				nx = Math.max(0, Math.min(1 - start.w, start.x + dx));
 				ny = Math.max(0, Math.min(1 - start.h, start.y + dy));
 			} else if (aspectRatio === 'free') {
-				// Free aspect ratio resizing
 				if (mode === 'se') {
 					nw = Math.max(0.1, Math.min(1 - start.x, start.w + dx));
 					nh = Math.max(0.1, Math.min(1 - start.y, start.h + dy));
@@ -221,7 +245,6 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 					nh = start.h - realDy;
 				}
 			} else {
-				// Fixed aspect ratio resizing
 				let targetRatio = 1;
 				if (aspectRatio === '1:1') targetRatio = 1;
 				if (aspectRatio === '4:3') targetRatio = 4 / 3;
@@ -269,11 +292,11 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 			}
 
 			setCrop({ x: nx, y: ny, w: nw, h: nh });
-		};
+		}
 
-		const handlePointerUp = () => {
+		function handlePointerUp() {
 			dragModeRef.current = null;
-		};
+		}
 
 		window.addEventListener('pointermove', handlePointerMove);
 		window.addEventListener('pointerup', handlePointerUp);
@@ -284,7 +307,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 	}, [aspectRatio, imageElement, rotation]);
 
 	// Render processed image in full high resolution
-	const handleApply = () => {
+	function handleApply() {
 		if (!imageElement || !imageSrc) return;
 
 		// If no modifications were made, return original image without generation loss
@@ -324,7 +347,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 		rctx.drawImage(imageElement, -naturalW / 2, -naturalH / 2, naturalW, naturalH);
 		rctx.restore();
 
-		// 2. Second offscreen canvas: crop
+		// Second offscreen canvas: crop
 		const cropPxX = Math.max(0, Math.min(rotW - 1, Math.round(crop.x * rotW)));
 		const cropPxY = Math.max(0, Math.min(rotH - 1, Math.round(crop.y * rotH)));
 		const cropPxW = Math.max(1, Math.min(rotW - cropPxX, Math.round(crop.w * rotW)));
@@ -348,11 +371,9 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 
 		const resultUrl = cropCanvas.toDataURL('image/png');
 		onApply(resultUrl, fileName);
-	};
+	}
 
 	if (!opened || !imageSrc) return null;
-
-	const isRotated90or270 = rotation % 180 !== 0;
 
 	return (
 		<Modal
@@ -361,29 +382,12 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 			onClose={onCancel}
 			withCloseButton={false}
 			padding={0}
-			styles={{
-				body: {
-					height: '100%',
-					display: 'flex',
-					flexDirection: 'column',
-					justifyContent: 'space-between',
-					padding: 0,
-					overflow: 'hidden',
-					backgroundColor: 'var(--bg-dark)',
-				},
+			classNames={{
+				body: classes.modalBody,
 			}}
 		>
 			{/* Top Bar */}
-			<Group
-				justify="space-between"
-				px="md"
-				py="xs"
-				style={{
-					background: 'var(--panel)',
-					boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
-					zIndex: 10,
-				}}
-			>
+			<Group justify="space-between" px="md" py="xs" className={classes.topBar}>
 				<Button
 					variant="subtle"
 					color="gray"
@@ -393,176 +397,61 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 					Скасувати
 				</Button>
 
-				<Button
-					leftSection={<Check size={18} />}
-					onClick={handleApply}
-				>
+				<Button leftSection={<Check size={18} />} onClick={handleApply}>
 					Готово
 				</Button>
 			</Group>
 
 			{/* Center Preview with interactive crop box */}
-			<Box
-				style={{
-					flex: 1,
-					display: 'flex',
-					alignItems: 'center',
-					justifyContent: 'center',
-					padding: '1.5rem',
-					position: 'relative',
-					overflow: 'hidden',
-				}}
-			>
+			<Box className={classes.previewArea}>
 				{imageElement && (
-					<Box
-						ref={containerRef}
-						style={{
-							position: 'relative',
-							maxWidth: '100%',
-							maxHeight: '100%',
-							aspectRatio: isRotated90or270
-								? `${imageElement.naturalHeight || imageElement.height} / ${imageElement.naturalWidth || imageElement.width}`
-								: `${imageElement.naturalWidth || imageElement.width} / ${imageElement.naturalHeight || imageElement.height}`,
-							boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)',
-							userSelect: 'none',
-							touchAction: 'none',
-						}}
-					>
+					<Box ref={containerRef} className={classes.imageContainer}>
 						{/* Rotated & flipped image */}
 						{/* eslint-disable-next-line @next/next/no-img-element */}
 						<img
+							ref={imgRef}
 							src={imageSrc}
 							alt="Preview"
-							style={{
-								width: '100%',
-								height: '100%',
-								display: 'block',
-								objectFit: 'contain',
-								transform: `rotate(${rotation}deg) scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})`,
-								filter: enhanceClarity ? 'contrast(1.14) brightness(1.02)' : 'none',
-								transition: 'transform 0.15s ease-out, filter 0.15s ease-out',
-								pointerEvents: 'none',
-							}}
+							className={classes.previewImage}
 						/>
 
 						{/* Dark overlay outside crop box */}
-						<Box
-							style={{
-								position: 'absolute',
-								inset: 0,
-								backgroundColor: 'rgba(0, 0, 0, 0.55)',
-								pointerEvents: 'none',
-							}}
-						/>
+						<Box className={classes.darkOverlay} />
 
 						{/* Interactive Crop Frame */}
 						<Box
-							style={{
-								position: 'absolute',
-								left: `${crop.x * 100}%`,
-								top: `${crop.y * 100}%`,
-								width: `${crop.w * 100}%`,
-								height: `${crop.h * 100}%`,
-								border: '2px solid #ffffff',
-								boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.55)',
-								cursor: 'move',
-								boxSizing: 'border-box',
-							}}
+							ref={cropFrameRef}
+							className={classes.cropFrame}
 							onPointerDown={(e) => onPointerDown('move', e)}
 						>
 							{/* 3x3 Grid lines */}
-							<Box
-								style={{
-									position: 'absolute',
-									inset: 0,
-									display: 'grid',
-									gridTemplateColumns: '1fr 1fr 1fr',
-									gridTemplateRows: '1fr 1fr 1fr',
-									pointerEvents: 'none',
-								}}
-							>
-								<Box style={{ borderRight: '1px dashed rgba(255,255,255,0.4)' }} />
-								<Box style={{ borderRight: '1px dashed rgba(255,255,255,0.4)' }} />
+							<Box className={classes.gridOverlay}>
+								<Box className={classes.gridBorderRight} />
+								<Box className={classes.gridBorderRight} />
 								<Box />
-								<Box
-									style={{
-										borderTop: '1px dashed rgba(255,255,255,0.4)',
-										borderRight: '1px dashed rgba(255,255,255,0.4)',
-									}}
-								/>
-								<Box
-									style={{
-										borderTop: '1px dashed rgba(255,255,255,0.4)',
-										borderRight: '1px dashed rgba(255,255,255,0.4)',
-									}}
-								/>
-								<Box style={{ borderTop: '1px dashed rgba(255,255,255,0.4)' }} />
-								<Box
-									style={{
-										borderTop: '1px dashed rgba(255,255,255,0.4)',
-										borderRight: '1px dashed rgba(255,255,255,0.4)',
-									}}
-								/>
-								<Box
-									style={{
-										borderTop: '1px dashed rgba(255,255,255,0.4)',
-										borderRight: '1px dashed rgba(255,255,255,0.4)',
-									}}
-								/>
-								<Box style={{ borderTop: '1px dashed rgba(255,255,255,0.4)' }} />
+								<Box className={classes.gridBorderTopRight} />
+								<Box className={classes.gridBorderTopRight} />
+								<Box className={classes.gridBorderTop} />
+								<Box className={classes.gridBorderTopRight} />
+								<Box className={classes.gridBorderTopRight} />
+								<Box className={classes.gridBorderTop} />
 							</Box>
 
 							{/* Corner handles */}
 							<Box
-								style={{
-									position: 'absolute',
-									left: -8,
-									top: -8,
-									width: 16,
-									height: 16,
-									borderLeft: '4px solid var(--accent)',
-									borderTop: '4px solid var(--accent)',
-									cursor: 'nwse-resize',
-								}}
+								className={clsx(classes.handle, classes.handleNw)}
 								onPointerDown={(e) => onPointerDown('nw', e)}
 							/>
 							<Box
-								style={{
-									position: 'absolute',
-									right: -8,
-									top: -8,
-									width: 16,
-									height: 16,
-									borderRight: '4px solid var(--accent)',
-									borderTop: '4px solid var(--accent)',
-									cursor: 'nesw-resize',
-								}}
+								className={clsx(classes.handle, classes.handleNe)}
 								onPointerDown={(e) => onPointerDown('ne', e)}
 							/>
 							<Box
-								style={{
-									position: 'absolute',
-									right: -8,
-									bottom: -8,
-									width: 16,
-									height: 16,
-									borderRight: '4px solid var(--accent)',
-									borderBottom: '4px solid var(--accent)',
-									cursor: 'nwse-resize',
-								}}
+								className={clsx(classes.handle, classes.handleSe)}
 								onPointerDown={(e) => onPointerDown('se', e)}
 							/>
 							<Box
-								style={{
-									position: 'absolute',
-									left: -8,
-									bottom: -8,
-									width: 16,
-									height: 16,
-									borderLeft: '4px solid var(--accent)',
-									borderBottom: '4px solid var(--accent)',
-									cursor: 'nesw-resize',
-								}}
+								className={clsx(classes.handle, classes.handleSw)}
 								onPointerDown={(e) => onPointerDown('sw', e)}
 							/>
 						</Box>
@@ -571,19 +460,9 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 			</Box>
 
 			{/* Bottom Controls Bar */}
-			<Stack
-				gap="xs"
-				px="sm"
-				py="xs"
-				style={{
-					background: 'var(--panel)',
-					boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.15)',
-					paddingBottom: 'calc(0.65rem + env(safe-area-inset-bottom, 0px))',
-					zIndex: 10,
-				}}
-			>
+			<Stack gap="xs" px="sm" py="xs" className={classes.bottomBar}>
 				{/* Aspect ratio buttons */}
-				<Group gap={6} justify="center" wrap="nowrap" style={{ overflowX: 'auto' }}>
+				<Group gap={6} justify="center" wrap="nowrap" className={classes.aspectGroup}>
 					{(['free', '1:1', '4:3', '16:9', '3:4'] as const).map((ratio) => (
 						<Button
 							key={ratio}
@@ -591,7 +470,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 							radius="md"
 							variant={aspectRatio === ratio ? 'filled' : 'default'}
 							onClick={() => handleAspectChange(ratio)}
-							style={{ textTransform: 'uppercase' }}
+							className={classes.aspectBtn}
 						>
 							{ratio === 'free' ? 'Вільний' : ratio}
 						</Button>
@@ -682,4 +561,4 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 			</Stack>
 		</Modal>
 	);
-};
+}

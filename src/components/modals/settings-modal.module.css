@@ -1,0 +1,87 @@
+.scrollArea {
+	max-height: 75vh;
+}
+
+.segmentLabelContent {
+	gap: 0.375rem;
+}
+
+.compactSegmentRoot {
+	padding: 0.125rem;
+}
+
+.compactSegmentLabel {
+	padding: 0.25rem 0.125rem;
+	font-size: 0.6875rem;
+}
+
+.skinSegmentLabel {
+	padding: 0.25rem 0.125rem;
+}
+
+.skinOptionStack {
+	min-width: 0;
+}
+
+.skinDot {
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.skinDot[data-skin='cobalt'] {
+	background: #2563eb;
+}
+
+.skinDot[data-skin='purple'] {
+	background: #8b5cf6;
+}
+
+.skinDot[data-skin='lime'] {
+	background: #84cc16;
+}
+
+.skinDot[data-skin='orange'] {
+	background: #ff5500;
+}
+
+.skinDot[data-skin='amber'] {
+	background: #f59e0b;
+}
+
+.skinLabelText {
+	font-size: 0.625rem;
+	line-height: 1;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.rowCard {
+	background: var(--panel-2);
+}
+
+.rowButton {
+	width: 100%;
+	display: flex;
+	align-items: center;
+}
+
+.rowGroup {
+	width: 100%;
+}
+
+.rowIcon {
+	display: block;
+	flex-shrink: 0;
+}
+
+.rowSwitch {
+	pointer-events: none;
+	flex-shrink: 0;
+}
+
+.dangerCard {
+	background: var(--danger-subtle);
+	border: none;
+}

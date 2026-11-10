@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Group, Modal, Stack, Text, TextInput } from '@mantine/core';
 import { Tag } from 'lucide-react';
+import classes from './custom-stamp-modal.module.css';
 
 interface CustomStampModalProps {
 	opened: boolean;
@@ -10,11 +11,11 @@ interface CustomStampModalProps {
 	onAddStamp: (text: string) => void;
 }
 
-export const CustomStampModal: React.FC<CustomStampModalProps> = ({
+export function CustomStampModal({
 	opened,
 	onClose,
 	onAddStamp,
-}) => {
+}: CustomStampModalProps) {
 	const [text, setText] = useState('');
 
 	useEffect(() => {
@@ -23,13 +24,13 @@ export const CustomStampModal: React.FC<CustomStampModalProps> = ({
 		}
 	}, [opened]);
 
-	const handleSubmit = (e: React.FormEvent) => {
+	function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
 		const trimmed = text.trim();
 		if (!trimmed) return;
 		onAddStamp(trimmed);
 		onClose();
-	};
+	}
 
 	return (
 		<Modal
@@ -37,7 +38,7 @@ export const CustomStampModal: React.FC<CustomStampModalProps> = ({
 			onClose={onClose}
 			title={
 				<Group gap="xs">
-					<Tag size={18} />
+					<Tag size={18} className={classes.titleIcon} />
 					<Text fw={600} size="sm">
 						Додати власний штамп
 					</Text>
@@ -68,4 +69,4 @@ export const CustomStampModal: React.FC<CustomStampModalProps> = ({
 			</form>
 		</Modal>
 	);
-};
+}

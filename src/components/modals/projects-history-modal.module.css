@@ -1,0 +1,46 @@
+.countBadge {
+	font-family: var(--mantine-font-family-monospace);
+	background: var(--panel-3);
+	color: var(--muted);
+	border: none;
+	font-weight: 600;
+}
+
+.scrollList {
+	max-height: 65vh;
+}
+
+.projectCard {
+	background: var(--panel-2);
+}
+
+.cardButton {
+	flex: 1;
+	min-width: 0;
+}
+
+.thumbnailBox {
+	background: var(--panel-3);
+	border: none;
+	border-radius: var(--radius-md);
+	overflow: hidden;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.thumbnailFallback {
+	background: var(--panel-3);
+}
+
+.cardContent {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.deleteBtn {
+	color: var(--danger);
+	border-radius: var(--radius-md);
+}
+
