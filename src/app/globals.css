@@ -341,9 +341,9 @@ button {
 	padding: 0.45rem 0.65rem;
 	padding-top: max(0.45rem, env(safe-area-inset-top, 0px));
 	background: var(--panel);
-	border-bottom: none;
+	border: none;
 	border-radius: 0;
-	box-shadow: 0 4px 18px rgba(0, 0, 0, 0.16), inset 0 1px 0 var(--surface-specular);
+	box-shadow: none;
 }
 
 .top-action-group {
@@ -484,7 +484,9 @@ footer {
 	background: var(--panel);
 	border: none;
 	border-radius: 20px;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+	box-shadow: none;
+	position: relative;
+	z-index: 10;
 	animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1032,7 +1034,9 @@ footer {
 	background: var(--panel);
 	border: none;
 	border-radius: 20px;
-	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+	box-shadow: none;
+	position: relative;
+	z-index: 10;
 }
 
 .stamp-category-tabs {
@@ -1100,6 +1104,18 @@ footer {
 	box-shadow: none !important;
 }
 
+.mantine-SegmentedControl-label {
+	color: var(--text-secondary) !important;
+	font-weight: 500 !important;
+	transition: color 0.12s ease !important;
+}
+
+.mantine-SegmentedControl-label[data-active],
+.stamp-segmented-label[data-active="true"] {
+	color: var(--segmented-active-color) !important;
+	font-weight: 600 !important;
+}
+
 .stamp-segmented-label {
 	font-size: 0.72rem !important;
 	font-weight: 600 !important;
@@ -1107,10 +1123,6 @@ footer {
 	padding: 0.2rem 0.6rem !important;
 	white-space: nowrap !important;
 	transition: color 0.12s !important;
-}
-
-.stamp-segmented-label[data-active="true"] {
-	color: var(--segmented-active-color) !important;
 }
 
 .stamp-chips-scroll {
@@ -1768,15 +1780,14 @@ footer {
 	padding: 0.5rem 0.75rem;
 	padding-bottom: max(0.55rem, env(safe-area-inset-bottom, 0px));
 	background: var(--panel);
-	border-top: none;
-	border-left: none;
-	border-right: none;
-	border-bottom: none;
+	border: none;
 	border-top-left-radius: 24px;
 	border-top-right-radius: 24px;
 	border-bottom-left-radius: 0;
 	border-bottom-right-radius: 0;
-	box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.16), inset 0 1px 0 var(--surface-specular);
+	box-shadow: none;
+	position: relative;
+	z-index: 5;
 }
 
 .tool {
@@ -1795,8 +1806,7 @@ footer {
 	transition:
 		transform 0.15s cubic-bezier(0.16, 1, 0.3, 1),
 		background 0.15s ease,
-		color 0.15s ease,
-		box-shadow 0.15s ease;
+		color 0.15s ease;
 }
 
 .tool:hover {
@@ -1813,7 +1823,7 @@ footer {
 	background: var(--accent);
 	color: var(--accent-contrast);
 	border-radius: 16px;
-	box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+	box-shadow: none;
 }
 
 .tool:disabled {
