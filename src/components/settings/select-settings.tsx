@@ -1,9 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Box, Group, Indicator, UnstyledButton } from '@mantine/core';
+import { Box, Indicator, UnstyledButton } from '@mantine/core';
+import clsx from 'clsx';
 import { BoxSelect, LassoSelect, MousePointerSquareDashed, Trash2 } from 'lucide-react';
 import { SelectionMode, SelectionShape } from '@/types/editor';
+import classes from './select-settings.module.css';
 
 interface SelectSettingsProps {
 	areaSelectEnabled: boolean;
@@ -16,7 +18,7 @@ interface SelectSettingsProps {
 	onDeleteSelected: () => void;
 }
 
-export const SelectSettings: React.FC<SelectSettingsProps> = ({
+export function SelectSettings({
 	areaSelectEnabled,
 	selectionShape,
 	selectionMode,
@@ -25,13 +27,17 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 	onChangeShape,
 	onChangeMode,
 	onDeleteSelected,
-}) => {
+}: SelectSettingsProps) {
 	return (
-		<Box id="select-settings" aria-label="Панель налаштувань виділення">
-			{/* Перемикач режиму обведення (за замовчуванням вимкнений, працює тільки клік) */}
-			<Group gap={4} wrap="nowrap" className="select-setting-group">
+		<Box
+			id="select-settings"
+			className={classes.root}
+			aria-label="Панель налаштувань виділення"
+		>
+			{/* Area selection toggle (off by default, single-click selection active) */}
+			<Box className={clsx('select-setting-group', classes.group)}>
 				<UnstyledButton
-					className={`select-setting-btn ${areaSelectEnabled ? 'active' : ''}`}
+					className={clsx('select-setting-btn', areaSelectEnabled && 'active')}
 					onClick={onToggleAreaSelect}
 					title={
 						areaSelectEnabled
@@ -43,15 +49,18 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 					<MousePointerSquareDashed className="icon" />
 					<span className="btn-label">Обведення</span>
 				</UnstyledButton>
-			</Group>
+			</Box>
 
-			{/* Параметри форми та критерію обведення доступні коли режим увімкнено */}
+			{/* Selection shape and inclusion mode controls when area selection is enabled */}
 			{areaSelectEnabled && (
 				<>
-					{/* Форма виділення: Рамка (за замовчуванням) або Ласо */}
-					<Group gap={4} wrap="nowrap" className="select-setting-group">
+					{/* Selection shape: Rectangle (default) or Lasso */}
+					<Box className={clsx('select-setting-group', classes.group)}>
 						<UnstyledButton
-							className={`select-setting-btn ${selectionShape === 'rect' ? 'active' : ''}`}
+							className={clsx(
+								'select-setting-btn',
+								selectionShape === 'rect' && 'active',
+							)}
 							onClick={() => onChangeShape('rect')}
 							title="Рамка (прямокутне виділення)"
 							aria-label="Прямокутна рамка"
@@ -60,7 +69,10 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 							<span className="btn-label">Рамка</span>
 						</UnstyledButton>
 						<UnstyledButton
-							className={`select-setting-btn ${selectionShape === 'lasso' ? 'active' : ''}`}
+							className={clsx(
+								'select-setting-btn',
+								selectionShape === 'lasso' && 'active',
+							)}
 							onClick={() => onChangeShape('lasso')}
 							title="Ласо (довільне виділення контуром)"
 							aria-label="Вільне ласо"
@@ -68,12 +80,15 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 							<LassoSelect className="icon" />
 							<span className="btn-label">Ласо</span>
 						</UnstyledButton>
-					</Group>
+					</Box>
 
-					{/* Критерій включення: Повністю або Перетин */}
-					<Group gap={4} wrap="nowrap" className="select-setting-group">
+					{/* Inclusion criteria: Fully inside or Intersect */}
+					<Box className={clsx('select-setting-group', classes.group)}>
 						<UnstyledButton
-							className={`select-setting-btn ${selectionMode === 'inside' ? 'active' : ''}`}
+							className={clsx(
+								'select-setting-btn',
+								selectionMode === 'inside' && 'active',
+							)}
 							onClick={() => onChangeMode('inside')}
 							title="Повністю (об'єкт має повністю увійти в область виділення)"
 							aria-label="Повністю всередині"
@@ -90,13 +105,31 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 								className="icon"
 								aria-hidden="true"
 							>
-								<rect x="3" y="3" width="18" height="18" rx="2" strokeDasharray="3 3" />
-								<rect x="8" y="8" width="8" height="8" rx="1.5" fill="currentColor" stroke="none" />
+								<rect
+									x="3"
+									y="3"
+									width="18"
+									height="18"
+									rx="2"
+									strokeDasharray="3 3"
+								/>
+								<rect
+									x="8"
+									y="8"
+									width="8"
+									height="8"
+									rx="1.5"
+									fill="currentColor"
+									stroke="none"
+								/>
 							</svg>
 							<span className="btn-label">Повністю</span>
 						</UnstyledButton>
 						<UnstyledButton
-							className={`select-setting-btn ${selectionMode === 'intersect' ? 'active' : ''}`}
+							className={clsx(
+								'select-setting-btn',
+								selectionMode === 'intersect' && 'active',
+							)}
 							onClick={() => onChangeMode('intersect')}
 							title="Перетин (достатньо перетнути або торкнутися об'єкта)"
 							aria-label="Перетин з об'єктом"
@@ -113,7 +146,14 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 								className="icon"
 								aria-hidden="true"
 							>
-								<rect x="3" y="3" width="13" height="13" rx="2" strokeDasharray="3 3" />
+								<rect
+									x="3"
+									y="3"
+									width="13"
+									height="13"
+									rx="2"
+									strokeDasharray="3 3"
+								/>
 								<rect
 									x="9"
 									y="9"
@@ -127,11 +167,11 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 							</svg>
 							<span className="btn-label">Перетин</span>
 						</UnstyledButton>
-					</Group>
+					</Box>
 				</>
 			)}
 
-			{/* Якщо є виділені елементи — кнопка видалення з бейджем Indicator на іконці кошика */}
+			{/* Delete selected items button with indicator badge */}
 			{selectedCount > 0 && (
 				<UnstyledButton
 					className="select-setting-btn danger"
@@ -153,4 +193,4 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 			)}
 		</Box>
 	);
-};
+}

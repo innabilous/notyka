@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
-import { Box, Group, UnstyledButton } from '@mantine/core';
+import React, { useLayoutEffect, useRef } from 'react';
+import { Box, UnstyledButton } from '@mantine/core';
+import clsx from 'clsx';
 import { ArrowUpDown, Lock, Minus, Plus, Unlock } from 'lucide-react';
 import { StampCategory, ToolMode } from '@/types/editor';
+import classes from './brush-settings.module.css';
 
 interface BrushSettingsProps {
 	currentMode: ToolMode;
@@ -20,7 +22,7 @@ interface BrushSettingsProps {
 	onSyncCategorySizes?: () => void;
 }
 
-export const BrushSettings: React.FC<BrushSettingsProps> = ({
+export function BrushSettings({
 	currentMode,
 	stampCategory,
 	brushSize,
@@ -33,11 +35,8 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	onTogglePalette,
 	onToggleSideSlider,
 	onSyncCategorySizes,
-}) => {
-
-	if (currentMode === 'ruler') {
-		return null;
-	}
+}: BrushSettingsProps) {
+	const previewRef = useRef<HTMLDivElement>(null);
 
 	const isStamp = currentMode === 'stamp' || currentMode === 'select';
 	const isEraser = currentMode === 'eraser';
@@ -45,7 +44,7 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 	const isFillTransparent = isStamp && mainColor === 'transparent';
 	const isStrokeTransparent = isStamp && strokeColor === 'transparent';
 
-	// Для фігур, якщо заливка прозора, а обводка кольорова — показуємо колір обводки як заливку для прев'ю
+	// For shapes with transparent fill and colored stroke, display stroke color as preview fill
 	const previewBgColor =
 		isShapes && isFillTransparent && !isStrokeTransparent
 			? strokeColor
@@ -53,23 +52,34 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				? 'transparent'
 				: mainColor;
 
-	//! Колір обводки прев'ю: якщо штамп має видиму обводку — беремо її, інакше нейтральну лінію
+	// Preview border color: use visible stamp stroke color when present, otherwise neutral border
 	const previewBorderColor =
 		isStamp && !isStrokeTransparent ? strokeColor : 'var(--line-strong)';
 
-	const handleDecrease = () => {
-		onChangeSize(Math.max(1, brushSize - 1));
-	};
+	useLayoutEffect(() => {
+		const el = previewRef.current;
+		if (!el) return;
+		el.style.setProperty('--preview-bg', previewBgColor);
+		el.style.setProperty('--preview-border', previewBorderColor);
+	}, [previewBgColor, previewBorderColor]);
 
-	const handleIncrease = () => {
+	if (currentMode === 'ruler') {
+		return null;
+	}
+
+	function handleDecrease() {
+		onChangeSize(Math.max(1, brushSize - 1));
+	}
+
+	function handleIncrease() {
 		onChangeSize(Math.min(100, brushSize + 1));
-	};
+	}
 
 	return (
-		<Group gap={4} id="brush-settings">
+		<Box id="brush-settings" className={classes.root}>
 			<UnstyledButton
 				id="btn-size-lock"
-				className={`${sizeLocked ? 'locked' : ''} ${!isStamp ? 'hidden' : ''}`}
+				className={clsx(sizeLocked && 'locked', !isStamp && 'hidden')}
 				aria-label={
 					sizeLocked ? 'Спільний розмір для всіх нот' : 'Кожна нота має власний розмір'
 				}
@@ -90,7 +100,7 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				</UnstyledButton>
 			)}
 
-			<Group gap={0} className="size-stepper-wrap">
+			<Box className="size-stepper-wrap">
 				<UnstyledButton
 					className="btn-size-step"
 					aria-label="Зменшити розмір"
@@ -101,7 +111,7 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				</UnstyledButton>
 
 				<UnstyledButton
-					className={`btn-size-value ${isSideSliderOpen ? 'active' : ''}`}
+					className={clsx('btn-size-value', isSideSliderOpen && 'active')}
 					aria-label={`Розмір: ${brushSize}px. Натисніть для повзунка`}
 					title="Змінити розмір повзунком"
 					onClick={onToggleSideSlider}
@@ -118,29 +128,26 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				>
 					<Plus className="icon" />
 				</UnstyledButton>
-			</Group>
+			</Box>
 
 			<UnstyledButton
 				id="btn-toggle-palette"
-				className={isEraser ? 'hidden' : ''}
+				className={clsx(isEraser && 'hidden')}
 				aria-label="Кольори"
 				onClick={onTogglePalette}
 			>
-				<Box
-					id="color-preview"
-					style={{
-						backgroundColor: previewBgColor,
-						borderColor: previewBorderColor,
-					}}
-				>
+				<Box id="color-preview" ref={previewRef} className={classes.colorPreview}>
 					<span
 						id="stroke-transparent-icon"
-						className={isShapes || !(isStrokeTransparent && !isFillTransparent) ? 'hidden' : ''}
+						className={clsx(
+							classes.transparentIcon,
+							(isShapes || !(isStrokeTransparent && !isFillTransparent)) && 'hidden',
+						)}
 					>
 						✕
 					</span>
 				</Box>
 			</UnstyledButton>
-		</Group>
+		</Box>
 	);
-};
+}

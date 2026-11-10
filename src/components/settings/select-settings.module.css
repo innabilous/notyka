@@ -1,0 +1,21 @@
+.root {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.35rem;
+	max-width: 100%;
+	width: auto;
+	height: 100%;
+	flex-wrap: nowrap;
+}
+
+.group {
+	display: flex;
+	align-items: center;
+	gap: 0.15rem;
+	background: var(--panel-2);
+	padding: 0.2rem;
+	border-radius: var(--radius-lg);
+	border: none;
+}
+

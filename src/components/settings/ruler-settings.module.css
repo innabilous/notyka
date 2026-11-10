@@ -1,0 +1,9 @@
+.dimmed {
+	opacity: 0.65;
+}
+
+.clearDisabled {
+	opacity: 0.5;
+	cursor: default;
+}
+

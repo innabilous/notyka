@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Box, Text, UnstyledButton } from '@mantine/core';
+import clsx from 'clsx';
 import { Minus, Plus } from 'lucide-react';
 import { StampCategory, ToolMode } from '@/types/editor';
+import classes from './side-size-slider.module.css';
 
 interface SideSizeSliderProps {
 	value: number;
@@ -17,7 +19,7 @@ interface SideSizeSliderProps {
 	strokeColor?: string;
 }
 
-export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
+export function SideSizeSlider({
 	value,
 	onChange,
 	opened,
@@ -27,19 +29,18 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 	canvasScale = 1,
 	mainColor = '#ef4444',
 	strokeColor = 'transparent',
-}) => {
+}: SideSizeSliderProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const trackRef = useRef<HTMLDivElement>(null);
 	const [isDragging, setIsDragging] = useState<boolean>(false);
 	const [isHovered, setIsHovered] = useState<boolean>(false);
 
-	//! Закриття по кліку на полотно без блокування події (одразу малює/ставить штамп)
+	// Close when clicking outside without blocking the pointer event on the canvas
 	useEffect(() => {
 		if (!opened) return;
 
-		const handlePointerDown = (e: PointerEvent) => {
+		function handlePointerDown(e: PointerEvent) {
 			if (!(e.target instanceof Element)) return;
-			// Якщо клік всередині бічного слайдера або по кнопці розміру в тулбарі — не закриваємо
 			if (
 				containerRef.current?.contains(e.target) ||
 				e.target.closest('.btn-size-value') ||
@@ -48,7 +49,7 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 				return;
 			}
 			onClose();
-		};
+		}
 
 		window.addEventListener('pointerdown', handlePointerDown, { capture: true });
 		return () => {
@@ -64,7 +65,7 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 			const trackH = rect.height;
 			if (trackH <= 0) return;
 
-			// Вгорі 100, внизу 1
+			// Top is 100, bottom is 1
 			const relY = Math.max(0, Math.min(trackH, clientY - rect.top));
 			const ratio = 1 - relY / trackH;
 			const newSize = Math.max(1, Math.min(100, Math.round(ratio * 99 + 1)));
@@ -73,21 +74,21 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 		[onChange],
 	);
 
-	const handleTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+	function handleTrackPointerDown(e: React.PointerEvent<HTMLDivElement>) {
 		e.preventDefault();
 		e.stopPropagation();
 		e.currentTarget.setPointerCapture(e.pointerId);
 		setIsDragging(true);
 		updateSizeFromY(e.clientY);
-	};
+	}
 
-	const handleTrackPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+	function handleTrackPointerMove(e: React.PointerEvent<HTMLDivElement>) {
 		if (!isDragging) return;
 		e.preventDefault();
 		updateSizeFromY(e.clientY);
-	};
+	}
 
-	const handleTrackPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+	function handleTrackPointerUp(e: React.PointerEvent<HTMLDivElement>) {
 		if (!isDragging) return;
 		try {
 			e.currentTarget.releasePointerCapture(e.pointerId);
@@ -95,10 +96,6 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 			// Pointer capture might have already been released
 		}
 		setIsDragging(false);
-	};
-
-	if (!opened || currentMode === 'ruler') {
-		return null;
 	}
 
 	const fillPercent = Math.max(0, Math.min(100, ((value - 1) / 99) * 100));
@@ -114,7 +111,7 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 			: strokeColor
 		: 'transparent';
 
-	//! Реальний 1:1 розмір малювання на екрані з урахуванням зуму полотна
+	// 1:1 on-screen brush diameter accounting for canvas zoom level
 	const basePx =
 		currentMode === 'eraser'
 			? value * 1.5
@@ -123,12 +120,35 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 				: value;
 	const previewDiameter = Math.max(2, Math.round(basePx * canvasScale));
 
+	useLayoutEffect(() => {
+		const el = containerRef.current;
+		if (!el) return;
+		el.style.setProperty('--slider-fill', `${fillPercent}%`);
+		el.style.setProperty('--dot-size', `${previewDiameter}px`);
+		el.style.setProperty('--dot-bg', currentMode === 'eraser' ? '#ffffff' : mainColor);
+		el.style.setProperty('--dot-border', previewBorder);
+		el.style.setProperty('--dot-border-width', isStamp && !isTransparent ? '2px' : '1px');
+	}, [
+		currentMode,
+		fillPercent,
+		isStamp,
+		isTransparent,
+		mainColor,
+		 opened,
+		previewBorder,
+		previewDiameter,
+	]);
+
+	if (!opened || currentMode === 'ruler') {
+		return null;
+	}
+
 	return (
 		<Box
 			component="aside"
 			ref={containerRef}
 			id="side-size-slider"
-			className={`floating ${isDragging || isHovered ? 'active' : ''}`}
+			className={clsx('floating', (isDragging || isHovered) && 'active')}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
 			aria-label="Бічний слайдер розміру"
@@ -150,8 +170,8 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 				onPointerUp={handleTrackPointerUp}
 				onPointerCancel={handleTrackPointerUp}
 			>
-				<Box className="side-slider-bar" style={{ height: `${fillPercent}%` }} />
-				<Box className="side-slider-thumb" style={{ bottom: `${fillPercent}%` }} />
+				<Box className={clsx('side-slider-bar', classes.bar)} />
+				<Box className={clsx('side-slider-thumb', classes.thumb)} />
 			</Box>
 
 			<UnstyledButton
@@ -163,24 +183,15 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 				<Minus className="icon" />
 			</UnstyledButton>
 
-			{/* Спливаючий бабл з числовим значенням (кружечок прев'ю 1:1 тільки для малювання та гумки) */}
+			{/* Floating size readout bubble */}
 			<Box className="side-slider-bubble">
 				{showPreviewDot && (
-					<Box
-						className="side-slider-preview-dot"
-						style={{
-							width: `${previewDiameter}px`,
-							height: `${previewDiameter}px`,
-							backgroundColor: currentMode === 'eraser' ? '#ffffff' : mainColor,
-							borderColor: previewBorder,
-							borderWidth: isStamp && !isTransparent ? '2px' : '1px',
-							borderStyle: 'solid',
-						}}
-					/>
+					<Box className={clsx('side-slider-preview-dot', classes.previewDot)} />
 				)}
-				<Text component="span" className="side-slider-bubble-text">{value} px</Text>
+				<Text component="span" className="side-slider-bubble-text">
+					{value} px
+				</Text>
 			</Box>
 		</Box>
 	);
-};
-
+}

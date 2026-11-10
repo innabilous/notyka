@@ -1,0 +1,15 @@
+.root {
+	pointer-events: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	width: min(470px, calc(100vw - 1rem));
+	padding: 0.5rem 0.65rem;
+	background: var(--panel);
+	border: none;
+	border-radius: var(--radius-panel);
+	box-shadow: none;
+	position: relative;
+	z-index: 10;
+}
+

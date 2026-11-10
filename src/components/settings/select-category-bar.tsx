@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Box, SegmentedControl } from '@mantine/core';
 import { SELECT_FILTER_CATEGORIES } from '@/constants/editor';
 import { SelectFilterCategory, StampCategory, isSelectFilterCategory } from '@/types/editor';
+import classes from './select-category-bar.module.css';
 
 interface SelectCategoryBarProps {
 	category: SelectFilterCategory;
@@ -11,11 +12,11 @@ interface SelectCategoryBarProps {
 	onChangeCategory: (cat: SelectFilterCategory) => void;
 }
 
-export const SelectCategoryBar: React.FC<SelectCategoryBarProps> = ({
+export function SelectCategoryBar({
 	category,
 	availableCategories = [],
 	onChangeCategory,
-}) => {
+}: SelectCategoryBarProps) {
 	const availableSet = useMemo(() => new Set(availableCategories), [availableCategories]);
 	const data = useMemo(
 		() =>
@@ -28,7 +29,11 @@ export const SelectCategoryBar: React.FC<SelectCategoryBarProps> = ({
 	);
 
 	return (
-		<Box id="select-category-settings" aria-label="Фільтр категорій для виділення">
+		<Box
+			id="select-category-settings"
+			className={classes.root}
+			aria-label="Фільтр категорій для виділення"
+		>
 			<Box className="stamp-category-tabs">
 				<SegmentedControl
 					fullWidth
@@ -48,5 +53,4 @@ export const SelectCategoryBar: React.FC<SelectCategoryBarProps> = ({
 			</Box>
 		</Box>
 	);
-};
-
+}

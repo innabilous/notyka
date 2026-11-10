@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Box, UnstyledButton } from '@mantine/core';
+import clsx from 'clsx';
 import {
 	AlignVerticalDistributeCenter,
 	Columns3,
@@ -13,6 +14,7 @@ import {
 	Trash2,
 	Unlink,
 } from 'lucide-react';
+import classes from './ruler-settings.module.css';
 
 interface RulerSettingsProps {
 	visible: boolean;
@@ -32,7 +34,7 @@ interface RulerSettingsProps {
 	onClearRulers?: () => void;
 }
 
-export const RulerSettings: React.FC<RulerSettingsProps> = ({
+export function RulerSettings({
 	visible,
 	snap,
 	snapItems,
@@ -48,18 +50,18 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 	onToggleShowDistance,
 	onToggleLockEqualDistance,
 	onClearRulers,
-}) => {
+}: RulerSettingsProps) {
 	const canDistribute = rulersCount > 2;
 
 	return (
 		<Box
 			component="nav"
 			id="ruler-settings"
-			className={compact ? 'compact' : ''}
+			className={clsx(compact && 'compact')}
 			aria-label="Панель налаштувань лінійок"
 		>
 			<UnstyledButton
-				className={`ruler-setting-btn ${visible ? 'active' : ''}`}
+				className={clsx('ruler-setting-btn', visible && 'active')}
 				onClick={onToggleVisible}
 				title={visible ? 'Приховати лінійки' : 'Показати лінійки'}
 				aria-label="Показати/приховати лінійки"
@@ -69,7 +71,7 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			</UnstyledButton>
 
 			<UnstyledButton
-				className={`ruler-setting-btn ${snap ? 'active' : ''}`}
+				className={clsx('ruler-setting-btn', snap && 'active')}
 				onClick={onToggleSnap}
 				title="Прив'язка до лінійок"
 				aria-label="Прив'язка до лінійок"
@@ -79,7 +81,7 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			</UnstyledButton>
 
 			<UnstyledButton
-				className={`ruler-setting-btn ${snapItems ? 'active' : ''}`}
+				className={clsx('ruler-setting-btn', snapItems && 'active')}
 				onClick={onToggleSnapItems}
 				title="Снеп нот між лінійками (Smart Guides)"
 				aria-label="Снеп нот між лінійками"
@@ -89,7 +91,7 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			</UnstyledButton>
 
 			<UnstyledButton
-				className={`ruler-setting-btn ${attachContent ? 'active' : ''}`}
+				className={clsx('ruler-setting-btn', attachContent && 'active')}
 				onClick={onToggleAttachContent}
 				title="Рухати контент разом з лінійкою"
 				aria-label="Рухати контент разом з лінійкою"
@@ -99,7 +101,7 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			</UnstyledButton>
 
 			<UnstyledButton
-				className={`ruler-setting-btn ${showDistance ? 'active' : ''}`}
+				className={clsx('ruler-setting-btn', showDistance && 'active')}
 				onClick={onToggleShowDistance}
 				title="Показувати відстань між лінійками"
 				aria-label="Відстань між лінійками"
@@ -109,7 +111,11 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			</UnstyledButton>
 
 			<UnstyledButton
-				className={`ruler-setting-btn ${lockEqualDistance ? 'active' : ''}`}
+				className={clsx(
+					'ruler-setting-btn',
+					lockEqualDistance && 'active',
+					!(canDistribute || lockEqualDistance) && classes.dimmed,
+				)}
 				onClick={onToggleLockEqualDistance}
 				title={
 					lockEqualDistance
@@ -117,9 +123,6 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 						: 'Зафіксувати рівну відстань між лінійками'
 				}
 				aria-label="Зафіксувати рівну відстань між лінійками"
-				style={{
-					opacity: canDistribute || lockEqualDistance ? 1 : 0.65,
-				}}
 			>
 				<AlignVerticalDistributeCenter className="icon" />
 				<span>Рівна відстань</span>
@@ -127,14 +130,14 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 
 			{compact && onClearRulers && (
 				<UnstyledButton
-					className="ruler-setting-btn ruler-clear-btn"
+					className={clsx(
+						'ruler-setting-btn',
+						'ruler-clear-btn',
+						rulersCount <= 0 && classes.clearDisabled,
+					)}
 					onClick={onClearRulers}
 					title="Очистити всі лінійки"
 					aria-label="Очистити всі лінійки"
-					style={{
-						opacity: rulersCount > 0 ? 1 : 0.5,
-						cursor: rulersCount > 0 ? 'pointer' : 'default',
-					}}
 				>
 					<Trash2 className="icon" />
 					<span>Очистити</span>
@@ -142,4 +145,4 @@ export const RulerSettings: React.FC<RulerSettingsProps> = ({
 			)}
 		</Box>
 	);
-};
+}
