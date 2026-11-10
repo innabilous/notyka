@@ -42,6 +42,15 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 		});
 	};
 
+	const formatElementsCount = (count: number) => {
+		const mod10 = count % 10;
+		const mod100 = count % 100;
+		if (mod100 >= 11 && mod100 <= 14) return `${count} елементів`;
+		if (mod10 === 1) return `${count} елемент`;
+		if (mod10 >= 2 && mod10 <= 4) return `${count} елементи`;
+		return `${count} елементів`;
+	};
+
 	return (
 		<Modal
 			opened={opened}
@@ -124,7 +133,7 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 													{item.title}
 												</Text>
 												<Text size="xs" c="dimmed">
-													{formatDate(item.updatedAt)} • {item.stamps.length} нот
+													{formatDate(item.updatedAt)} • {formatElementsCount(item.stamps.length)}
 												</Text>
 											</Stack>
 										</Group>
