@@ -145,11 +145,11 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 		},
 		defaultRadius: 'md',
 		shadows: {
-			xs: '0 1px 2px rgba(0, 0, 0, 0.08)',
-			sm: '0 1px 3px rgba(0, 0, 0, 0.14), inset 0 1px 0 var(--surface-specular, rgba(255, 255, 255, 0.06))',
-			md: '0 3px 8px rgba(0, 0, 0, 0.18), inset 0 1px 0 var(--surface-specular, rgba(255, 255, 255, 0.08))',
-			lg: '0 6px 16px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.12)',
-			xl: '0 12px 28px rgba(0, 0, 0, 0.32), 0 2px 4px rgba(0, 0, 0, 0.16)',
+			xs: 'none',
+			sm: 'none',
+			md: 'none',
+			lg: 'none',
+			xl: 'none',
 		},
 		colors: {
 			...ACCENT_PALETTES,
@@ -173,7 +173,7 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 				'#9ea4b0', // 2: muted labels
 				'#6b7382', // 3: subtle text / dim
 				'#3b404a', // 4: simple border
-				'#2c3038', // 5: Slate card / active element
+				'#383e4a', // 5: Slate card / active element (підвищений контраст)
 				'#24272d', // 6: elevated panel / control background
 				'#1c1e22', // 7: panel / card surface
 				'#15171a', // 8: organic matte dark charcoal
@@ -218,7 +218,7 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 					content: {
 						background: 'var(--panel)',
 						border: 'none',
-						boxShadow: 'var(--shadow-xl)',
+						boxShadow: 'none',
 					},
 					header: {
 						background: 'var(--panel)',
@@ -308,26 +308,42 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 			Popover: {
 				defaultProps: {
 					radius: 'lg',
-					shadow: 'xl',
+					shadow: 'none',
 				},
 				styles: {
 					dropdown: {
 						border: 'none',
 						borderRadius: '16px',
 						background: 'var(--popup-bg)',
+						boxShadow: 'none',
 					},
 				},
 			},
 			Menu: {
 				defaultProps: {
 					radius: 'lg',
-					shadow: 'xl',
+					shadow: 'none',
 				},
 				styles: {
 					dropdown: {
 						border: 'none',
 						borderRadius: '16px',
 						background: 'var(--popup-bg)',
+						padding: '4px',
+						boxShadow: 'none',
+					},
+					item: {
+						borderRadius: '12px',
+					},
+				},
+			},
+			NavLink: {
+				defaultProps: {
+					radius: 'md',
+				},
+				styles: {
+					root: {
+						borderRadius: '12px',
 					},
 				},
 			},
@@ -354,11 +370,6 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 				},
 			},
 			Slider: {
-				defaultProps: {
-					radius: 'md',
-				},
-			},
-			NavLink: {
 				defaultProps: {
 					radius: 'md',
 				},
@@ -445,13 +456,13 @@ export const createNotykaCssVariablesResolver = (
 					bg: '#0a0b0d',
 					panel: '#101215',
 					panel2: '#17191e',
-					panel3: '#20232a',
+					panel3: '#2d333d',
 					line: 'rgba(255, 255, 255, 0.07)',
 					lineStrong: 'rgba(255, 255, 255, 0.14)',
 					surfaceSpecular: 'rgba(255, 255, 255, 0.05)',
 					keycapBg: '#17191e',
 					keycapBorder: 'rgba(255, 255, 255, 0.09)',
-					keycapShadow: '0 1px 2px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+					keycapShadow: 'none',
 					readoutBg: '#070809',
 					readoutBorder: 'rgba(255, 255, 255, 0.12)',
 				}
@@ -460,13 +471,13 @@ export const createNotykaCssVariablesResolver = (
 					bg: '#15171a',
 					panel: '#1c1e22',
 					panel2: '#24272d',
-					panel3: '#2c3038',
+					panel3: '#383e4a',
 					line: 'rgba(255, 255, 255, 0.08)',
 					lineStrong: 'rgba(255, 255, 255, 0.16)',
 					surfaceSpecular: 'rgba(255, 255, 255, 0.06)',
 					keycapBg: '#24272d',
 					keycapBorder: 'rgba(255, 255, 255, 0.11)',
-					keycapShadow: '0 1px 2px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+					keycapShadow: 'none',
 					readoutBg: '#121315',
 					readoutBorder: 'rgba(255, 255, 255, 0.14)',
 				};
@@ -485,7 +496,7 @@ export const createNotykaCssVariablesResolver = (
 					surfaceSpecular: 'rgba(255, 255, 255, 0.75)',
 					keycapBg: '#ffffff',
 					keycapBorder: '#cbd1d9',
-					keycapShadow: '0 1px 2px rgba(0, 0, 0, 0.06), inset 0 1px 0 #ffffff',
+					keycapShadow: 'none',
 					readoutBg: '#dee2e7',
 					readoutBorder: '#c4cacf',
 				}
@@ -500,7 +511,7 @@ export const createNotykaCssVariablesResolver = (
 					surfaceSpecular: 'rgba(255, 255, 255, 0.65)',
 					keycapBg: '#faf8f4',
 					keycapBorder: '#d8d2c6',
-					keycapShadow: '0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+					keycapShadow: 'none',
 					readoutBg: '#e5e1d7',
 					readoutBorder: '#d0c9bc',
 				};
@@ -541,7 +552,7 @@ export const createNotykaCssVariablesResolver = (
 			'--accent-subtle-hover': `color-mix(in srgb, ${skinMeta.primaryHex} 26%, transparent)`,
 			'--accent-border': `color-mix(in srgb, ${skinMeta.primaryHex} 40%, transparent)`,
 			'--segmented-indicator-bg': darkSurfaces.panel3,
-			'--segmented-active-color': '#f5f6f8',
+			'--segmented-active-color': '#ffffff',
 		},
 		light: {
 			'--bg-dark': lightSurfaces.bgDark,
