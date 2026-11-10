@@ -33,6 +33,18 @@ export const ACCENT_PALETTES: Record<AccentSkin, MantineColorsTuple> = {
 		'#1e3a8a',
 		'#172554',
 	],
+	purple: [
+		'#f5f3ff',
+		'#ede9fe',
+		'#ddd6fe',
+		'#c4b5fd',
+		'#a78bfa',
+		'#8b5cf6', // shade 5: Electric Purple (dark theme active)
+		'#7c3aed', // shade 6: Deep Violet (light theme active)
+		'#6d28d9',
+		'#5b21b6',
+		'#4c1d95',
+	],
 	lime: [
 		'#f7fee7',
 		'#ecfccb',
@@ -74,6 +86,12 @@ export const ACCENT_SKIN_METADATA: Record<
 		primaryHex: '#2563EB',
 		contrastHex: '#FFFFFF',
 		description: 'Глибокий інженерний індиго-кобальт Bauhaus',
+	},
+	purple: {
+		label: 'Electric Purple',
+		primaryHex: '#8B5CF6',
+		contrastHex: '#FFFFFF',
+		description: 'Енергійний студійний фіолетовий акцент',
 	},
 	lime: {
 		label: 'Acid Lime',

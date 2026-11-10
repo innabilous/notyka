@@ -44,6 +44,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 						accentSkin:
 							parsed.accentSkin === 'orange' ||
 							parsed.accentSkin === 'cobalt' ||
+							parsed.accentSkin === 'purple' ||
 							parsed.accentSkin === 'lime' ||
 							parsed.accentSkin === 'amber'
 								? parsed.accentSkin

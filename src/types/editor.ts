@@ -5,7 +5,7 @@ export type ShapeType = 'rect' | 'circle' | 'arrow';
 export type SelectionShape = 'lasso' | 'rect';
 export type SelectionMode = 'inside' | 'intersect';
 
-export type AccentSkin = 'orange' | 'cobalt' | 'lime' | 'amber';
+export type AccentSkin = 'orange' | 'cobalt' | 'purple' | 'lime' | 'amber';
 export type DarkSurfaceTone = 'carbon' | 'obsidian';
 export type LightSurfaceTone = 'cotton' | 'anodized';
 
