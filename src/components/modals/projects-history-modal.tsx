@@ -54,8 +54,13 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 					</Text>
 					<Badge
 						size="xs"
-						variant="light"
-						style={{ fontFamily: 'var(--mantine-font-family-monospace)' }}
+						style={{
+							fontFamily: 'var(--mantine-font-family-monospace)',
+							background: 'var(--panel-3)',
+							color: 'var(--muted)',
+							border: 'none',
+							fontWeight: 600,
+						}}
 					>
 						{projects.length}/50
 					</Badge>
@@ -126,12 +131,15 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 									</UnstyledButton>
 
 									<ActionIcon
-										color="red"
 										variant="subtle"
 										size="md"
 										onClick={(e) => onDeleteProject(item.id, e)}
 										aria-label="Видалити проект"
 										title="Видалити проект"
+										style={{
+											color: 'var(--danger)',
+											borderRadius: 10,
+										}}
 									>
 										<Trash2 size={16} />
 									</ActionIcon>
