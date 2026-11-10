@@ -123,10 +123,10 @@ export interface CanvasStageHandle {
 	serializeProject: (title?: string) => Promise<ProjectItem | null>;
 	loadProject: (project: ProjectItem) => Promise<void>;
 	updateActiveStampProps: (
-		size: number,
-		text: string,
-		mainColor: string,
-		strokeColor: string,
+		size?: number,
+		text?: string,
+		mainColor?: string,
+		strokeColor?: string,
 		badgeMode?: boolean,
 	) => void;
 }
@@ -3175,13 +3175,22 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			updateActiveStampProps: (sz, txt, mClr, sClr, bMode) => {
 				const active = activeStampRef.current;
 				if (!active) return;
-				active.size = sz;
-				if (active.shapeType) {
-					active.strokeWidth = sz;
+				if (sz !== undefined) {
+					active.size = sz;
+					if (active.shapeType) {
+						active.strokeWidth = sz;
+					}
 				}
-				active.text = txt;
-				active.mainColor = mClr;
-				active.strokeColor = sClr;
+				// Не перезаписуємо текст штампа авторахунку наступним токеном патерну
+				if (txt !== undefined && !active.isAutoCount) {
+					active.text = txt;
+				}
+				if (mClr !== undefined) {
+					active.mainColor = mClr;
+				}
+				if (sClr !== undefined) {
+					active.strokeColor = sClr;
+				}
 				if (bMode !== undefined) {
 					active.badgeMode = bMode;
 				}

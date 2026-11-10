@@ -1387,10 +1387,7 @@ export const PhotoEditor: React.FC = () => {
 			if (currentMode === 'stamp' || currentMode === 'select') {
 				stageRef.current?.updateActiveStampProps(
 					sz,
-					activeStampText ||
-						(stampCategory === 'shapes'
-							? selectedShape
-							: `${selectedNote}${selectedAccidental}`),
+					undefined,
 					currentMainColor,
 					currentStrokeColor,
 				);
