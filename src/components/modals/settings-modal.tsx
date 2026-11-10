@@ -72,7 +72,11 @@ interface SettingsModalProps {
 	onClose: () => void;
 }
 
-const TOOLS_CONFIG: { id: ToolMode; label: string; icon: React.ComponentType<{ size?: number }> }[] = [
+const TOOLS_CONFIG: {
+	id: ToolMode;
+	label: string;
+	icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+}[] = [
 	{ id: 'select', label: 'Виділення', icon: MousePointer },
 	{ id: 'pencil', label: 'Олівець', icon: Pencil },
 	{ id: 'stamp', label: 'Штамп', icon: Stamp },
@@ -83,7 +87,7 @@ const TOOLS_CONFIG: { id: ToolMode; label: string; icon: React.ComponentType<{ s
 const CATEGORIES_CONFIG: {
 	id: StampCategory;
 	label: string;
-	icon: React.ComponentType<{ size?: number }>;
+	icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
 }[] = [
 	{ id: 'notes', label: 'Ноти', icon: Music },
 	{ id: 'chords', label: 'Акорди', icon: Layers },
@@ -249,12 +253,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 									<Paper key={id} p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 										<UnstyledButton
 											onClick={() => onToggleTool(id)}
-											style={{ width: '100%' }}
+											style={{ width: '100%', display: 'flex', alignItems: 'center' }}
 											aria-label={`Перемкнути інструмент ${label}`}
 										>
-											<Group justify="space-between" wrap="nowrap">
-												<Group gap="sm" wrap="nowrap">
-													<Icon size={18} />
+											<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
+												<Group gap="sm" align="center" wrap="nowrap">
+													<Icon size={18} style={{ display: 'block', flexShrink: 0 }} />
 													<Text size="sm" fw={500}>
 														{label}
 													</Text>
@@ -263,6 +267,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 													checked={isChecked}
 													onChange={() => onToggleTool(id)}
 													size="sm"
+													style={{ pointerEvents: 'none', flexShrink: 0 }}
 													aria-label={label}
 												/>
 											</Group>
@@ -287,12 +292,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 									<Paper key={id} p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 										<UnstyledButton
 											onClick={() => onToggleStampCategory(id)}
-											style={{ width: '100%' }}
+											style={{ width: '100%', display: 'flex', alignItems: 'center' }}
 											aria-label={`Перемкнути категорію ${label}`}
 										>
-											<Group justify="space-between" wrap="nowrap">
-												<Group gap="sm" wrap="nowrap">
-													<Icon size={18} />
+											<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
+												<Group gap="sm" align="center" wrap="nowrap">
+													<Icon size={18} style={{ display: 'block', flexShrink: 0 }} />
 													<Text size="sm" fw={500}>
 														{label}
 													</Text>
@@ -301,6 +306,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 													checked={isChecked}
 													onChange={() => onToggleStampCategory(id)}
 													size="sm"
+													style={{ pointerEvents: 'none', flexShrink: 0 }}
 													aria-label={label}
 												/>
 											</Group>
@@ -322,12 +328,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							<Paper p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 								<UnstyledButton
 									onClick={onToggleDeleteBtn}
-									style={{ width: '100%' }}
+									style={{ width: '100%', display: 'flex', alignItems: 'center' }}
 									aria-label="Кошик на штампі"
 								>
-									<Group justify="space-between" wrap="nowrap">
-										<Group gap="sm" wrap="nowrap">
-											<Trash2 size={18} />
+									<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
+										<Group gap="sm" align="center" wrap="nowrap">
+											<Trash2 size={18} style={{ display: 'block', flexShrink: 0 }} />
 											<Text size="sm" fw={500}>
 												Кошик на штампі
 											</Text>
@@ -336,6 +342,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 											checked={deleteBtnOn}
 											onChange={onToggleDeleteBtn}
 											size="sm"
+											style={{ pointerEvents: 'none', flexShrink: 0 }}
 											aria-label="Кошик на штампі"
 										/>
 									</Group>
@@ -345,12 +352,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							<Paper p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 								<UnstyledButton
 									onClick={onToggleResizeHandles}
-									style={{ width: '100%' }}
+									style={{ width: '100%', display: 'flex', alignItems: 'center' }}
 									aria-label="Хендли розміру на рамці"
 								>
-									<Group justify="space-between" wrap="nowrap">
-										<Group gap="sm" wrap="nowrap">
-											<Maximize2 size={18} />
+									<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
+										<Group gap="sm" align="center" wrap="nowrap">
+											<Maximize2 size={18} style={{ display: 'block', flexShrink: 0 }} />
 											<Text size="sm" fw={500}>
 												Хендли розміру на рамці
 											</Text>
@@ -359,6 +366,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 											checked={resizeHandlesOn}
 											onChange={onToggleResizeHandles}
 											size="sm"
+											style={{ pointerEvents: 'none', flexShrink: 0 }}
 											aria-label="Хендли розміру на рамці"
 										/>
 									</Group>
@@ -377,12 +385,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 						<Paper p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 							<UnstyledButton
 								onClick={onToggleCompactRulers}
-								style={{ width: '100%' }}
+								style={{ width: '100%', display: 'flex', alignItems: 'center' }}
 								aria-label="Компактний вигляд у топбарі"
 							>
-								<Group justify="space-between" wrap="nowrap">
-									<Group gap="sm" wrap="nowrap">
-										<Ruler size={18} />
+								<Group justify="space-between" align="center" wrap="nowrap" style={{ width: '100%' }}>
+									<Group gap="sm" align="center" wrap="nowrap">
+										<Ruler size={18} style={{ display: 'block', flexShrink: 0 }} />
 										<Stack gap={2}>
 											<Text size="sm" fw={500}>
 												Компактний вигляд у топбарі
@@ -398,6 +406,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 										checked={compactRulers}
 										onChange={onToggleCompactRulers}
 										size="sm"
+										style={{ pointerEvents: 'none', flexShrink: 0 }}
 										aria-label="Компактний вигляд у топбарі"
 									/>
 								</Group>
