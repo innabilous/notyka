@@ -32,18 +32,20 @@ export const ToolbarSkeleton: React.FC = () => {
 				gap="2rem"
 				justify="center"
 				style={{
-					padding: '0.45rem 1rem',
-					width: 'calc(100% - 1rem)',
-					maxWidth: '480px',
-					margin: '0 auto 0.5rem auto',
-					borderRadius: 8,
+					padding: '0.5rem 1rem',
+					width: '100%',
+					margin: 0,
+					borderTopLeftRadius: 24,
+					borderTopRightRadius: 24,
+					borderBottomLeftRadius: 0,
+					borderBottomRightRadius: 0,
 					background: 'var(--panel)',
-					border: '1px solid var(--line)',
+					borderTop: 'none',
 				}}
 			>
-				<Skeleton height="2.75rem" width="2.75rem" radius="sm" />
-				<Skeleton height="2.75rem" width="2.75rem" radius="sm" />
-				<Skeleton height="2.75rem" width="2.75rem" radius="sm" />
+				<Skeleton height="3rem" width="3rem" radius="lg" />
+				<Skeleton height="3rem" width="3rem" radius="lg" />
+				<Skeleton height="3rem" width="3rem" radius="lg" />
 			</Group>
 		</Box>
 	);

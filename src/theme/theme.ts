@@ -137,13 +137,13 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 		fontFamilyMonospace:
 			"'JetBrains Mono', 'SF Mono', 'Fira Code', 'Roboto Mono', Consolas, monospace",
 		radius: {
-			xs: '3px',
-			sm: '5px',
-			md: '7px',
-			lg: '10px',
-			xl: '12px',
+			xs: '6px',
+			sm: '10px',
+			md: '14px',
+			lg: '18px',
+			xl: '26px',
 		},
-		defaultRadius: 'sm',
+		defaultRadius: 'md',
 		shadows: {
 			xs: '0 1px 2px rgba(0, 0, 0, 0.08)',
 			sm: '0 1px 3px rgba(0, 0, 0, 0.14), inset 0 1px 0 var(--surface-specular, rgba(255, 255, 255, 0.06))',
@@ -184,20 +184,30 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 		components: {
 			Button: {
 				defaultProps: {
-					radius: 'sm',
+					radius: 'md',
 					size: 'xs',
+				},
+				styles: {
+					root: {
+						border: 'none',
+					},
 				},
 			},
 			ActionIcon: {
 				defaultProps: {
-					radius: 'sm',
+					radius: 'md',
 					size: 'sm',
 					variant: 'subtle',
+				},
+				styles: {
+					root: {
+						border: 'none',
+					},
 				},
 			},
 			Modal: {
 				defaultProps: {
-					radius: 'lg',
+					radius: 'xl',
 					centered: true,
 					overlayProps: {
 						backgroundOpacity: 0.65,
@@ -207,39 +217,118 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 				styles: {
 					content: {
 						background: 'var(--panel)',
-						border: '1px solid var(--line-strong)',
+						border: 'none',
 						boxShadow: 'var(--shadow-xl)',
 					},
 					header: {
 						background: 'var(--panel)',
-						borderBottom: '1px solid var(--line)',
-						padding: '12px 16px',
+						borderBottom: 'none',
+						padding: '14px 18px',
 					},
 					body: {
-						padding: '16px',
+						padding: '16px 18px',
 					},
 				},
 			},
 			SegmentedControl: {
 				defaultProps: {
-					radius: 'sm',
+					radius: 'xl',
 					size: 'xs',
+					withItemsBorders: false,
+				},
+				styles: {
+					root: {
+						borderRadius: '14px',
+						border: 'none',
+						background: 'var(--panel-2)',
+						padding: '3px',
+					},
+					indicator: {
+						borderRadius: '12px',
+						boxShadow: 'none',
+					},
 				},
 			},
 			Switch: {
 				defaultProps: {
-					radius: 'sm',
+					radius: 'xl',
+					size: 'sm',
+				},
+				styles: {
+					root: {
+						'--switch-width-sm': '38px',
+						'--switch-height-sm': '22px',
+						'--switch-thumb-size-sm': '16px',
+						'--switch-track-label-padding-sm': '3px',
+					},
+					track: {
+						borderRadius: '9999px',
+						border: 'none',
+						cursor: 'pointer',
+					},
+					thumb: {
+						borderRadius: '50%',
+						border: 'none',
+						background: '#ffffff',
+						boxShadow: 'none',
+					},
 				},
 			},
 			Badge: {
 				defaultProps: {
-					radius: 'xs',
+					radius: 'xl',
 					size: 'xs',
+				},
+				styles: {
+					root: {
+						border: 'none',
+					},
 				},
 			},
 			Paper: {
 				defaultProps: {
-					radius: 'sm',
+					radius: 'lg',
+				},
+				styles: {
+					root: {
+						border: 'none',
+					},
+				},
+			},
+			Card: {
+				defaultProps: {
+					radius: 'lg',
+				},
+				styles: {
+					root: {
+						border: 'none',
+					},
+				},
+			},
+			Popover: {
+				defaultProps: {
+					radius: 'lg',
+					shadow: 'xl',
+				},
+				styles: {
+					dropdown: {
+						border: 'none',
+						borderRadius: '16px',
+						background: 'var(--popup-bg)',
+					},
+				},
+			},
+			Menu: {
+				defaultProps: {
+					radius: 'lg',
+					shadow: 'xl',
+				},
+				styles: {
+					dropdown: {
+						border: 'none',
+						borderRadius: '16px',
+						background: 'var(--popup-bg)',
+					},
 				},
 			},
 			Divider: {
@@ -251,28 +340,88 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 			},
 			Tooltip: {
 				defaultProps: {
-					radius: 'xs',
+					radius: 'md',
 					withArrow: true,
+				},
+				styles: {
+					tooltip: {
+						borderRadius: '8px',
+						border: 'none',
+						background: 'var(--panel-3)',
+						color: 'var(--text)',
+						fontSize: '0.75rem',
+					},
 				},
 			},
 			Slider: {
 				defaultProps: {
-					radius: 'xs',
+					radius: 'md',
 				},
 			},
 			NavLink: {
 				defaultProps: {
-					radius: 'sm',
+					radius: 'md',
 				},
 			},
 			TextInput: {
 				defaultProps: {
-					radius: 'sm',
+					radius: 'md',
+					variant: 'filled',
+				},
+				styles: {
+					input: {
+						borderRadius: '12px',
+						border: 'none',
+						background: 'var(--panel-2)',
+						color: 'var(--text)',
+					},
 				},
 			},
 			Textarea: {
 				defaultProps: {
-					radius: 'sm',
+					radius: 'md',
+					variant: 'filled',
+				},
+				styles: {
+					input: {
+						borderRadius: '12px',
+						border: 'none',
+						background: 'var(--panel-2)',
+						color: 'var(--text)',
+					},
+				},
+			},
+			Select: {
+				defaultProps: {
+					radius: 'md',
+					variant: 'filled',
+				},
+				styles: {
+					input: {
+						borderRadius: '12px',
+						border: 'none',
+						background: 'var(--panel-2)',
+						color: 'var(--text)',
+					},
+					dropdown: {
+						borderRadius: '14px',
+						border: 'none',
+						background: 'var(--popup-bg)',
+					},
+				},
+			},
+			NumberInput: {
+				defaultProps: {
+					radius: 'md',
+					variant: 'filled',
+				},
+				styles: {
+					input: {
+						borderRadius: '12px',
+						border: 'none',
+						background: 'var(--panel-2)',
+						color: 'var(--text)',
+					},
 				},
 			},
 		},

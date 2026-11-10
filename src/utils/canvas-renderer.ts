@@ -25,6 +25,41 @@ export function getStampCategory(stamp: StampItem): StampCategory {
 let trashPaths: Path2D[] | null = null;
 let rotatePaths: Path2D[] | null = null;
 
+export interface CanvasThemeColors {
+	primary: string;
+	border: string;
+	subtle: string;
+	subtleRuler: string;
+	guide: string;
+	badge: string;
+}
+
+//! Отримання системних кольорів теми для канвас-оверлеїв (рамки, лінійки, хендлери)
+export function getCanvasThemeColors(): CanvasThemeColors {
+	if (typeof window !== 'undefined') {
+		const docStyle = getComputedStyle(document.documentElement);
+		const accent = docStyle.getPropertyValue('--accent')?.trim();
+		if (accent) {
+			return {
+				primary: accent,
+				border: accent,
+				subtle: `color-mix(in srgb, ${accent} 16%, transparent)`,
+				subtleRuler: `color-mix(in srgb, ${accent} 45%, transparent)`,
+				guide: accent,
+				badge: accent,
+			};
+		}
+	}
+	return {
+		primary: '#3b82f6',
+		border: '#3b82f6',
+		subtle: 'rgba(59, 130, 246, 0.16)',
+		subtleRuler: 'rgba(59, 130, 246, 0.45)',
+		guide: '#3b82f6',
+		badge: '#2563eb',
+	};
+}
+
 function getTrashPaths(): Path2D[] {
 	if (!trashPaths && typeof Path2D !== 'undefined') {
 		trashPaths = [
@@ -972,6 +1007,7 @@ export function drawStamp(
 	}
 
 	if (isActive) {
+		const themeColors = getCanvasThemeColors();
 		const isShapes = stamp.category === 'shapes' || Boolean(stamp.shapeType);
 		const isArrow = stamp.shapeType === 'arrow';
 
@@ -991,7 +1027,7 @@ export function drawStamp(
 			ctx.save();
 			ctx.translate(stamp.x, stamp.y);
 			ctx.rotate(rot);
-			ctx.strokeStyle = '#0ea5e9';
+			ctx.strokeStyle = themeColors.border;
 			ctx.lineWidth = 1.5 * U;
 			ctx.setLineDash([5 * U, 4 * U]);
 			ctx.strokeRect(-w / 2, -h / 2, w, h);
@@ -1007,7 +1043,7 @@ export function drawStamp(
 
 			ctx.save();
 			ctx.setLineDash([]);
-			ctx.strokeStyle = '#0ea5e9';
+			ctx.strokeStyle = themeColors.border;
 			ctx.lineWidth = 1.5 * U;
 			ctx.beginPath();
 			ctx.moveTo(rotInfo.stemFrom.x, rotInfo.stemFrom.y);
@@ -1016,7 +1052,7 @@ export function drawStamp(
 
 			ctx.beginPath();
 			ctx.arc(rotInfo.x, rotInfo.y, rotInfo.radius, 0, Math.PI * 2);
-			ctx.fillStyle = '#0ea5e9';
+			ctx.fillStyle = themeColors.primary;
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
 			ctx.lineWidth = 1.5 * U;
@@ -1053,7 +1089,7 @@ export function drawStamp(
 					ctx.arc(pt.x, pt.y, 6.5 * U, 0, Math.PI * 2);
 					ctx.fillStyle = '#ffffff';
 					ctx.fill();
-					ctx.strokeStyle = '#0ea5e9';
+					ctx.strokeStyle = themeColors.border;
 					ctx.lineWidth = 2 * U;
 					ctx.stroke();
 				});
@@ -1112,7 +1148,7 @@ export function drawStamp(
 
 			if (resizeHandlesOn) {
 				const resizes = getResizeHandleCoords(stamp, U, ctx);
-				ctx.fillStyle = '#0ea5e9';
+				ctx.fillStyle = themeColors.primary;
 				ctx.strokeStyle = '#ffffff';
 				ctx.lineWidth = 1.5 * U;
 
@@ -1128,7 +1164,7 @@ export function drawStamp(
 			}
 		} else {
 			const bx = calculateStampBox(stamp, U, ctx);
-			ctx.strokeStyle = '#0ea5e9';
+			ctx.strokeStyle = themeColors.border;
 			ctx.lineWidth = 2 * U;
 			ctx.setLineDash([5 * U, 4 * U]);
 			ctx.beginPath();
@@ -1154,7 +1190,7 @@ export function drawStamp(
 
 			ctx.beginPath();
 			ctx.arc(hx, hy, 14 * U, 0, Math.PI * 2);
-			ctx.fillStyle = '#0ea5e9';
+			ctx.fillStyle = themeColors.primary;
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
 			ctx.stroke();
@@ -1212,7 +1248,7 @@ export function drawStamp(
 				const resizes = getResizeHandleCoords(stamp, U, ctx);
 				if (isArrow) {
 					ctx.fillStyle = '#ffffff';
-					ctx.strokeStyle = '#0ea5e9';
+					ctx.strokeStyle = themeColors.border;
 					ctx.lineWidth = 2 * U;
 
 					ctx.beginPath();
@@ -1225,7 +1261,9 @@ export function drawStamp(
 					ctx.fill();
 					ctx.stroke();
 				} else {
-					ctx.fillStyle = '#0ea5e9';
+					ctx.fillStyle = themeColors.primary;
+					ctx.strokeStyle = '#ffffff';
+					ctx.lineWidth = 1.5 * U;
 					ctx.strokeStyle = '#ffffff';
 					ctx.lineWidth = 1.5 * U;
 
@@ -1421,8 +1459,9 @@ export function getStampItemHorizontalSnap(
 
 //! Відображення вертикальної напрямної розумного снепу (Smart Guide)
 export function drawSmartGuide(ctx: CanvasRenderingContext2D, guide: SnapGuide, U: number): void {
+	const themeColors = getCanvasThemeColors();
 	ctx.save();
-	ctx.strokeStyle = '#0284c7';
+	ctx.strokeStyle = themeColors.guide;
 	ctx.lineWidth = 1.5 * U;
 	ctx.setLineDash([4 * U, 3 * U]);
 	ctx.beginPath();
@@ -1431,7 +1470,7 @@ export function drawSmartGuide(ctx: CanvasRenderingContext2D, guide: SnapGuide, 
 	ctx.stroke();
 
 	ctx.setLineDash([]);
-	ctx.fillStyle = '#0284c7';
+	ctx.fillStyle = themeColors.guide;
 	ctx.beginPath();
 	ctx.arc(guide.x, guide.y1, 2.5 * U, 0, Math.PI * 2);
 	ctx.arc(guide.x, guide.y2, 2.5 * U, 0, Math.PI * 2);
@@ -1449,17 +1488,18 @@ export function drawRulers(
 	showDistance: boolean = false,
 ): void {
 	if (rulers.length === 0) return;
+	const themeColors = getCanvasThemeColors();
 
 	for (const ruler of rulers) {
 		const isActive = isRulerMode && ruler.id === activeRulerId;
 
 		ctx.save();
 		if (isActive) {
-			ctx.strokeStyle = '#0284c7';
+			ctx.strokeStyle = themeColors.border;
 			ctx.lineWidth = 1.5 * U;
 			ctx.setLineDash([6 * U, 4 * U]);
 		} else {
-			ctx.strokeStyle = 'rgba(14, 165, 233, 0.5)';
+			ctx.strokeStyle = themeColors.subtleRuler;
 			ctx.lineWidth = 1 * U;
 			ctx.setLineDash([5 * U, 5 * U]);
 		}
@@ -1511,7 +1551,7 @@ export function drawRulers(
 			const midY = (r1.y + r2.y) / 2;
 
 			ctx.save();
-			ctx.strokeStyle = 'rgba(14, 165, 233, 0.5)';
+			ctx.strokeStyle = themeColors.subtleRuler;
 			ctx.lineWidth = 1 * U;
 			ctx.setLineDash([3 * U, 3 * U]);
 			ctx.beginPath();
@@ -1529,7 +1569,7 @@ export function drawRulers(
 			const by = midY - bh / 2;
 
 			// Фон бейджа в кольорі лінійок замість чорного
-			ctx.fillStyle = '#0284c7';
+			ctx.fillStyle = themeColors.badge;
 			ctx.setLineDash([]);
 			ctx.beginPath();
 			if (typeof ctx.roundRect === 'function') {
@@ -1748,9 +1788,10 @@ export function drawAreaSelectionOverlay(
 ): void {
 	if (points.length < 2) return;
 
+	const themeColors = getCanvasThemeColors();
 	ctx.save();
-	ctx.fillStyle = 'rgba(14, 165, 233, 0.14)';
-	ctx.strokeStyle = '#0ea5e9';
+	ctx.fillStyle = themeColors.subtle;
+	ctx.strokeStyle = themeColors.border;
 	ctx.lineWidth = 1.5 * U;
 	ctx.setLineDash([5 * U, 4 * U]);
 
@@ -1848,10 +1889,11 @@ export function drawMultiSelectionBox(
 	const bounds = getMultiSelectionBounds(stamps, U, ctx);
 	if (!bounds) return null;
 
+	const themeColors = getCanvasThemeColors();
 	stamps.forEach((s) => {
 		const pts = getStampBoundingPoints(s, U, ctx);
 		ctx.save();
-		ctx.strokeStyle = 'rgba(14, 165, 233, 0.45)';
+		ctx.strokeStyle = themeColors.subtleRuler;
 		ctx.lineWidth = 1 * U;
 		ctx.setLineDash([3 * U, 3 * U]);
 		if (pts.length >= 4) {
@@ -1870,7 +1912,7 @@ export function drawMultiSelectionBox(
 	const bh = bounds.maxY - bounds.minY;
 
 	ctx.save();
-	ctx.strokeStyle = '#0ea5e9';
+	ctx.strokeStyle = themeColors.border;
 	ctx.lineWidth = 1.5 * U;
 	ctx.setLineDash([6 * U, 4 * U]);
 	ctx.strokeRect(bx, by, bw, bh);

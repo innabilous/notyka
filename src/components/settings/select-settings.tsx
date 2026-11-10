@@ -156,7 +156,6 @@ export const SelectSettings: React.FC<SelectSettingsProps> = ({
 							size={16}
 							color="#ef4444"
 							offset={-2}
-							withBorder
 						>
 							<Trash2 className="icon" />
 						</Indicator>
