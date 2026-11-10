@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Box } from '@mantine/core';
+import clsx from 'clsx';
 import { AppPreloader } from '@/components/common/app-preloader';
 import { ColorPaletteModal } from '@/components/modals/color-palette-modal';
 import { CustomStampModal } from '@/components/modals/custom-stamp-modal';
@@ -55,8 +56,28 @@ import {
 	saveSettings,
 } from '@/utils/storage';
 import { CanvasStage, CanvasStageHandle } from './canvas-stage';
+import classes from './photo-editor.module.css';
 
-export const PhotoEditor: React.FC = () => {
+// Build chord stamp label with optional slash bass note (e.g. G/B, Dm/F#)
+export function buildChordText(
+	root: string,
+	acc: string,
+	mod: string,
+	hasSlash: boolean,
+	bassRoot: string,
+	bassAcc: string,
+): string {
+	const main = `${root}${acc}${mod}` || root || 'C';
+	if (hasSlash && bassRoot) {
+		return `${main}/${bassRoot}${bassAcc}`;
+	}
+	if (hasSlash && !bassRoot) {
+		return `${main}/`;
+	}
+	return main;
+}
+
+export function PhotoEditor() {
 	const stageRef = useRef<CanvasStageHandle | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const isMountedRef = useRef<boolean>(false);
@@ -150,8 +171,8 @@ export const PhotoEditor: React.FC = () => {
 	const [canvasScale, setCanvasScale] = useState<number>(1);
 	const [rulersVisible, setRulersVisible] = useState<boolean>(true);
 	const [rulersSnap, setRulersSnap] = useState<boolean>(true);
-	const [rulersSnapItems, setRulersSnapItems] = useState<boolean>(true); //! За замовчуванням увімкнено прив'язку до нот на інших лінійках
-	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(true); //! За замовчуванням увімкнено спільний рух
+	const [rulersSnapItems, setRulersSnapItems] = useState<boolean>(true); // Default enabled: snap stamps to items on other rulers
+	const [rulersAttachContent, setRulersAttachContent] = useState<boolean>(true); // Default enabled: move attached stamps with ruler
 	const [rulersShowDistance, setRulersShowDistance] = useState<boolean>(false);
 	const [rulersLockEqualDistance, setRulersLockEqualDistance] = useState<boolean>(false);
 	const [areaSelectEnabled, setAreaSelectEnabled] = useState<boolean>(false);
@@ -161,7 +182,7 @@ export const PhotoEditor: React.FC = () => {
 	const [availableStampCategories, setAvailableStampCategories] = useState<StampCategory[]>([]);
 	const [selectedStampsCount, setSelectedStampsCount] = useState<number>(0);
 	const [rulersCount, setRulersCount] = useState<number>(0);
-	const [compactRulers, setCompactRulers] = useState<boolean>(false); //! Опція компактного вигляду лінійок у топбарі
+	const [compactRulers, setCompactRulers] = useState<boolean>(false); // Compact ruler controls in top toolbar
 	const [visibleTools, setVisibleTools] =
 		useState<Record<ToolMode, boolean>>(DEFAULT_VISIBLE_TOOLS);
 	const [visibleStampCategories, setVisibleStampCategories] =
@@ -189,7 +210,7 @@ export const PhotoEditor: React.FC = () => {
 		}, 1800);
 	}, []);
 
-	//! Якщо обрана категорія зникла з полотна — скидаємо фільтр на 'all'
+	// Reset selection category filter to 'all' if the filtered category is no longer present on canvas
 	useEffect(() => {
 		if (
 			selectFilterCategory !== 'all' &&
@@ -686,29 +707,7 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
-	//! Побудова тексту акорду з опційним слеш-басом (наприклад, G/B, Dm/F#)
-	const buildChordText = useCallback(
-		(
-			root: string,
-			acc: string,
-			mod: string,
-			hasSlash: boolean,
-			bassRoot: string,
-			bassAcc: string,
-		): string => {
-			const main = `${root}${acc}${mod}` || root || 'C';
-			if (hasSlash && bassRoot) {
-				return `${main}/${bassRoot}${bassAcc}`;
-			}
-			if (hasSlash && !bassRoot) {
-				return `${main}/`;
-			}
-			return main;
-		},
-		[],
-	);
-
-	//! Вибір тоніки акорду (A B C D E F G)
+	// Select chord root note (A B C D E F G)
 	const handleSelectChordRoot = useCallback(
 		(root: string) => {
 			if (!sizeLocked && currentMode === 'stamp') {
@@ -769,7 +768,7 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
-	//! Вибір знаку альтерації акорду (#, b)
+	// Select chord accidental (#, b)
 	const handleSelectChordAccidental = useCallback(
 		(acc: string) => {
 			if (!sizeLocked && currentMode === 'stamp') {
@@ -830,7 +829,7 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
-	//! Вибір позначення/розширення акорду (m, 7, maj7, sus4 тощо)
+	// Select chord quality/extension modifier (m, 7, maj7, sus4, etc.)
 	const handleSelectChordModifier = useCallback(
 		(modifier: string) => {
 			if (!sizeLocked && currentMode === 'stamp') {
@@ -891,7 +890,7 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
-	//! Перемикання режиму слеш-акорду (басова нота)
+	// Toggle slash chord mode (bass note)
 	const handleToggleChordSlash = useCallback(() => {
 		if (!sizeLocked && currentMode === 'stamp') {
 			setNoteSizes((prev) => ({
@@ -950,7 +949,7 @@ export const PhotoEditor: React.FC = () => {
 		toolSizes.stamp,
 	]);
 
-	//! Вибір тоніки басу для слеш-акорду (/B, /F тощо)
+	// Select slash chord bass root (/B, /F, etc.)
 	const handleSelectChordBassRoot = useCallback(
 		(root: string) => {
 			if (!sizeLocked && currentMode === 'stamp') {
@@ -1010,7 +1009,7 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
-	//! Вибір знаку альтерації басу (#, b)
+	// Select slash chord bass accidental (#, b)
 	const handleSelectChordBassAccidental = useCallback(
 		(acc: string) => {
 			if (!sizeLocked && currentMode === 'stamp') {
@@ -1191,12 +1190,12 @@ export const PhotoEditor: React.FC = () => {
 			if (nextText) {
 				setActiveStampText(nextText);
 			}
-			setSelectedStepIndex(prevIdx); //! Щойно поставлений на полотні штамп стає поточним (isCurrent)
+			setSelectedStepIndex(prevIdx); // Mark the newly placed stamp step as current
 			return nextIdx;
 		});
 	}, [countPattern]);
 
-	//! Перемикання категорії штампів
+	// Switch active stamp category
 	const handleChangeStampCategory = useCallback(
 		(cat: StampCategory) => {
 			stageRef.current?.commitActiveStamp();
@@ -1302,7 +1301,7 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
-	//! Вибір типу фігури
+	// Select geometric shape type
 	const handleSelectShape = useCallback(
 		(shape: ShapeType) => {
 			stageRef.current?.commitActiveStamp();
@@ -1317,7 +1316,7 @@ export const PhotoEditor: React.FC = () => {
 		[shapeSizes],
 	);
 
-	//! Зміна користувацького тексту штампа
+	// Update custom multiline text stamp value
 	const handleChangeCustomText = useCallback(
 		(text: string) => {
 			setCustomText(text);
@@ -1576,7 +1575,7 @@ export const PhotoEditor: React.FC = () => {
 		],
 	);
 
-	//! Перемикання стилю обводки / плашки штампа
+	// Toggle stamp outline vs solid badge mode
 	const handleToggleBadgeMode = useCallback(
 		(isBadge: boolean) => {
 			setStampBadgeMode(isBadge);
@@ -1693,7 +1692,7 @@ export const PhotoEditor: React.FC = () => {
 		});
 	}, [showToast]);
 
-	//! Синхронізація розмірів усіх штампів вибраного розділу
+	// Synchronize sizes of all stamps in the active category
 	const handleSyncCategorySizes = useCallback(() => {
 		if (currentMode !== 'stamp' && currentMode !== 'select') return;
 		stageRef.current?.syncCategorySizes(stampCategory, currentSize, selectedShape);
@@ -1856,7 +1855,7 @@ export const PhotoEditor: React.FC = () => {
 		[handleChangeStampCategory, showToast, stampCategory],
 	);
 
-	//! Скидання тільки налаштувань (без видалення проектів чи очищення полотна)
+	// Reset only editor settings without deleting saved projects or clearing the active canvas
 	const handleResetSettingsOnly = useCallback(() => {
 		setVisibleTools({ ...DEFAULT_VISIBLE_TOOLS });
 		setVisibleStampCategories({ ...DEFAULT_VISIBLE_STAMP_CATEGORIES });
@@ -1931,7 +1930,7 @@ export const PhotoEditor: React.FC = () => {
 		setIsSettingsOpen(false);
 	}, [showToast]);
 
-	//! Повне очищення всіх даних (база проектів, активна сесія, налаштування та полотно)
+	// Clear all application data (projects database, active session, settings, and canvas)
 	const handleClearAllData = useCallback(async () => {
 		await clearAllStorage();
 		setProjectsList([]);
@@ -2119,16 +2118,7 @@ export const PhotoEditor: React.FC = () => {
 	);
 
 	return (
-		<Box
-			style={{
-				display: 'flex',
-				flexDirection: 'column',
-				width: '100%',
-				height: '100%',
-				overflow: 'hidden',
-				position: 'relative',
-			}}
-		>
+		<Box className={classes.root}>
 			<AppPreloader isLoading={isLoading} />
 
 			<TopToolbar
@@ -2402,9 +2392,9 @@ export const PhotoEditor: React.FC = () => {
 				</Box>
 			)}
 
-			<Box id="toast" className={toastText ? 'show' : ''}>
+			<Box id="toast" className={clsx(toastText && 'show')}>
 				{toastText}
 			</Box>
 		</Box>
 	);
-};
+}

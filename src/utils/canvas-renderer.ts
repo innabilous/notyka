@@ -9,7 +9,7 @@ import {
 	StampItem,
 } from '@/types/editor';
 
-//! Визначаємо категорію штампа на основі його властивостей або префіксів тексту
+// Determine stamp category from its explicit properties or text prefixes
 export function getStampCategory(stamp: StampItem): StampCategory {
 	if (stamp.category) return stamp.category;
 	if (stamp.shapeType) return 'shapes';
@@ -34,7 +34,7 @@ export interface CanvasThemeColors {
 	badge: string;
 }
 
-//! Отримання системних кольорів теми для канвас-оверлеїв (рамки, лінійки, хендлери)
+// Resolve active theme accent colors for canvas overlays (frames, rulers, handles)
 export function getCanvasThemeColors(): CanvasThemeColors {
 	if (typeof window !== 'undefined') {
 		const docStyle = getComputedStyle(document.documentElement);
@@ -87,7 +87,7 @@ export function getStampFont(size: number, U: number): string {
 	return `bold ${size * 2 * U}px system-ui, -apple-system, sans-serif`;
 }
 
-//! Розбиваємо текст на рядки з автоматичним переносом по словах, якщо рядок ширший за полотно
+// Split stamp text into lines with automatic word wrapping when a line exceeds canvas width
 export function getStampLines(
 	stamp: StampItem,
 	U: number,
@@ -134,7 +134,7 @@ export function calculateStampBox(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): BoundingBox {
-	//! Якщо це фігура (прямокутник, коло, стрілка)
+	// Geometric shape stamp (rectangle, circle/oval, arrow)
 	if (stamp.category === 'shapes' || stamp.shapeType) {
 		const pad = 8 * U;
 		if (stamp.shapeType === 'arrow') {
@@ -164,7 +164,7 @@ export function calculateStampBox(
 				h: (ry + pad) * 2,
 			};
 		}
-		// За замовчуванням прямокутник
+		// Default rectangle shape
 		const w = (stamp.width || stamp.size * 2) * U;
 		const h = (stamp.height || stamp.size * 1.5) * U;
 		return {
@@ -175,7 +175,7 @@ export function calculateStampBox(
 		};
 	}
 
-	//! Якщо це намальований штамп — рахуємо габарити з його збережених контурів
+	// Freehand drawing stamp: compute bounding box from saved contour bounds
 	if (stamp.isDrawing && stamp.rawBounds) {
 		const scale = stamp.size / (stamp.initialSize || 24);
 		const sw = (stamp.strokeWidth || 4) * U;
@@ -237,7 +237,7 @@ export function getStampBoxOffsets(
 	};
 }
 
-//! Обмежує положення стрілки так, щоб вістря та його крила не виходили за межі полотна
+// Constrain arrow head so its tip and wings stay inside canvas bounds
 export function clampArrowHead(
 	p1: Point,
 	target: Point,
@@ -280,7 +280,7 @@ export function clampArrowHead(
 	};
 }
 
-//! Зупиняє штамп на межі канвасу, не дозволяючи жодному елементу вийти за межі
+// Clamp stamp position to canvas boundaries so no part overflows the sheet
 export function clampStampPosition(
 	x: number,
 	y: number,
@@ -291,7 +291,7 @@ export function clampStampPosition(
 	const canvasW = ctx.canvas?.width ?? 10000;
 	const canvasH = ctx.canvas?.height ?? 10000;
 
-	//! Для фігур точний геометричний розрахунок впритик до межі канвасу без зайвих відступів
+	// Exact geometric clamping for shapes right up to the canvas edges
 	if (stamp.category === 'shapes' || stamp.shapeType) {
 		const lw = Math.max(1 * U, (stamp.strokeWidth || stamp.size || 2) * U);
 		const halfLw = lw / 2;
@@ -314,7 +314,7 @@ export function clampStampPosition(
 			const w2x = p2.x - headLen * Math.cos(angle + headAngle);
 			const w2y = p2.y - headLen * Math.sin(angle + headAngle);
 
-			// Межі стрілки відносно базової точки (stamp.x, stamp.y)
+			// Arrow bounds relative to anchor point (stamp.x, stamp.y)
 			const minRelX = Math.min(0, dx, w1x - p1.x, w2x - p1.x) - halfLw;
 			const maxRelX = Math.max(0, dx, w1x - p1.x, w2x - p1.x) + halfLw;
 			const minRelY = Math.min(0, dy, w1y - p1.y, w2y - p1.y) - halfLw;
@@ -330,7 +330,7 @@ export function clampStampPosition(
 			return { x: clampedX, y: clampedY };
 		}
 
-		// Для прямокутника та кола/овалу з урахуванням обертання rot
+		// Rectangle and circle/oval accounting for rotation angle
 		const rot = stamp.rotation || 0;
 		const w = (stamp.width || stamp.size * 2) * U;
 		const h = (stamp.height || stamp.size * 1.5) * U;
@@ -346,7 +346,7 @@ export function clampStampPosition(
 			projW = Math.sqrt((rx * cos) ** 2 + (ry * sin) ** 2) + halfLw;
 			projH = Math.sqrt((rx * sin) ** 2 + (ry * cos) ** 2) + halfLw;
 		} else {
-			// Прямокутник
+			// Rectangle
 			const absCos = Math.abs(Math.cos(rot));
 			const absSin = Math.abs(Math.sin(rot));
 			projW = (w / 2) * absCos + (h / 2) * absSin + halfLw;
@@ -365,7 +365,7 @@ export function clampStampPosition(
 
 	const offsets = getStampBoxOffsets(stamp, U, ctx);
 
-	// Враховуємо бічні напівкружечки зміни розміру (6*U)
+	// Account for side resize half-circles (6 * U)
 	const sideMargin = 7 * U;
 	const topBottomMargin = 2 * U;
 
@@ -394,7 +394,7 @@ export function getHandleCoords(
 	const spaceAbove = bx.y;
 	const neededSpace = 24 * U + radius + 4 * U;
 
-	//! Якщо знизу місця недостатньо, а зверху вистачає — переносимо хендлер нагору
+	// Flip move handle above the stamp if there is not enough space below
 	const isFlipped = spaceBelow < neededSpace && spaceAbove >= neededSpace;
 	const rawY = isFlipped ? bx.y - 24 * U : bx.y + bx.h + 24 * U;
 
@@ -418,7 +418,7 @@ export function getDeleteCoords(
 	const spaceBelow = canvasH - (bx.y + bx.h);
 	const neededSpace = 15 * U + radius + 4 * U;
 
-	//! Для фігур (прямокутник, коло, стрілка) кошик перелаштовується адаптивно зверху чи знизу на тій самій відстані, що й у решти штампів
+	// Adaptive delete button placement above or below geometric shapes
 	if (stamp.category === 'shapes' || stamp.shapeType) {
 		if (stamp.shapeType === 'arrow') {
 			const p1 = { x: stamp.x, y: stamp.y };
@@ -433,7 +433,7 @@ export function getDeleteCoords(
 			return { x: targetX, y: Math.min(canvasH - radius - 2 * U, maxY + 13 * U), radius };
 		}
 
-		// Для прямокутника та кола точні межі з урахуванням обертання
+		// Exact rotated bounds for rectangle and circle/oval
 		const rot = stamp.rotation || 0;
 		const w = (stamp.width || stamp.size * 2) * U;
 		const h = (stamp.height || stamp.size * 1.5) * U;
@@ -459,15 +459,15 @@ export function getDeleteCoords(
 
 	const handle = getHandleCoords(stamp, U, ctx);
 
-	//! Якщо хендлер вгорі (бо знизу мало місця):
+	// When the move handle is flipped to the top (due to tight bottom space):
 	if (handle.isFlipped) {
-		// Якщо знизу є місце для кошика — розміщуємо його знизу
+		// Place trash button below if space allows
 		if (spaceBelow >= neededSpace) {
 			const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
 			const y = Math.min(canvasH - radius - 2 * U, bx.y + bx.h + 15 * U);
 			return { x, y, radius };
 		}
-		// Інакше ділимо верхній простір з хендлером: праворуч, або ліворуч якщо справа нема місця
+		// Otherwise share top space alongside the move handle (prefer right, fallback left)
 		const offset = 26 * U;
 		const preferRight = handle.x + offset + radius <= canvasW - 4 * U;
 		const rawX = preferRight ? handle.x + offset : handle.x - offset;
@@ -476,16 +476,14 @@ export function getDeleteCoords(
 		return { x, y, radius };
 	}
 
-	//! Хендлер переміщення знизу:
-	// Чи є вільне місце зверху для кошика?
+	// Move handle is at the bottom: place trash button above if space allows
 	if (spaceAbove >= neededSpace) {
 		const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
 		const y = Math.max(radius + 2 * U, bx.y - 15 * U);
 		return { x, y, radius };
 	}
 
-	//! Якщо зверху місця немає (нота впритик до верхнього краю) — переміщуємо кошик вниз до хендлера!
-	// Якщо нота в правому кутку — кошик розміщується ліворуч від хендлера
+	// If top edge is blocked, place trash button next to the bottom move handle
 	const offset = 26 * U;
 	const preferRight = handle.x + offset + radius <= canvasW - 4 * U;
 	const rawX = preferRight ? handle.x + offset : handle.x - offset;
@@ -502,7 +500,7 @@ export function getResizeHandleCoords(
 	left: { x: number; y: number; radius: number; hitRadius: number };
 	right: { x: number; y: number; radius: number; hitRadius: number };
 } {
-	//! Для стрілки лівий хендл — це хвіст (початок), правий — вістря (кінець)
+	// For arrows, left handle is the tail (start) and right handle is the head (end)
 	if (stamp.shapeType === 'arrow') {
 		const p1 = { x: stamp.x, y: stamp.y };
 		const p2 = {
@@ -519,7 +517,7 @@ export function getResizeHandleCoords(
 
 	const bx = calculateStampBox(stamp, U, ctx);
 	const cy = bx.y + bx.h / 2;
-	//! Для малих штампів радіус хендла масштабується від висоти, щоб він лишався на прямій ділянці грані
+	// Scale handle radius proportionally for small stamps so it stays on the straight edge
 	const radius = Math.min(6 * U, Math.max(2.5 * U, bx.h * 0.25));
 	const hitRadius = Math.max(12 * U, 12);
 	return {
@@ -552,7 +550,7 @@ export function isPointInResizeHandle(
 
 	const bx = calculateStampBox(stamp, U, ctx);
 
-	//! Обмежуємо зону всередині рамки (макс 15% ширини або 4*U), щоб клік по тексту штампа тягнув штамп, а не масштабував
+	// Limit inward hit zone (max 15% of width or 4*U) so clicking the stamp body drags rather than resizes
 	const maxInward = Math.min(bx.w * 0.15, 4 * U);
 
 	if (p.x <= bx.x + maxInward) {
@@ -592,7 +590,7 @@ export function getShapeRotateHandleCoords(
 		y: stamp.y + lx * sin + ly * cos,
 	});
 
-	// Нормальна позиція: зверху праворуч
+	// Default position: top-right corner
 	const normLX = w / 2 + 16 * U;
 	const normLY = -h / 2 - 16 * U;
 	const normPt = toCanvas(normLX, normLY);
@@ -613,7 +611,7 @@ export function getShapeRotateHandleCoords(
 		};
 	}
 
-	// Якщо зверху праворуч немає місця — переміщуємо на протилежний бік: знизу ліворуч
+	// Fallback to opposite corner (bottom-left) if top-right is clipped by canvas edge
 	const flipLX = -w / 2 - 16 * U;
 	const flipLY = h / 2 + 16 * U;
 	const flipPt = toCanvas(flipLX, flipLY);
@@ -680,7 +678,7 @@ export function isPointInStamp(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): boolean {
-	//! Для фігур точніша перевірка потрапляння
+	// Geometric hit-testing for shape stamps
 	if (stamp.category === 'shapes' || stamp.shapeType) {
 		const pad = 12 * U;
 		if (stamp.shapeType === 'arrow') {
@@ -699,7 +697,7 @@ export function isPointInStamp(
 			return Math.hypot(p.x - projX, p.y - projY) <= Math.max(pad, 14 * U);
 		}
 
-		// Для прямокутника та кола/овалу переводимо точку в локальні координати з урахуванням обертання
+		// Transform point into local unrotated coordinates for rectangle and circle/oval
 		const rot = stamp.rotation || 0;
 		const cos = Math.cos(-rot);
 		const sin = Math.sin(-rot);
@@ -715,7 +713,7 @@ export function isPointInStamp(
 			const ey = ly / ry;
 			return ex * ex + ey * ey <= 1;
 		}
-		// Прямокутник
+		// Rectangle
 		const w = (stamp.width || stamp.size * 2) * U;
 		const h = (stamp.height || stamp.size * 1.5) * U;
 		return Math.abs(lx) <= w / 2 + pad && Math.abs(ly) <= h / 2 + pad;
@@ -725,7 +723,7 @@ export function isPointInStamp(
 	return p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h;
 }
 
-//! Перевіряє, чи знаходиться точка всередині всієї габаритної рамки виділення штампа
+// Check if a point lies inside the full selection bounding box of a stamp
 export function isPointInStampBounds(
 	p: Point,
 	stamp: StampItem,
@@ -748,7 +746,7 @@ export function isPointInStampBounds(
 			return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
 		}
 
-		// Для фігур з кутом повороту перевіряємо в повернутій системі координат
+		// Test in local rotated coordinate space for rotated shapes
 		const rot = stamp.rotation || 0;
 		const cos = Math.cos(-rot);
 		const sin = Math.sin(-rot);
@@ -777,7 +775,7 @@ export function isPointInHandle(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): boolean {
-	//! Для фігур хендлер переміщення відсутній (рухається за тіло фігури, обертається за хендлер повороту)
+	// Shapes do not have a bottom move stem handle (they move by dragging the body and rotate via the rotate handle)
 	if (stamp.category === 'shapes') return false;
 	const h = getHandleCoords(stamp, U, ctx);
 	const dx = p.x - h.x;
@@ -822,7 +820,7 @@ export function drawStamp(
 		ctx.lineCap = 'round';
 		ctx.lineJoin = 'round';
 
-		//! Обведення якщо воно задане
+		// Draw stroke outline if configured
 		if (stamp.strokeColor && stamp.strokeColor !== 'transparent') {
 			ctx.strokeStyle = stamp.strokeColor;
 			ctx.lineWidth = sw / scale + 4 * U;
@@ -843,7 +841,7 @@ export function drawStamp(
 			});
 		}
 
-		//! Основний колір штрихів
+		// Draw primary stroke paths
 		ctx.strokeStyle = stamp.mainColor;
 		ctx.lineWidth = sw / scale;
 		stamp.paths.forEach((path) => {
@@ -894,13 +892,13 @@ export function drawStamp(
 			ctx.lineCap = 'round';
 			ctx.lineJoin = 'miter';
 
-			// Лінія тіла стрілки
+			// Arrow shaft line
 			ctx.beginPath();
 			ctx.moveTo(p1.x, p1.y);
 			ctx.lineTo(p2.x - headLen * 0.6 * Math.cos(angle), p2.y - headLen * 0.6 * Math.sin(angle));
 			ctx.stroke();
 
-			// Наконечник стрілки - чіткий трикутник без надмірного скруглення
+			// Arrowhead triangle
 			const headAngle = Math.PI / 6;
 			const a1 = angle - headAngle;
 			const a2 = angle + headAngle;
@@ -976,11 +974,11 @@ export function drawStamp(
 
 		if (stamp.strokeColor !== 'transparent') {
 			if (stamp.badgeMode) {
-				//! Малюємо кольорову суцільну плашку під текстом
+				// Draw solid colored badge behind text
 				const bx = calculateStampBox(stamp, U, ctx);
 				ctx.fillStyle = stamp.strokeColor;
 				ctx.beginPath();
-				//! Для малих штампів радіус плашки зменшується пропорційно, щоб плашка залишалась прямокутником
+				// Scale badge corner radius down for small stamps so the badge remains rectangular
 				const maxBadgeRadius = Math.min(bx.w, bx.h) * 0.25;
 				const baseBadgeRadius =
 					stamp.size < 8 ? Math.max(1.5 * U, (stamp.size / 8) * 6 * U) : 6 * U;
@@ -1023,7 +1021,7 @@ export function drawStamp(
 				y: stamp.y + lx * sin + ly * cos,
 			});
 
-			// 1. Пунктирна рамка
+			// 1. Dashed selection border
 			ctx.save();
 			ctx.translate(stamp.x, stamp.y);
 			ctx.rotate(rot);
@@ -1033,7 +1031,7 @@ export function drawStamp(
 			ctx.strokeRect(-w / 2, -h / 2, w, h);
 			ctx.restore();
 
-			// 2. Хендлер обертання (адаптивно: зверху праворуч або знизу ліворуч якщо на краю)
+			// 2. Adaptive rotation handle (top-right or bottom-left near canvas edge)
 			const rotInfo = getShapeRotateHandleCoords(
 				stamp,
 				U,
@@ -1058,7 +1056,7 @@ export function drawStamp(
 			ctx.lineWidth = 1.5 * U;
 			ctx.stroke();
 
-			// Іконка кругової стрілки повороту всередині (завжди пряма, без перекошування)
+			// Upright circular rotation arrow icon inside handle
 			const rPaths = getRotatePaths();
 			if (rPaths.length > 0) {
 				ctx.save();
@@ -1075,7 +1073,7 @@ export function drawStamp(
 			}
 			ctx.restore();
 
-			// 3. 4 кутові хендли зміни розміру
+			// 3. Four corner resize handles
 			if (resizeHandlesOn) {
 				const corners = [
 					{ lx: -w / 2, ly: -h / 2 },
@@ -1095,7 +1093,7 @@ export function drawStamp(
 				});
 			}
 
-			// 4. Кнопка видалення
+			// 4. Delete button
 			if (deleteBtnOn) {
 				const d = getDeleteCoords(stamp, U, ctx);
 				ctx.beginPath();
@@ -1284,7 +1282,7 @@ export function drawStamp(
 	ctx.restore();
 }
 
-//! Координати кошика видалення лінійки (18px від лівого краю)
+// Coordinates of the ruler delete button (18px from left edge)
 export function getRulerDeleteCoords(
 	ruler: RulerItem,
 	U: number,
@@ -1300,7 +1298,7 @@ export function isPointInRulerDelete(p: Point, ruler: RulerItem, U: number): boo
 	return dx * dx + dy * dy <= hitRadius * hitRadius;
 }
 
-//! Перевірка, чи штамп прикріплений/центрований саме на цій лінійці (а не просто торкається краями)
+// Check if a stamp is centered on and attached to the target ruler
 export function isStampAttachedToRuler(
 	stamp: StampItem,
 	targetRuler: RulerItem,
@@ -1308,11 +1306,11 @@ export function isStampAttachedToRuler(
 	U: number,
 ): boolean {
 	const distToTarget = Math.abs(stamp.y - targetRuler.y);
-	// Допуск центрованого розміщення: штамп має сидіти саме на осі лінійки
+	// Center alignment tolerance: stamp center must sit on the ruler axis
 	const maxCenterTolerance = Math.max(2 * U, 2.5);
 	if (distToTarget > maxCenterTolerance) return false;
 
-	// Ця лінійка має бути найближчою до центру штампа серед усіх лінійок
+	// Target ruler must be the closest ruler to the stamp center
 	for (const r of allRulers) {
 		if (r.id !== targetRuler.id && Math.abs(stamp.y - r.y) < distToTarget) {
 			return false;
@@ -1354,7 +1352,7 @@ export interface SnapGuide {
 	y2: number;
 }
 
-//! Розрахунок горизонтального магнітного снепу штампа до штампів на інших лінійках (Smart Guides)
+// Compute horizontal magnetic snap of an active stamp to stamps on other rulers (Smart Guides)
 export function getStampItemHorizontalSnap(
 	targetX: number,
 	targetY: number,
@@ -1366,12 +1364,12 @@ export function getStampItemHorizontalSnap(
 ): { snappedX: number; guide: SnapGuide | null } {
 	if (rulers.length < 2) return { snappedX: targetX, guide: null };
 
-	// Перевіряємо, чи поточна координата targetY знаходиться біля або на лінійці
+	// Check if targetY is near or snapped to a ruler
 	const nearThreshold = Math.max(16 * U, 14);
 	const activeRuler = rulers.find((r) => Math.abs(targetY - r.y) <= nearThreshold);
 	if (!activeRuler) return { snappedX: targetX, guide: null };
 
-	// Цільові штампи для снепу: штампи, прив'язані до інших лінійок
+	// Candidate targets: stamps attached to other rulers
 	const otherRulers = rulers.filter((r) => r.id !== activeRuler.id);
 	const targetCandidates: { stamp: StampItem; ruler: RulerItem }[] = [];
 
@@ -1400,7 +1398,7 @@ export function getStampItemHorizontalSnap(
 		const targetLeft = target.x - targetOffsets.left;
 		const targetRight = target.x + targetOffsets.right;
 
-		// 1. Центр до центру (головний пріоритет для нот)
+		// 1. Center-to-center alignment (primary priority for notes)
 		const dCenter = target.x - targetX;
 		const absCenter = Math.abs(dCenter);
 		if (absCenter <= snapThreshold && absCenter < bestDist) {
@@ -1410,7 +1408,7 @@ export function getStampItemHorizontalSnap(
 			matchedRulers = [activeRuler, targetRuler];
 		}
 
-		// 2. Лівий край до лівого краю
+		// 2. Left-edge alignment
 		const snappedFromLeft = targetLeft + activeOffsets.left;
 		const dLeft = snappedFromLeft - targetX;
 		const absLeft = Math.abs(dLeft);
@@ -1421,7 +1419,7 @@ export function getStampItemHorizontalSnap(
 			matchedRulers = [activeRuler, targetRuler];
 		}
 
-		// 3. Правий край до правого краю
+		// 3. Right-edge alignment
 		const snappedFromRight = targetRight - activeOffsets.right;
 		const dRight = snappedFromRight - targetX;
 		const absRight = Math.abs(dRight);
@@ -1457,7 +1455,7 @@ export function getStampItemHorizontalSnap(
 	};
 }
 
-//! Відображення вертикальної напрямної розумного снепу (Smart Guide)
+// Draw vertical smart alignment guide line
 export function drawSmartGuide(ctx: CanvasRenderingContext2D, guide: SnapGuide, U: number): void {
 	const themeColors = getCanvasThemeColors();
 	ctx.save();
@@ -1538,7 +1536,7 @@ export function drawRulers(
 		ctx.restore();
 	}
 
-	//! Відображення дистанції між сусідніми лінійками в пікселях (36px від краю, компактно біля кошика)
+	// Render pixel distance badges between adjacent rulers (36px from left edge)
 	if (showDistance && rulers.length >= 2) {
 		const sorted = [...rulers].sort((a, b) => a.y - b.y);
 		const dimX = Math.max(36 * U, 36);
@@ -1568,7 +1566,7 @@ export function drawRulers(
 			const bx = dimX - bw / 2;
 			const by = midY - bh / 2;
 
-			// Фон бейджа в кольорі лінійок замість чорного
+			// Badge background using ruler accent color
 			ctx.fillStyle = themeColors.badge;
 			ctx.setLineDash([]);
 			ctx.beginPath();
@@ -1621,7 +1619,7 @@ export function isPointInPolygon(pt: Point, poly: Point[]): boolean {
 	return inside;
 }
 
-//! Отримує ключові точки полігона/рамки штампа для перевірки потрапляння у виділення
+// Return key polygon/bounding points of a stamp for area selection hit-testing
 export function getStampBoundingPoints(
 	stamp: StampItem,
 	U: number,
@@ -1686,7 +1684,7 @@ export function getStampBoundingPoints(
 	];
 }
 
-//! Перевіряє, чи потрапляє штамп у виділення згідно з обраною формою та критерієм
+// Test whether a stamp falls within the active area selection shape and mode
 export function isStampInSelection(
 	stamp: StampItem,
 	shape: SelectionShape,
@@ -1779,7 +1777,7 @@ export function isStampInSelection(
 	}
 }
 
-//! Малювання інтерактивної рамки або контуру ласо під час виділення
+// Draw interactive marquee rectangle or lasso contour during area selection
 export function drawAreaSelectionOverlay(
 	ctx: CanvasRenderingContext2D,
 	shape: SelectionShape,
@@ -1844,7 +1842,7 @@ export function drawAreaSelectionOverlay(
 	ctx.restore();
 }
 
-//! Обчислює спільну габаритну рамку для списку виділених штампів
+// Compute combined bounding box for a group of selected stamps
 export function getMultiSelectionBounds(
 	stamps: StampItem[],
 	U: number,
@@ -1878,7 +1876,7 @@ export function getMultiSelectionBounds(
 	};
 }
 
-//! Малювання спільної пунктирної рамки для кількох виділених штампів
+// Draw shared dashed bounding box around multiple selected stamps
 export function drawMultiSelectionBox(
 	ctx: CanvasRenderingContext2D,
 	stamps: StampItem[],

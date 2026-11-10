@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Box, Button, Text, Title } from '@mantine/core';
+import { Box } from '@mantine/core';
+import clsx from 'clsx';
 import { FilePlus } from 'lucide-react';
 import { BrandLogo } from '@/components/common/brand-logo';
 import {
@@ -60,6 +61,7 @@ import {
 	isStampAttachedToRuler,
 	SnapGuide,
 } from '@/utils/canvas-renderer';
+import classes from './canvas-stage.module.css';
 
 interface CanvasStageProps {
 	currentMode: ToolMode;
@@ -131,7 +133,7 @@ export interface CanvasStageHandle {
 	) => void;
 }
 
-export const CanvasStage: React.FC<CanvasStageProps> = ({
+export function CanvasStage({
 	currentMode,
 	mainColor,
 	strokeColor,
@@ -172,7 +174,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	onResetCanvas,
 	onContentChange,
 	stageRef,
-}) => {
+}: CanvasStageProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -222,7 +224,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const dragOffsetRef = useRef<Point>({ x: 0, y: 0 });
 	const dragStartPtRef = useRef<Point | null>(null);
 	const dragMovedRef = useRef<boolean>(true);
-	const activeSnapGuideRef = useRef<SnapGuide | null>(null); //! Активна напрямна лінія для вирівнювання штампів
+	const activeSnapGuideRef = useRef<SnapGuide | null>(null); // Active smart alignment guide for stamps
 
 	// Shapes creation
 	const isCreatingShapeRef = useRef<boolean>(false);
@@ -372,7 +374,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			ctx.drawImage(bgCanvas, 0, 0);
 		}
 
-		//! Малюємо всі шари (штрихи та штампи) в порядку їх фактичного нанесення
+		// Draw all layers (strokes and stamps) in exact chronological order
 		if (layersRef.current.length === 0 && baseCanvas) {
 			ctx.drawImage(baseCanvas, 0, 0);
 		} else {
@@ -386,7 +388,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			});
 		}
 
-		//! Якщо активний новий штамп ще не закомічений у шари — малюємо його зверху
+		// If the active stamp is not yet committed into layers, draw it on top
 		if (
 			activeStampRef.current &&
 			!layersRef.current.some(
@@ -403,7 +405,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			);
 		}
 
-		//! Малюємо незавершені штрихи ручного малювання штампа
+		// Draw in-progress freehand stamp strokes
 		const inProgressPaths = [...accumulatedDrawingPathsRef.current];
 		if (isDrawingStampRef.current && currentDrawingPathRef.current.length > 0) {
 			inProgressPaths.push(currentDrawingPathRef.current);
@@ -464,7 +466,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			);
 		}
 
-		//! Малюємо спільну рамку групового виділення кількох об'єктів
+		// Draw bounding box for multi-selected stamps
 		if (selectedStampIdsRef.current.length > 1) {
 			const multiStamps = stampsListRef.current.filter((s) =>
 				selectedStampIdsRef.current.includes(s.id),
@@ -472,7 +474,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			drawMultiSelectionBox(ctx, multiStamps, uRef.current);
 		}
 
-		//! Малюємо рамку або контур ласо виділення області під час протягування
+		// Draw marquee rectangle or lasso selection path during drag
 		if (isAreaSelectingRef.current && areaSelectPointsRef.current.length >= 2) {
 			drawAreaSelectionOverlay(
 				ctx,
@@ -482,7 +484,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			);
 		}
 
-		//! Малюємо лінію розумного вирівнювання нот між лінійками
+		// Draw smart alignment guide between stamps on different rulers
 		if (activeSnapGuideRef.current) {
 			drawSmartGuide(ctx, activeSnapGuideRef.current, uRef.current);
 		}
@@ -528,7 +530,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 		const currentStack = historyStackRef.current.slice(0, historyStepRef.current + 1);
 
-		//! Перевіряємо, чи змінилися штрихові шари від останнього збереження
+		// Check if stroke layers changed since the last history snapshot
 		const strokesChanged = strokeRevisionRef.current !== lastSavedStrokeRevisionRef.current;
 		let layerSnapshots: CanvasLayerItem[];
 
@@ -555,7 +557,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			cachedLayerSnapshotsRef.current = layerSnapshots;
 			lastSavedStrokeRevisionRef.current = strokeRevisionRef.current;
 		} else {
-			//! Штрихи не змінювалися: перевикористовуємо кешовані штрихові шари для економії пам'яті
+			// Strokes unchanged: reuse cached stroke snapshots to save memory
 			layerSnapshots = layersRef.current.map((layer) => {
 				if (layer.type === 'stroke') {
 					const cached = cachedLayerSnapshotsRef.current?.find((c) => c.id === layer.id);
@@ -735,7 +737,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			let updatedCount = 0;
 			layersRef.current.forEach((layer) => {
 				if (layer.type === 'stamp' && getStampCategory(layer.stamp) === category) {
-					//! Якщо це фігури і передано конкретний тип — синхронізуємо тільки відповідний тип фігури
+					// When syncing shapes with a specific shapeType, only update matching shapes
 					if (
 						category === 'shapes' &&
 						shapeType &&
@@ -867,19 +869,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		const availableW = Math.max(300, container.clientWidth - 20);
 		const availableH = Math.max(300, container.clientHeight - 130);
 
-		// Пропорція стандартного аркуша A4: 1 : √2 (210 / 297 ≈ 0.707)
+		// Standard A4 sheet aspect ratio: 1 : sqrt(2) (210 / 297 ≈ 0.707)
 		const A4_ASPECT = 210 / 297;
 
 		let cssW = availableW;
 		let cssH = Math.round(cssW / A4_ASPECT);
 
-		// Якщо розрахована висота перевищує доступну висоту екрана, підганяємо по висоті
+		// Fit by height if calculated height exceeds available viewport height
 		if (cssH > availableH) {
 			cssH = availableH;
 			cssW = Math.round(cssH * A4_ASPECT);
 		}
 
-		//! Стандартизований буфер A4 (1240 × 1754 px) для ідеальної чіткості без зайвого навантаження пам'яті
+		// Standardized A4 buffer (1240 x 1754 px) for crisp rendering and balanced memory usage
 		initCanvas(DEFAULT_BLANK_WIDTH, DEFAULT_BLANK_HEIGHT, cssW, cssH);
 		onInitBlank();
 		render();
@@ -917,7 +919,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					const naturalW = img.naturalWidth || img.width;
 					const naturalH = img.naturalHeight || img.height;
 
-					//! 1. Якщо зображення менше за мінімальний стандарт (MIN_CANVAS_SIDE), підтягуємо роздільну здатність
+					// 1. Upscale images smaller than MIN_CANVAS_SIDE to preserve sharp vector/stamp rendering
 					let targetW = naturalW;
 					let targetH = naturalH;
 					const minSide = Math.min(naturalW, naturalH);
@@ -927,7 +929,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 						targetH = Math.round(naturalH * upscale);
 					}
 
-					//! 2. Обмежуємо максимальні габарити (2K / 4.5 Мп) для економії оперативної пам'яті
+					// 2. Cap maximum dimensions (2K / 4.5 MP) to bound memory usage
 					const maxSide = Math.max(targetW, targetH);
 					const downscale = Math.min(
 						1,
@@ -1037,68 +1039,54 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const base = baseCanvasRef.current;
 			if (!item || !base) return;
 
-			//! Скидаємо кеш штрихів при переході по історії
+			// Invalidate stroke cache when stepping through history
 			strokeRevisionRef.current++;
 			cachedLayerSnapshotsRef.current = null;
 			lastSavedStrokeRevisionRef.current = -1;
 
-			if (item.layers && item.layers.length > 0) {
-				layersRef.current = item.layers.map((l) => {
-					if (l.type === 'stroke') {
-						const sc = document.createElement('canvas');
-						sc.width = base.width;
-						sc.height = base.height;
-						if (l.imageData) {
-							sc.getContext('2d')?.putImageData(l.imageData, 0, 0);
-						} else if (l.strokeDataUrl) {
-							const img = new Image();
-							img.onload = () => {
-								sc.getContext('2d')?.drawImage(img, 0, 0);
-								render();
-							};
-							img.src = l.strokeDataUrl;
-						}
-						return {
-							type: 'stroke',
-							id: l.id,
-							canvas: sc,
-							strokeDataUrl: l.strokeDataUrl,
+			layersRef.current = item.layers.map((l) => {
+				if (l.type === 'stroke') {
+					const sc = document.createElement('canvas');
+					sc.width = base.width;
+					sc.height = base.height;
+					if (l.imageData) {
+						sc.getContext('2d')?.putImageData(l.imageData, 0, 0);
+					} else if (l.strokeDataUrl) {
+						const img = new Image();
+						img.onload = () => {
+							sc.getContext('2d')?.drawImage(img, 0, 0);
+							render();
 						};
+						img.src = l.strokeDataUrl;
 					}
 					return {
-						type: 'stamp',
+						type: 'stroke',
 						id: l.id,
-						stamp: JSON.parse(JSON.stringify(l.stamp)),
+						canvas: sc,
+						strokeDataUrl: l.strokeDataUrl,
 					};
-				});
+				}
+				return {
+					type: 'stamp',
+					id: l.id,
+					stamp: JSON.parse(JSON.stringify(l.stamp)),
+				};
+			});
 
-				const firstStroke = layersRef.current.find(
-					(l): l is { type: 'stroke'; id: string; canvas: HTMLCanvasElement } =>
-						l.type === 'stroke',
-				);
-				if (firstStroke) {
-					baseCanvasRef.current = firstStroke.canvas;
-				}
-				const lastLayer = layersRef.current[layersRef.current.length - 1];
-				activeStrokeCanvasRef.current =
-					lastLayer && lastLayer.type === 'stroke'
-						? lastLayer.canvas
-						: (firstStroke ? firstStroke.canvas : base);
-			} else {
-				const bctx = base.getContext('2d');
-				if (bctx && item.imageData) {
-					bctx.putImageData(item.imageData, 0, 0);
-				}
-				layersRef.current = [{ type: 'stroke', id: 'base', canvas: base }];
-				(item.stamps || []).forEach((st) => {
-					layersRef.current.push({
-						type: 'stamp',
-						id: st.id,
-						stamp: JSON.parse(JSON.stringify(st)),
-					});
-				});
-				activeStrokeCanvasRef.current = base;
+			const firstStroke = layersRef.current.find(
+				(l): l is { type: 'stroke'; id: string; canvas: HTMLCanvasElement } =>
+					l.type === 'stroke',
+			);
+			if (firstStroke) {
+				baseCanvasRef.current = firstStroke.canvas;
 			}
+			const lastLayer = layersRef.current[layersRef.current.length - 1];
+			activeStrokeCanvasRef.current =
+				lastLayer && lastLayer.type === 'stroke'
+					? lastLayer.canvas
+					: firstStroke
+						? firstStroke.canvas
+						: base;
 
 			stampsListRef.current = layersRef.current
 				.filter(
@@ -1107,7 +1095,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				)
 				.map((l) => l.stamp);
 
-			rulersListRef.current = item.rulers ? JSON.parse(JSON.stringify(item.rulers)) : [];
+			rulersListRef.current = JSON.parse(JSON.stringify(item.rulers));
 			activeStampRef.current = null;
 			activeRulerIdRef.current = null;
 			activeOrigRef.current = '';
@@ -1254,14 +1242,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const ctx = canvas.getContext('2d');
 			if (!ctx) return;
 
-			//! Якщо в режимі 'stamp' активний штамп з іншої категорії — знімаємо його активність
+			// Deselect active stamp in 'stamp' mode if it belongs to a different category
 			if (currentMode === 'stamp' && activeStampRef.current) {
 				if (getStampCategory(activeStampRef.current) !== stampCategory) {
 					commitActiveStamp(false);
 				}
 			}
 
-			//! Якщо в режимі 'stamp' активний штамп не відповідає поточному інструменту або формі — фіксуємо його
+			// Commit active stamp in 'stamp' mode if it does not match current category or shape type
 			if (
 				currentMode === 'stamp' &&
 				activeStampRef.current &&
@@ -1272,7 +1260,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				commitActiveStamp(false);
 			}
 
-			//! Якщо в режимі 'select' активний штамп не підпадає під фільтр — знімаємо його активність
+			// Deselect active stamp in 'select' mode if it does not match the active category filter
 			if (
 				currentMode === 'select' &&
 				selectFilterCategory !== 'all' &&
@@ -1313,7 +1301,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 
-			// 0.1. Resize handle click on active stamp (лівий або правий)
+			// 0.1. Resize handle click on active stamp (left or right)
 			if (active && resizeHandlesOn) {
 				const resizeSide = isPointInResizeHandle(pt, active, uRef.current, ctx);
 				if (resizeSide) {
@@ -1334,7 +1322,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				return;
 			}
 
-			// 2. Перетягування групи виділених елементів (за будь-яку точку всієї області прямокутника)
+			// 2. Drag multi-selected group of stamps by any point inside its bounding box
 			if (selectedStampIdsRef.current.length > 1) {
 				const selectedStamps = stampsListRef.current.filter((s) =>
 					selectedStampIdsRef.current.includes(s.id),
@@ -1370,7 +1358,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 
-			// 2.5. Перетягування активного штампа (за тіло або за всю область його прямокутної рамки)
+			// 2.5. Drag active stamp by its body or full bounding box
 			if (
 				active &&
 				(isPointInStamp(pt, active, uRef.current, ctx) ||
@@ -1385,11 +1373,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			for (let i = layersRef.current.length - 1; i >= 0; i--) {
 				const l = layersRef.current[i];
 				if (l.type === 'stamp') {
-					//! У режимі 'stamp' дозволяємо взаємодіяти тільки зі штампами поточної категорії
+					// In 'stamp' mode, only interact with stamps of the current category
 					if (currentMode === 'stamp' && getStampCategory(l.stamp) !== stampCategory) {
 						continue;
 					}
-					//! У режимі 'stamp' для фігур дозволяємо взаємодіяти тільки з фігурами активного типу (rect, circle, arrow)
+					// In 'stamp' mode for shapes, only interact with shapes of the active shapeType
 					if (
 						currentMode === 'stamp' &&
 						stampCategory === 'shapes' &&
@@ -1397,7 +1385,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					) {
 						continue;
 					}
-					//! У режимі 'select' з активним фільтром категорій — дозволяємо тільки обрану категорію
+					// In 'select' mode with an active category filter, only allow matching stamps
 					if (
 						currentMode === 'select' &&
 						selectFilterCategory !== 'all' &&
@@ -1445,7 +1433,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 			}
 
-			//! 3.5. Якщо ми в режимі 'select' (виділення/редагування) і клікнули мимо будь-якого об'єкта
+			// 3.5. Clicking empty space in 'select' mode starts area selection or clears active selection
 			if (currentMode === 'select') {
 				if (areaSelectEnabled) {
 					isAreaSelectingRef.current = true;
@@ -1454,14 +1442,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					dragMovedRef.current = false;
 					return;
 				}
-				//! Режим обведення вимкнено за замовчуванням — знімаємо активне виділення при кліку в пусте місце
+				// Area selection disabled: clear active selection when clicking empty canvas
 				selectedStampIdsRef.current = [];
 				onSelectedCountChange?.(0);
 				commitActiveStamp(false);
 				return;
 			}
 
-			//! 4. Якщо обрано режим малювання штампа
+			// 4. Freehand drawing stamp category
 			if (stampCategory === 'draw') {
 				if (drawDuplicateMode && active && active.isDrawing) {
 					commitActiveStamp(false);
@@ -1531,7 +1519,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					return;
 				}
 
-				//! Якщо таймер дебаунсу активний, скасовуємо його без фіналізації, щоб об'єднати штрихи
+				// Cancel active debounce timer without finalizing so consecutive strokes merge into one stamp
 				if (drawDebounceTimerRef.current) {
 					clearTimeout(drawDebounceTimerRef.current);
 					drawDebounceTimerRef.current = null;
@@ -1544,7 +1532,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				return;
 			}
 
-			//! 4.1. Якщо обрано категорію фігур
+			// 4.1. Geometric shapes stamp category
 			if (stampCategory === 'shapes') {
 				if (active && (active.category === 'shapes' || active.shapeType)) {
 					const shapeT = active.shapeType || 'rect';
@@ -1671,7 +1659,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				autoCountIndex: isAuto ? currentAutoCountIndex : undefined,
 				autoCountSeqId: isAuto ? currentAutoCountSeqId : undefined,
 			};
-			//! Гарантуємо, що новостворений штамп не виходить за межі полотна
+			// Ensure newly created stamp stays within canvas boundaries
 			const clamped = clampStampPosition(newStamp.x, newStamp.y, newStamp, uRef.current, ctx);
 			newStamp.x = clamped.x;
 			newStamp.y = clamped.y;
@@ -1846,13 +1834,13 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const active = activeStampRef.current;
 			if (!active) return;
 
-			//! 0. Обертання фігури навколо центру
+			// 0. Rotate shape around its center
 			if (isDraggingRotateRef.current) {
 				dragMovedRef.current = true;
 				const currentAngle = Math.atan2(pt.y - active.y, pt.x - active.x);
 				const delta = currentAngle - rotateStartAngleRef.current;
 				let angle = rotateInitialAngleRef.current + delta;
-				// Магнітне прилипання до 0°, 90°, 180°, 270°
+				// Magnetic snap to 0, 90, 180, 270 degrees
 				const snapAngles = [0, Math.PI / 2, Math.PI, -Math.PI / 2, -Math.PI, Math.PI * 2];
 				for (const sa of snapAngles) {
 					if (Math.abs(angle - sa) < (5 * Math.PI) / 180) {
@@ -1876,7 +1864,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				return;
 			}
 
-			//! 0.1. Зміна розміру фігури за кутові хендли (без зміни товщини ліній!)
+			// 0.1. Resize shape via corner handles without altering stroke width
 			if (isDraggingCornerRef.current) {
 				dragMovedRef.current = true;
 				const rot = active.rotation || 0;
@@ -1937,7 +1925,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			}
 
 			if (isDraggingResizeRef.current) {
-				//! Для стрілки переміщуємо хвіст (left) або вістря (right) напряму (без зміни товщини лінії!)
+				// For arrows, move tail (left) or head (right) directly without changing stroke width
 				if (active.shapeType === 'arrow') {
 					dragMovedRef.current = true;
 					const canvas = canvasRef.current;
@@ -1997,7 +1985,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					const canvasW = canvas.width;
 					const canvasH = canvas.height;
 
-					//! Перевіряємо чи рамка штампа/малюнка вміщується у межі канвасу
+					// Check whether stamp/drawing bounding box fits within canvas bounds
 					const doesFit = (s: number) => {
 						const testStamp: StampItem = { ...active, size: s };
 						const box = calculateStampBox(testStamp, uRef.current, ctx);
@@ -2023,7 +2011,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 				if (finalSize !== active.size) {
 					dragMovedRef.current = true;
-					//! Переносимо змінений штамп на найвищий рівень серед усіх шарів
+					// Bring resized stamp to top of layer stack
 					const idx = layersRef.current.findIndex((l) => l.type === 'stamp' && l.id === active.id);
 					if (idx !== -1 && idx !== layersRef.current.length - 1) {
 						const [layer] = layersRef.current.splice(idx, 1);
@@ -2071,7 +2059,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					return;
 				}
 				dragMovedRef.current = true;
-				//! Переносимо переміщений штамп на найвищий рівень серед усіх шарів
+				// Bring dragged stamp to top of layer stack
 				const idx = layersRef.current.findIndex((l) => l.type === 'stamp' && l.id === active.id);
 				if (idx !== -1 && idx !== layersRef.current.length - 1) {
 					const [layer] = layersRef.current.splice(idx, 1);
@@ -2097,7 +2085,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				const canvas = canvasRef.current;
 				const ctx = canvas?.getContext('2d');
 				if (ctx) {
-					//! Зрушуємо штамп на дельту переміщення хендлера та зупиняємо на межі полотна
+					// Shift stamp by handle drag delta and clamp within canvas boundaries
 					const h = getHandleCoords(active, uRef.current, ctx);
 					const dx = pt.x - dragOffsetRef.current.x - h.x;
 					const dy = pt.y - dragOffsetRef.current.y - h.y;
@@ -2189,7 +2177,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 	const pointerDown = useCallback(
 		(pt: Point) => {
 			if (currentMode === 'ruler') {
-				//! Якщо відображення лінійок вимкнено — блокуємо створення та редагування
+				// Block ruler creation and editing when ruler visibility is disabled
 				if (!rulersVisible) {
 					onNotify('Увімкніть відображення лінійок для їх редагування');
 					return;
@@ -2251,7 +2239,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				draggedStampIdsRef.current = [];
 
 				if (rulersLockEqualDistance && rulersListRef.current.length >= 3) {
-					//! При активній фіксації відстані автоматично перераховуємо відстані для всіх ліній
+					// Automatically redistribute rulers evenly when equal-distance lock is enabled
 					const sorted = [...rulersListRef.current].sort((a, b) => a.y - b.y);
 					const top = sorted[0].y;
 					const bottom = sorted[sorted.length - 1].y;
@@ -2280,7 +2268,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			isDrawingRef.current = true;
 			lastCoordsRef.current = pt;
 
-			//! Забезпечуємо шар для штрихів поверх попередніх штампів
+			// Ensure a stroke layer exists above any previously placed stamps
 			const lastLayer = layersRef.current[layersRef.current.length - 1];
 			let currentStrokeCanvas: HTMLCanvasElement;
 			if (lastLayer && lastLayer.type === 'stroke') {
@@ -2350,7 +2338,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 								const isBottom = ruler.id === sorted[sorted.length - 1].id;
 
 								if (isTop || isBottom) {
-									//! Переміщення крайньої лінійки: проміжні лінії автопідлаштовуються для однакової відстані
+									// Dragging an outer ruler: intermediate rulers adjust automatically to maintain equal spacing
 									ruler.y = newY;
 									const currentSorted = [...rulersListRef.current].sort((a, b) => a.y - b.y);
 									const topY = currentSorted[0].y;
@@ -2378,7 +2366,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 										r.y = targetY;
 									});
 								} else {
-									//! Переміщення внутрішньої лінійки: всі лінійки переміщуються разом із зафіксованою відстанню
+									// Dragging an inner ruler: all rulers translate together with locked spacing
 									rulersListRef.current.forEach((r) => {
 										if (r.id === ruler.id) {
 											r.y = newY;
@@ -2418,7 +2406,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 									}
 								}
 							} else {
-								//! Звичайний вільний режим переміщення окремої лінійки
+								// Standard free movement of a single ruler
 								ruler.y = newY;
 								if (rulersAttachContent && draggedStampIdsRef.current.length > 0) {
 									const ctx = canvas.getContext('2d');
@@ -2479,7 +2467,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				}
 				lastCoordsRef.current = finalPt;
 			} else if (currentMode === 'stamp' || currentMode === 'select') {
-				//! 0. Виділення області (рамка або ласо)
+				// 0. Area selection (marquee rectangle or lasso)
 				if (isAreaSelectingRef.current) {
 					dragMovedRef.current = true;
 					const shape = selectionShape || 'rect';
@@ -2493,7 +2481,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					return;
 				}
 
-				//! 0.1. Переміщення групи виділених елементів як єдиного жорсткого блоку
+				// 0.1. Move multi-selected stamps together as a rigid block
 				if (isDraggingMultiRef.current) {
 					dragMovedRef.current = true;
 					const start = multiDragStartPtRef.current;
@@ -2595,7 +2583,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			return;
 		}
 
-		//! Завершення виділення області (рамка або ласо)
+		// Finish area selection (marquee rectangle or lasso)
 		if (isAreaSelectingRef.current) {
 			isAreaSelectingRef.current = false;
 			const pts = [...areaSelectPointsRef.current];
@@ -2621,7 +2609,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				if (ctx) {
 					const matchedIds: string[] = [];
 					stampsListRef.current.forEach((st) => {
-						//! Враховуємо фільтр категорій інструмента виділення
+						// Respect active category filter in selection mode
 						if (
 							selectFilterCategory !== 'all' &&
 							getStampCategory(st) !== selectFilterCategory
@@ -2649,7 +2637,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					}
 				}
 			} else {
-				//! Простий клік без перетягування — знімаємо будь-яке виділення
+				// Simple click without drag clears any active selection
 				selectedStampIdsRef.current = [];
 				onSelectedCountChange?.(0);
 				commitActiveStamp(false);
@@ -2660,7 +2648,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			return;
 		}
 
-		//! Завершення переміщення групи виділених елементів
+		// Finish multi-selection group drag
 		if (isDraggingMultiRef.current) {
 			isDraggingMultiRef.current = false;
 			multiDragStartPtRef.current = null;
@@ -2689,7 +2677,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				const shapeH = (active.height || 0) * U;
 				const isTiny = isArrow ? arrowDist < 8 * U : Math.max(shapeW, shapeH) < 8 * U;
 
-				//! Якщо користувач просто клікнув без протягування — клонуємо попередню фігуру або застосовуємо розмір за замовчуванням
+				// If user clicked without dragging, clone previous shape preset or apply default dimensions
 				if (isTiny) {
 					const preset = lastShapePresetsRef.current[shape];
 					if (shape === 'arrow') {
@@ -2726,7 +2714,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					active.strokeWidth = currentSize;
 				}
 
-				// Оновлюємо пресет для наступного створення/клонування
+				// Update preset for subsequent shape creation/cloning
 				lastShapePresetsRef.current[shape] = {
 					shapeType: shape,
 					width: active.width || (shape === 'rect' ? 80 : 60),
@@ -2974,7 +2962,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			currentProjectIdRef.current = project.id;
 			currentProjectTitleRef.current = project.title;
 
-			//! Адаптуємо CSS розміри полотна до поточного контейнера, щоб не обрізалися краї на мобілці
+			// Fit CSS canvas dimensions to current container to prevent mobile clipping
 			const maxW = Math.max(280, container.clientWidth - 20);
 			const maxH = Math.max(280, container.clientHeight - 130);
 			let targetCssW = project.cssW;
@@ -3046,19 +3034,16 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			render();
 			onRulersCountChange?.(rulersListRef.current.length);
 
-			//! Якщо в проекті збережена історія undo/redo, відновлюємо її повністю
+			// Restore full undo/redo history if present in the project
 			if (project.history && project.history.length > 0) {
 				historyStackRef.current = project.history.map((item) => ({
-					stamps: item.stamps || [],
-					rulers: item.rulers || [],
-					layers: (item.layers || []).flatMap((l): CanvasLayerItem[] => {
+					stamps: item.stamps,
+					rulers: item.rulers,
+					layers: item.layers.map((l): CanvasLayerItem => {
 						if (l.type === 'stroke') {
-							return [{ type: 'stroke', id: l.id, strokeDataUrl: l.strokeDataUrl }];
+							return { type: 'stroke', id: l.id, strokeDataUrl: l.strokeDataUrl };
 						}
-						if (l.type === 'stamp' && l.stamp) {
-							return [{ type: 'stamp', id: l.id, stamp: l.stamp }];
-						}
-						return [];
+						return { type: 'stamp', id: l.id, stamp: l.stamp };
 					}),
 				}));
 				const restoredStep =
@@ -3182,7 +3167,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 						active.strokeWidth = sz;
 					}
 				}
-				// Не перезаписуємо текст штампа авторахунку наступним токеном патерну
+				// Do not overwrite auto-count stamp text with the next pattern token
 				if (txt !== undefined && !active.isAutoCount) {
 					active.text = txt;
 				}
@@ -3241,7 +3226,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		}
 	}, [currentMode, onRulersCountChange, scheduleRender]);
 
-	//! Скидаємо активний штамп, якщо його категорія не відповідає поточній у режимі 'stamp'
+	// Deselect active stamp if its category does not match the active category in 'stamp' mode
 	useEffect(() => {
 		if (currentMode === 'stamp' && activeStampRef.current) {
 			if (getStampCategory(activeStampRef.current) !== stampCategory) {
@@ -3250,7 +3235,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 		}
 	}, [commitActiveStamp, currentMode, stampCategory]);
 
-	//! Якщо змінили фільтр категорій у режимі 'select' — фільтруємо невідповідні виділення
+	// Filter out non-matching selections when category filter changes in 'select' mode
 	useEffect(() => {
 		if (currentMode === 'select' && selectFilterCategory !== 'all') {
 			if (
@@ -3613,9 +3598,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
 	return (
 		<Box component="main" id="canvas-container" ref={containerRef}>
-			<Box id="placeholder" className={hasCanvas ? 'hidden' : ''}>
-				<Box style={{ marginBottom: '1.25rem' }}>
-					<BrandLogo size={56} showBadge={true} showText={true} />
+			<Box id="placeholder" className={clsx(hasCanvas && 'hidden')}>
+				<Box className={classes.logoBox}>
+					<BrandLogo size="xl" showBadge={true} showText={true} />
 				</Box>
 				<h2>Нотний редактор</h2>
 				<p>Створіть чистий білий аркуш або відкрийте фото чи партитуру для розмітки</p>
@@ -3630,7 +3615,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				</button>
 			</Box>
 
-			<canvas id="editor-canvas" ref={canvasRef} className={!hasCanvas ? 'hidden' : ''} />
+			<canvas id="editor-canvas" ref={canvasRef} className={clsx(!hasCanvas && 'hidden')} />
 		</Box>
 	);
-};
+}
