@@ -1,11 +1,21 @@
 import { CSSVariablesResolver, MantineColorsTuple, createTheme } from '@mantine/core';
 import { AccentSkin, AppearanceConfig, DarkSurfaceTone, LightSurfaceTone } from '@/types/editor';
 
+export const APPEARANCE_STORAGE_KEY = 'notyka_appearance_v2';
+
 export const DEFAULT_APPEARANCE_CONFIG: AppearanceConfig = {
 	accentSkin: 'cobalt',
 	darkTone: 'obsidian',
 	lightTone: 'pure',
 };
+
+export const ACCENT_SKIN_ORDER: readonly AccentSkin[] = [
+	'cobalt',
+	'purple',
+	'lime',
+	'orange',
+	'amber',
+];
 
 // 10-shade Mantine palettes for Accent Skins
 export const ACCENT_PALETTES: Record<AccentSkin, MantineColorsTuple> = {
@@ -73,39 +83,56 @@ export const ACCENT_PALETTES: Record<AccentSkin, MantineColorsTuple> = {
 
 export const ACCENT_SKIN_METADATA: Record<
 	AccentSkin,
-	{ label: string; primaryHex: string; contrastHex: string; description: string }
+	{ label: string; shortLabel: string; primaryHex: string; contrastHex: string; description: string }
 > = {
 	orange: {
 		label: 'Teenage Orange',
+		shortLabel: 'Orange',
 		primaryHex: '#FF5500',
 		contrastHex: '#FFFFFF',
 		description: 'Культовий апаратний акцент Teenage Engineering',
 	},
 	cobalt: {
 		label: 'Cobalt Studio',
+		shortLabel: 'Cobalt',
 		primaryHex: '#2563EB',
 		contrastHex: '#FFFFFF',
 		description: 'Глибокий інженерний індиго-кобальт Bauhaus',
 	},
 	purple: {
 		label: 'Electric Purple',
+		shortLabel: 'Purple',
 		primaryHex: '#8B5CF6',
 		contrastHex: '#FFFFFF',
 		description: 'Енергійний студійний фіолетовий акцент',
 	},
 	lime: {
 		label: 'Acid Lime',
+		shortLabel: 'Lime',
 		primaryHex: '#84CC16',
 		contrastHex: '#0E1013',
 		description: 'Висококонтрастний студійний лайм Linear',
 	},
 	amber: {
 		label: 'Hardware Amber',
+		shortLabel: 'Amber',
 		primaryHex: '#F59E0B',
 		contrastHex: '#0E1013',
 		description: 'Теплий аналоговий індикатор апаратури',
 	},
 };
+
+//! Синхронний скрипт ініціалізації в `<head>`, згенерований з єдиного джерела істини `ACCENT_SKIN_METADATA`
+export const APPEARANCE_INIT_SCRIPT = `(function(){try{var raw=localStorage.getItem(${JSON.stringify(
+	APPEARANCE_STORAGE_KEY,
+)});if(!raw)return;var cfg=JSON.parse(raw);var skins=${JSON.stringify(
+	Object.fromEntries(
+		Object.entries(ACCENT_SKIN_METADATA).map(([k, v]) => [
+			k,
+			{ primary: v.primaryHex, contrast: v.contrastHex },
+		]),
+	),
+)};var s=cfg&&cfg.accentSkin&&skins[cfg.accentSkin];if(s){document.documentElement.style.setProperty('--accent',s.primary);document.documentElement.style.setProperty('--accent-contrast',s.contrast);document.documentElement.style.setProperty('--accent-text',s.primary);}}catch(e){}})();`;
 
 export const DARK_SURFACE_METADATA: Record<
 	DarkSurfaceTone,

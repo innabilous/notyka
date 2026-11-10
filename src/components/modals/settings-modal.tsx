@@ -39,22 +39,18 @@ import {
 	Type,
 } from 'lucide-react';
 import { useAppearance } from '@/theme/app-theme-provider';
-import { DEFAULT_APPEARANCE_CONFIG } from '@/theme/theme';
+import { ACCENT_SKIN_METADATA, ACCENT_SKIN_ORDER } from '@/theme/theme';
 import {
-	AccentSkin,
-	DarkSurfaceTone,
-	LightSurfaceTone,
 	StampCategory,
 	ToolMode,
+	isAccentSkin,
+	isDarkSurfaceTone,
+	isLightSurfaceTone,
 } from '@/types/editor';
 
-const ACCENT_SKINS: { id: AccentSkin; label: string; hex: string }[] = [
-	{ id: 'cobalt', label: 'Cobalt', hex: '#2563eb' },
-	{ id: 'purple', label: 'Purple', hex: '#8b5cf6' },
-	{ id: 'lime', label: 'Lime', hex: '#84cc16' },
-	{ id: 'orange', label: 'Orange', hex: '#ff5500' },
-	{ id: 'amber', label: 'Amber', hex: '#f59e0b' },
-];
+function isColorSchemeMode(val: string): val is 'dark' | 'light' | 'auto' {
+	return val === 'dark' || val === 'light' || val === 'auto';
+}
 
 interface SettingsModalProps {
 	opened: boolean;
@@ -147,7 +143,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							fullWidth
 							size="xs"
 							value={colorScheme}
-							onChange={(val) => setColorScheme(val as 'dark' | 'light' | 'auto')}
+							onChange={(val) => {
+								if (isColorSchemeMode(val)) setColorScheme(val);
+							}}
 							data={[
 								{
 									value: 'auto',
@@ -189,7 +187,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 									fullWidth
 									size="xs"
 									value={config.darkTone}
-									onChange={(val) => setDarkTone(val as DarkSurfaceTone)}
+									onChange={(val) => {
+										if (isDarkSurfaceTone(val)) setDarkTone(val);
+									}}
 									styles={{
 										root: { padding: 2 },
 										label: { padding: '4px 2px', fontSize: '11px' },
@@ -206,7 +206,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 									fullWidth
 									size="xs"
 									value={config.lightTone}
-									onChange={(val) => setLightTone(val as LightSurfaceTone)}
+									onChange={(val) => {
+										if (isLightSurfaceTone(val)) setLightTone(val);
+									}}
 									styles={{
 										root: { padding: 2 },
 										label: { padding: '4px 2px', fontSize: '11px' },
@@ -230,7 +232,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 								fullWidth
 								size="xs"
 								value={config.accentSkin}
-								onChange={(val) => setAccentSkin(val as AccentSkin)}
+								onChange={(val) => {
+									if (isAccentSkin(val)) setAccentSkin(val);
+								}}
 								styles={{
 									root: {
 										padding: 2,
@@ -239,32 +243,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 										padding: '4px 2px',
 									},
 								}}
-								data={ACCENT_SKINS.map((skin) => ({
-									value: skin.id,
-									label: (
-										<Stack gap={3} align="center" justify="center" style={{ minWidth: 0 }}>
-											<div
-												style={{
-													width: 8,
-													height: 8,
-													borderRadius: '50%',
-													background: skin.hex,
-													flexShrink: 0,
-												}}
-											/>
-											<span
-												style={{
-													fontSize: '10px',
-													lineHeight: 1,
-													fontWeight: 500,
-													whiteSpace: 'nowrap',
-												}}
-											>
-												{skin.label}
-											</span>
-										</Stack>
-									),
-								}))}
+								data={ACCENT_SKIN_ORDER.map((skinId) => {
+									const meta = ACCENT_SKIN_METADATA[skinId];
+									return {
+										value: skinId,
+										label: (
+											<Stack gap={3} align="center" justify="center" style={{ minWidth: 0 }}>
+												<div
+													style={{
+														width: 8,
+														height: 8,
+														borderRadius: '50%',
+														background: meta.primaryHex,
+														flexShrink: 0,
+													}}
+												/>
+												<span
+													style={{
+														fontSize: '10px',
+														lineHeight: 1,
+														fontWeight: 500,
+														whiteSpace: 'nowrap',
+													}}
+												>
+													{meta.shortLabel}
+												</span>
+											</Stack>
+										),
+									};
+								})}
 							/>
 						</Stack>
 					</Stack>

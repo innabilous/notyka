@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { ColorSchemeScript, mantineHtmlProps } from '@mantine/core';
 import { AppThemeProvider } from '@/theme/app-theme-provider';
+import { APPEARANCE_INIT_SCRIPT } from '@/theme/theme';
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
 import './globals.css';
@@ -30,27 +31,7 @@ export default function RootLayout({
 				<script
 					id="notyka-appearance-init"
 					dangerouslySetInnerHTML={{
-						__html: `(function(){
-	try {
-		var raw = localStorage.getItem('notyka_appearance_v2');
-		if (!raw) return;
-		var cfg = JSON.parse(raw);
-		var skins = {
-			orange: '#FF5500',
-			cobalt: '#2563EB',
-			purple: '#8B5CF6',
-			lime: '#84CC16',
-			amber: '#F59E0B'
-		};
-		if (cfg && cfg.accentSkin && skins[cfg.accentSkin]) {
-			var primary = skins[cfg.accentSkin];
-			var contrast = (cfg.accentSkin === 'lime' || cfg.accentSkin === 'amber') ? '#0E1013' : '#FFFFFF';
-			document.documentElement.style.setProperty('--accent', primary);
-			document.documentElement.style.setProperty('--accent-contrast', contrast);
-			document.documentElement.style.setProperty('--accent-text', primary);
-		}
-	} catch(e) {}
-})();`,
+						__html: APPEARANCE_INIT_SCRIPT,
 					}}
 				/>
 			</head>

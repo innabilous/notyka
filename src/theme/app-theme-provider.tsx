@@ -4,13 +4,36 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import {
+	APPEARANCE_STORAGE_KEY,
 	DEFAULT_APPEARANCE_CONFIG,
 	createNotykaCssVariablesResolver,
 	createNotykaTheme,
 } from '@/theme/theme';
-import { AccentSkin, AppearanceConfig, DarkSurfaceTone, LightSurfaceTone } from '@/types/editor';
+import {
+	AccentSkin,
+	AppearanceConfig,
+	DarkSurfaceTone,
+	LightSurfaceTone,
+	isAccentSkin,
+	isDarkSurfaceTone,
+	isLightSurfaceTone,
+} from '@/types/editor';
 
-const STORAGE_KEY = 'notyka_appearance_v2';
+//! Чиста функція парсингу конфігурації на границі `localStorage` без `as`
+function parseAppearanceConfig(raw: string, fallback: AppearanceConfig): AppearanceConfig {
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		if (!parsed || typeof parsed !== 'object') return fallback;
+		const rec: Record<string, unknown> = Object.fromEntries(Object.entries(parsed));
+		return {
+			accentSkin: isAccentSkin(rec.accentSkin) ? rec.accentSkin : fallback.accentSkin,
+			darkTone: isDarkSurfaceTone(rec.darkTone) ? rec.darkTone : fallback.darkTone,
+			lightTone: isLightSurfaceTone(rec.lightTone) ? rec.lightTone : fallback.lightTone,
+		};
+	} catch {
+		return fallback;
+	}
+}
 
 interface AppearanceContextValue {
 	config: AppearanceConfig;
@@ -37,35 +60,9 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 	// Load stored appearance configuration
 	useEffect(() => {
 		try {
-			const saved = localStorage.getItem(STORAGE_KEY);
+			const saved = localStorage.getItem(APPEARANCE_STORAGE_KEY);
 			if (saved) {
-				const parsed = JSON.parse(saved) as Partial<AppearanceConfig>;
-				if (parsed && typeof parsed === 'object') {
-					setConfigState((prev) => ({
-						accentSkin:
-							parsed.accentSkin === 'orange' ||
-							parsed.accentSkin === 'cobalt' ||
-							parsed.accentSkin === 'purple' ||
-							parsed.accentSkin === 'lime' ||
-							parsed.accentSkin === 'amber'
-								? parsed.accentSkin
-								: prev.accentSkin,
-						darkTone:
-							parsed.darkTone === 'oled' ||
-							parsed.darkTone === 'obsidian' ||
-							parsed.darkTone === 'carbon' ||
-							parsed.darkTone === 'tinted'
-								? parsed.darkTone
-								: prev.darkTone,
-						lightTone:
-							parsed.lightTone === 'pure' ||
-							parsed.lightTone === 'anodized' ||
-							parsed.lightTone === 'cotton' ||
-							parsed.lightTone === 'tinted'
-								? parsed.lightTone
-								: prev.lightTone,
-					}));
-				}
+				setConfigState((prev) => parseAppearanceConfig(saved, prev));
 			}
 		} catch {
 			// Ignore localStorage parsing errors
@@ -75,7 +72,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 	const setConfig = (newConfig: AppearanceConfig) => {
 		setConfigState(newConfig);
 		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(newConfig));
+			localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(newConfig));
 		} catch {
 			// Ignore quota errors
 		}
@@ -96,7 +93,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 	const resetAppearance = () => {
 		setConfigState(DEFAULT_APPEARANCE_CONFIG);
 		try {
-			localStorage.removeItem(STORAGE_KEY);
+			localStorage.removeItem(APPEARANCE_STORAGE_KEY);
 			localStorage.removeItem('mantine-color-scheme-value');
 		} catch {
 			// Ignore
