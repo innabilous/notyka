@@ -112,7 +112,7 @@ export const PhotoEditor: React.FC = () => {
 
 	const [selectedNote, setSelectedNote] = useState<string>('До');
 	const [selectedAccidental, setSelectedAccidental] = useState<string>('');
-	const [selectedChordRoot, setSelectedChordRoot] = useState<string>('C');
+	const [selectedChordRoot, setSelectedChordRoot] = useState<string>('A');
 	const [selectedChordAccidental, setSelectedChordAccidental] = useState<string>('');
 	const [selectedChordModifier, setSelectedChordModifier] = useState<string>('');
 	const [selectedChordSlash, setSelectedChordSlash] = useState<boolean>(false);
@@ -1896,7 +1896,7 @@ export const PhotoEditor: React.FC = () => {
 		});
 		setSelectedNote('До');
 		setSelectedAccidental('');
-		setSelectedChordRoot('C');
+		setSelectedChordRoot('A');
 		setSelectedChordAccidental('');
 		setSelectedChordModifier('');
 		setSelectedChordSlash(false);
@@ -1905,6 +1905,9 @@ export const PhotoEditor: React.FC = () => {
 		setStampBadgeMode(false);
 		setActiveStampText('До');
 		setStampCategory('notes');
+		setSelectedCount('1');
+		setSelectedStepIndex(0);
+		setAutoCountIndex(0);
 		setSizeLocked(true);
 		setNoteSizes({});
 		setRulersVisible(true);
