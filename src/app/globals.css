@@ -569,6 +569,16 @@ footer {
 	box-shadow: none;
 }
 
+.ruler-setting-btn.ruler-clear-btn {
+	background: var(--danger-subtle);
+	color: var(--danger);
+}
+
+.ruler-setting-btn.ruler-clear-btn:hover:not(:disabled) {
+	background: var(--danger-subtle-hover);
+	color: var(--danger-hover);
+}
+
 .ruler-setting-btn .icon {
 	width: 0.85rem;
 	height: 0.85rem;
@@ -714,9 +724,45 @@ footer {
 	flex-shrink: 0;
 }
 
+#select-settings .mantine-SegmentedControl-root {
+	background: var(--panel-2);
+	border-radius: 12px;
+	padding: 2px;
+	border: none;
+	height: 1.85rem;
+}
+
+#select-settings .mantine-SegmentedControl-indicator {
+	background: var(--accent);
+	border-radius: 10px;
+	box-shadow: none;
+}
+
+#select-settings .mantine-SegmentedControl-label {
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	font-weight: 500;
+	padding: 0 0.55rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: calc(1.85rem - 4px);
+	transition: color 0.12s ease;
+}
+
+#select-settings .mantine-SegmentedControl-label[data-active] {
+	color: var(--accent-contrast);
+	font-weight: 600;
+}
+
 @media (max-width: 640px) {
-	.select-setting-btn span.btn-label {
+	.select-setting-btn span.btn-label,
+	#select-settings .btn-label {
 		display: none;
+	}
+
+	#select-settings .mantine-SegmentedControl-label {
+		padding: 0 0.35rem;
 	}
 
 	.select-setting-btn {
