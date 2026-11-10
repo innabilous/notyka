@@ -1,3 +1,27 @@
+:root {
+	/* Centralized UI Design Tokens */
+	--control-height-xs: 1.65rem;
+	--control-height-sm: 1.85rem;
+	--control-height-md: 2.15rem;
+	--control-height-lg: 2.5rem;
+	--control-height-xl: 3rem;
+
+	--radius-xs: 6px;
+	--radius-sm: 8px;
+	--radius-md: 10px;
+	--radius-lg: 12px;
+	--radius-xl: 16px;
+	--radius-panel: 20px;
+	--radius-toolbar: 24px;
+	--radius-pill: 9999px;
+
+	--icon-size-xs: 0.75rem;
+	--icon-size-sm: 0.9rem;
+	--icon-size-md: 1.15rem;
+	--icon-size-lg: 1.25rem;
+	--icon-size-xl: 1.4rem;
+}
+
 :root,
 [data-mantine-color-scheme='dark'] {
 	/* Notyka Studio hardware surface (OLED Obsidian default) */
@@ -179,7 +203,7 @@ button {
 	height: 4rem;
 }
 
-/* Полотно */
+/* Canvas stage */
 #canvas-container {
 	position: relative;
 	flex: 1;
@@ -264,25 +288,121 @@ button {
 	transform: scale(0.97);
 }
 
-/* Попапи */
+/* Popups */
 .popup {
 	position: absolute;
 	bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
 	background: var(--popup-bg);
 	color: var(--text);
 	border: none;
-	border-radius: 20px;
+	border-radius: var(--radius-panel);
 	box-shadow: none;
 	z-index: 30;
 }
 
-/* Модальні вікна: картки та списки */
+/* Global Mantine component overrides */
+.mantine-Modal-content {
+	background: var(--panel) !important;
+	border: none !important;
+	box-shadow: none !important;
+}
+
+.mantine-Modal-header {
+	background: var(--panel) !important;
+	border-bottom: none !important;
+	padding: 14px 18px !important;
+}
+
+.mantine-Modal-body {
+	padding: 16px 18px !important;
+}
+
 .mantine-Modal-content .mantine-Paper-root {
 	background: var(--panel-2);
 	border: none !important;
-	border-radius: 16px;
+	border-radius: var(--radius-xl);
 	box-shadow: none !important;
 	transition: background 0.15s ease;
+}
+
+.mantine-Button-root,
+.mantine-ActionIcon-root,
+.mantine-Badge-root,
+.mantine-Paper-root,
+.mantine-Card-root {
+	border: none;
+}
+
+.mantine-SegmentedControl-root {
+	border-radius: 14px;
+	border: none;
+	background: var(--panel-2);
+	padding: 3px;
+}
+
+.mantine-SegmentedControl-indicator {
+	border-radius: var(--radius-lg);
+	box-shadow: none;
+}
+
+.mantine-Switch-root {
+	--switch-width-xs: 32px;
+	--switch-height-xs: 18px;
+	--switch-thumb-size-xs: 14px;
+	--switch-track-label-padding-xs: 2px;
+	--switch-width-sm: 38px;
+	--switch-height-sm: 22px;
+	--switch-thumb-size-sm: 16px;
+	--switch-track-label-padding-sm: 3px;
+}
+
+.mantine-Switch-track {
+	border-radius: var(--radius-pill);
+	border: none;
+	cursor: pointer;
+}
+
+.mantine-Switch-thumb {
+	border-radius: 50%;
+	border: none;
+	background: #ffffff;
+	box-shadow: none;
+}
+
+.mantine-Popover-dropdown,
+.mantine-Menu-dropdown {
+	border: none;
+	border-radius: var(--radius-xl);
+	background: var(--popup-bg);
+	box-shadow: none;
+}
+
+.mantine-Divider-root {
+	border-color: var(--line);
+}
+
+.mantine-Tooltip-tooltip {
+	border-radius: var(--radius-sm);
+	border: none;
+	background: var(--panel-3);
+	color: var(--text);
+	font-size: 0.75rem;
+}
+
+.mantine-TextInput-input,
+.mantine-Textarea-input,
+.mantine-Select-input,
+.mantine-NumberInput-input {
+	border-radius: var(--radius-lg);
+	border: none;
+	background: var(--panel-2);
+	color: var(--text);
+}
+
+.mantine-Select-dropdown {
+	border-radius: 14px;
+	border: none;
+	background: var(--popup-bg);
 }
 
 .menu-backdrop {
@@ -370,7 +490,7 @@ button {
 	box-shadow: none;
 }
 
-/* Верхня панель: накладена на полотно, чистий плоский утилітарний стиль */
+/* Top bar: overlaid on canvas, flat utility style */
 #top-bar {
 	position: absolute;
 	top: 0;
@@ -440,7 +560,7 @@ button {
 	pointer-events: none;
 }
 
-/* Нижня панель: контейнер на всю ширину з самого низу */
+/* Bottom footer container */
 footer {
 	position: absolute;
 	bottom: 0;
@@ -471,7 +591,7 @@ footer {
 	font-size: 0.75rem;
 }
 
-/* Кнопка очищення лінійок у центрі топбару */
+/* Clear rulers button in top bar center */
 #ruler-top-bar-action {
 	display: flex;
 	align-items: center;
@@ -516,7 +636,7 @@ footer {
 	height: 0.85rem;
 }
 
-/* Спливаюча нижня панель лінійок у 2 колонки */
+/* Floating 2-column bottom ruler settings panel */
 #ruler-settings {
 	pointer-events: auto;
 	display: grid;
@@ -591,7 +711,7 @@ footer {
 	white-space: nowrap;
 }
 
-/* Компактний вигляд лінійок у топбарі (опція в налаштуваннях) */
+/* Compact ruler settings in top bar */
 #ruler-settings.compact {
 	display: flex;
 	align-items: center;
@@ -636,7 +756,7 @@ footer {
 	}
 }
 
-/* Налаштування інструменту виділення у топбарі */
+/* Select tool settings in top bar */
 #select-settings {
 	display: flex;
 	align-items: center;
@@ -889,7 +1009,7 @@ footer {
 	opacity: 0.85;
 }
 
-/* Бічний слайдер розміру (відкривається по кліку на цифру) */
+/* Side size slider (opened on size value click) */
 #side-size-slider {
 	position: fixed;
 	left: 0.65rem;
@@ -1118,7 +1238,7 @@ footer {
 	pointer-events: none !important;
 }
 
-/* Прибираємо вертикальні розділювачі всередині SegmentedControl */
+/* Hide internal dividers in SegmentedControl */
 .mantine-SegmentedControl-root::before,
 .mantine-SegmentedControl-root *::before,
 .mantine-SegmentedControl-root *::after,
@@ -1130,7 +1250,7 @@ footer {
 	background-color: transparent !important;
 }
 
-/* Прибираємо внутрішній кружечок та тіні у тоглах Mantine Switch */
+/* Remove inner dot and shadows in Mantine Switch thumb */
 .mantine-Switch-thumb::before,
 .mantine-Switch-thumb *::before {
 	display: none !important;
@@ -1890,7 +2010,7 @@ footer {
 	opacity: 0.25;
 }
 
-/* Тост */
+/* Toast notification */
 #toast {
 	position: fixed;
 	top: 1.5rem;

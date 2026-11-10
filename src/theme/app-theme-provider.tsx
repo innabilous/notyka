@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
+import { AppearanceConfigSchema } from '@/schemas/editor';
 import {
 	APPEARANCE_STORAGE_KEY,
 	DEFAULT_APPEARANCE_CONFIG,
@@ -19,10 +20,17 @@ import {
 	isLightSurfaceTone,
 } from '@/types/editor';
 
-//! Чиста функція парсингу конфігурації на границі `localStorage` без `as`
-function parseAppearanceConfig(raw: string, fallback: AppearanceConfig): AppearanceConfig {
+// Validate and parse appearance configuration from `localStorage` using Zod
+export function parseAppearanceConfig(
+	raw: string,
+	fallback: AppearanceConfig = DEFAULT_APPEARANCE_CONFIG,
+): AppearanceConfig {
 	try {
 		const parsed: unknown = JSON.parse(raw);
+		const fullCheck = AppearanceConfigSchema.safeParse(parsed);
+		if (fullCheck.success) {
+			return fullCheck.data;
+		}
 		if (!parsed || typeof parsed !== 'object') return fallback;
 		const rec: Record<string, unknown> = Object.fromEntries(Object.entries(parsed));
 		return {
@@ -57,7 +65,7 @@ export function useAppearance(): AppearanceContextValue {
 export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 	const [config, setConfigState] = useState<AppearanceConfig>(DEFAULT_APPEARANCE_CONFIG);
 
-	// Load stored appearance configuration
+	// Load stored appearance configuration on mount
 	useEffect(() => {
 		try {
 			const saved = localStorage.getItem(APPEARANCE_STORAGE_KEY);
@@ -69,28 +77,37 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 		}
 	}, []);
 
-	const setConfig = (newConfig: AppearanceConfig) => {
+	const setConfig = useCallback((newConfig: AppearanceConfig) => {
 		setConfigState(newConfig);
 		try {
 			localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(newConfig));
 		} catch {
 			// Ignore quota errors
 		}
-	};
+	}, []);
 
-	const setAccentSkin = (accentSkin: AccentSkin) => {
-		setConfig({ ...config, accentSkin });
-	};
+	const setAccentSkin = useCallback(
+		(accentSkin: AccentSkin) => {
+			setConfig({ ...config, accentSkin });
+		},
+		[config, setConfig],
+	);
 
-	const setDarkTone = (darkTone: DarkSurfaceTone) => {
-		setConfig({ ...config, darkTone });
-	};
+	const setDarkTone = useCallback(
+		(darkTone: DarkSurfaceTone) => {
+			setConfig({ ...config, darkTone });
+		},
+		[config, setConfig],
+	);
 
-	const setLightTone = (lightTone: LightSurfaceTone) => {
-		setConfig({ ...config, lightTone });
-	};
+	const setLightTone = useCallback(
+		(lightTone: LightSurfaceTone) => {
+			setConfig({ ...config, lightTone });
+		},
+		[config, setConfig],
+	);
 
-	const resetAppearance = () => {
+	const resetAppearance = useCallback(() => {
 		setConfigState(DEFAULT_APPEARANCE_CONFIG);
 		try {
 			localStorage.removeItem(APPEARANCE_STORAGE_KEY);
@@ -98,7 +115,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 		} catch {
 			// Ignore
 		}
-	};
+	}, []);
 
 	const theme = useMemo(() => createNotykaTheme(config), [config]);
 	const cssVariablesResolver = useMemo(() => createNotykaCssVariablesResolver(config), [config]);
@@ -112,7 +129,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 			setConfig,
 			resetAppearance,
 		}),
-		[config]
+		[config, resetAppearance, setAccentSkin, setConfig, setDarkTone, setLightTone],
 	);
 
 	return (

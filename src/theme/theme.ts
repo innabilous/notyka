@@ -122,7 +122,7 @@ export const ACCENT_SKIN_METADATA: Record<
 	},
 };
 
-//! Синхронний скрипт ініціалізації в `<head>`, згенерований з єдиного джерела істини `ACCENT_SKIN_METADATA`
+// Synchronous `<head>` script generated from `ACCENT_SKIN_METADATA` single source of truth
 export const APPEARANCE_INIT_SCRIPT = `(function(){try{var raw=localStorage.getItem(${JSON.stringify(
 	APPEARANCE_STORAGE_KEY,
 )});if(!raw)return;var cfg=JSON.parse(raw);var skins=${JSON.stringify(
@@ -194,8 +194,8 @@ export const LIGHT_SURFACE_METADATA: Record<
 	},
 };
 
-export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_CONFIG) => {
-	const activeSkin = config.accentSkin || 'orange';
+export function createNotykaTheme(config: AppearanceConfig = DEFAULT_APPEARANCE_CONFIG) {
+	const activeSkin = config.accentSkin || 'cobalt';
 
 	return createTheme({
 		primaryColor: activeSkin,
@@ -222,7 +222,7 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 		},
 		colors: {
 			...ACCENT_PALETTES,
-			// Підтримка legacy-коду, що може посилатися на sky
+			// Cobalt alias for Mantine components
 			sky: ACCENT_PALETTES.cobalt,
 			red: [
 				'#fef2f2',
@@ -242,7 +242,7 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 				'#9ea4b0', // 2: muted labels
 				'#6b7382', // 3: subtle text / dim
 				'#3b404a', // 4: simple border
-				'#383e4a', // 5: Slate card / active element (підвищений контраст)
+				'#383e4a', // 5: Slate card / active element (elevated contrast)
 				'#24272d', // 6: elevated panel / control background
 				'#1c1e22', // 7: panel / card surface
 				'#15171a', // 8: organic matte dark charcoal
@@ -256,22 +256,12 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 					radius: 'md',
 					size: 'xs',
 				},
-				styles: {
-					root: {
-						border: 'none',
-					},
-				},
 			},
 			ActionIcon: {
 				defaultProps: {
 					radius: 'md',
 					size: 'sm',
 					variant: 'subtle',
-				},
-				styles: {
-					root: {
-						border: 'none',
-					},
 				},
 			},
 			Modal: {
@@ -283,21 +273,6 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 						blur: 0,
 					},
 				},
-				styles: {
-					content: {
-						background: 'var(--panel)',
-						border: 'none',
-						boxShadow: 'none',
-					},
-					header: {
-						background: 'var(--panel)',
-						borderBottom: 'none',
-						padding: '14px 18px',
-					},
-					body: {
-						padding: '16px 18px',
-					},
-				},
 			},
 			SegmentedControl: {
 				defaultProps: {
@@ -305,46 +280,11 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 					size: 'xs',
 					withItemsBorders: false,
 				},
-				styles: {
-					root: {
-						borderRadius: '14px',
-						border: 'none',
-						background: 'var(--panel-2)',
-						padding: '3px',
-					},
-					indicator: {
-						borderRadius: '12px',
-						boxShadow: 'none',
-					},
-				},
 			},
 			Switch: {
 				defaultProps: {
 					radius: 'xl',
 					size: 'sm',
-				},
-				styles: {
-					root: {
-						'--switch-width-xs': '32px',
-						'--switch-height-xs': '18px',
-						'--switch-thumb-size-xs': '14px',
-						'--switch-track-label-padding-xs': '2px',
-						'--switch-width-sm': '38px',
-						'--switch-height-sm': '22px',
-						'--switch-thumb-size-sm': '16px',
-						'--switch-track-label-padding-sm': '3px',
-					},
-					track: {
-						borderRadius: '9999px',
-						border: 'none',
-						cursor: 'pointer',
-					},
-					thumb: {
-						borderRadius: '50%',
-						border: 'none',
-						background: '#ffffff',
-						boxShadow: 'none',
-					},
 				},
 			},
 			Badge: {
@@ -352,30 +292,15 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 					radius: 'xl',
 					size: 'xs',
 				},
-				styles: {
-					root: {
-						border: 'none',
-					},
-				},
 			},
 			Paper: {
 				defaultProps: {
 					radius: 'lg',
 				},
-				styles: {
-					root: {
-						border: 'none',
-					},
-				},
 			},
 			Card: {
 				defaultProps: {
 					radius: 'lg',
-				},
-				styles: {
-					root: {
-						border: 'none',
-					},
 				},
 			},
 			Popover: {
@@ -383,63 +308,22 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 					radius: 'lg',
 					shadow: 'none',
 				},
-				styles: {
-					dropdown: {
-						border: 'none',
-						borderRadius: '16px',
-						background: 'var(--popup-bg)',
-						boxShadow: 'none',
-					},
-				},
 			},
 			Menu: {
 				defaultProps: {
 					radius: 'lg',
 					shadow: 'none',
 				},
-				styles: {
-					dropdown: {
-						border: 'none',
-						borderRadius: '16px',
-						background: 'var(--popup-bg)',
-						padding: '4px',
-						boxShadow: 'none',
-					},
-					item: {
-						borderRadius: '12px',
-					},
-				},
 			},
 			NavLink: {
 				defaultProps: {
 					radius: 'md',
-				},
-				styles: {
-					root: {
-						borderRadius: '12px',
-					},
-				},
-			},
-			Divider: {
-				styles: {
-					root: {
-						borderColor: 'var(--line)',
-					},
 				},
 			},
 			Tooltip: {
 				defaultProps: {
 					radius: 'md',
 					withArrow: true,
-				},
-				styles: {
-					tooltip: {
-						borderRadius: '8px',
-						border: 'none',
-						background: 'var(--panel-3)',
-						color: 'var(--text)',
-						fontSize: '0.75rem',
-					},
 				},
 			},
 			Slider: {
@@ -452,27 +336,11 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 					radius: 'md',
 					variant: 'filled',
 				},
-				styles: {
-					input: {
-						borderRadius: '12px',
-						border: 'none',
-						background: 'var(--panel-2)',
-						color: 'var(--text)',
-					},
-				},
 			},
 			Textarea: {
 				defaultProps: {
 					radius: 'md',
 					variant: 'filled',
-				},
-				styles: {
-					input: {
-						borderRadius: '12px',
-						border: 'none',
-						background: 'var(--panel-2)',
-						color: 'var(--text)',
-					},
 				},
 			},
 			Select: {
@@ -480,46 +348,25 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 					radius: 'md',
 					variant: 'filled',
 				},
-				styles: {
-					input: {
-						borderRadius: '12px',
-						border: 'none',
-						background: 'var(--panel-2)',
-						color: 'var(--text)',
-					},
-					dropdown: {
-						borderRadius: '14px',
-						border: 'none',
-						background: 'var(--popup-bg)',
-					},
-				},
 			},
 			NumberInput: {
 				defaultProps: {
 					radius: 'md',
 					variant: 'filled',
 				},
-				styles: {
-					input: {
-						borderRadius: '12px',
-						border: 'none',
-						background: 'var(--panel-2)',
-						color: 'var(--text)',
-					},
-				},
 			},
 		},
 	});
-};
+}
 
-export const createNotykaCssVariablesResolver = (
+export function createNotykaCssVariablesResolver(
 	config: AppearanceConfig = DEFAULT_APPEARANCE_CONFIG,
-): CSSVariablesResolver => {
-	const activeSkin = config.accentSkin || 'orange';
-	const darkTone = config.darkTone || 'carbon';
-	const lightTone = config.lightTone || 'cotton';
+): CSSVariablesResolver {
+	const activeSkin = config.accentSkin || 'cobalt';
+	const darkTone = config.darkTone || 'obsidian';
+	const lightTone = config.lightTone || 'pure';
 
-	const skinMeta = ACCENT_SKIN_METADATA[activeSkin] ?? ACCENT_SKIN_METADATA.orange;
+	const skinMeta = ACCENT_SKIN_METADATA[activeSkin] ?? ACCENT_SKIN_METADATA.cobalt;
 
 	// Dark tone variables
 	const darkSurfaces = (() => {
@@ -734,7 +581,7 @@ export const createNotykaCssVariablesResolver = (
 			'--segmented-active-color': '#0e1013',
 		},
 	});
-};
+}
 
 export const theme = createNotykaTheme(DEFAULT_APPEARANCE_CONFIG);
 export const cssVariablesResolver = createNotykaCssVariablesResolver(DEFAULT_APPEARANCE_CONFIG);
