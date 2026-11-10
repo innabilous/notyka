@@ -57,7 +57,7 @@ export const COUNT_ITEMS: readonly string[] = [
 	'на',
 ];
 
-//! Стандартний 16-кроковий патерн для авторахунку (1, 2, 3, 4 на сильних долях з пропусками)
+// Default 16-step auto-count pattern (1, 2, 3, 4 on downbeats with empty sub-steps)
 export const DEFAULT_COUNT_PATTERN: readonly string[] = [
 	'1', '', '', '',
 	'2', '', '', '',
@@ -118,10 +118,10 @@ export const PALETTE_COLORS: readonly string[] = [
 
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 8;
-export const MAX_PIXELS = 4.5e6; //! Максимум ~4.5 Мп (пам'ять < 20 МБ, запобігає крашам Safari)
-export const MAX_SIDE = 2048; //! Максимум 2048 px (2K ліміт для фото з камери)
-export const MIN_CANVAS_SIDE = 1000; //! Мінімальний розмір меншої сторони для імпортованих фото (усуває розмиття нот на 400-600px)
-export const DEFAULT_BLANK_WIDTH = 1240; //! Стандартний розмір аркуша A4 (1240 × 1754, ~2.1 Мп, легкий та чіткий)
+export const MAX_PIXELS = 4.5e6; // ~4.5 MP cap (< 20 MB memory budget to prevent mobile Safari canvas crashes)
+export const MAX_SIDE = 2048; // 2048 px max side (2K cap for camera photos)
+export const MIN_CANVAS_SIDE = 1000; // Minimum shorter side for imported photos to prevent blurry stamp text
+export const DEFAULT_BLANK_WIDTH = 1240; // Standard A4 sheet resolution (1240 × 1754, ~2.1 MP)
 export const DEFAULT_BLANK_HEIGHT = 1754;
 export const DRAG_SLOP = 8;
 export const SMOOTH = 0.35;

@@ -1,3 +1,4 @@
+import { EditorSettingsSchema, ProjectItemSchema } from '@/schemas/editor';
 import { EditorSettings, ProjectItem } from '@/types/storage';
 
 const DB_NAME = 'notyka_db';
@@ -7,26 +8,27 @@ const STORE_SESSION = 'session';
 const SETTINGS_KEY = 'notyka_editor_settings';
 const MAX_PROJECTS = 50;
 
-//! Перевірка типів даних на границях `localStorage` та `IndexedDB` без `as`
-function isEditorSettings(val: unknown): val is EditorSettings {
-	if (!val || typeof val !== 'object') return false;
-	const rec: Record<string, unknown> = Object.fromEntries(Object.entries(val));
-	return typeof rec.selectedNote === 'string' && typeof rec.sizeLocked === 'boolean';
+// Validate storage boundaries (`localStorage` and `IndexedDB`) using Zod schemas
+function parseEditorSettings(val: unknown): EditorSettings | null {
+	const result = EditorSettingsSchema.safeParse(val);
+	return result.success ? result.data : null;
 }
 
-function isProjectItem(val: unknown): val is ProjectItem {
-	if (!val || typeof val !== 'object') return false;
-	const rec: Record<string, unknown> = Object.fromEntries(Object.entries(val));
-	return (
-		typeof rec.id === 'string' &&
-		typeof rec.title === 'string' &&
-		typeof rec.updatedAt === 'number' &&
-		Array.isArray(rec.stamps)
-	);
+function parseProjectItem(val: unknown): ProjectItem | null {
+	const result = ProjectItemSchema.safeParse(val);
+	return result.success ? result.data : null;
 }
 
 function filterProjectItems(val: unknown): ProjectItem[] {
-	return Array.isArray(val) ? val.filter(isProjectItem) : [];
+	if (!Array.isArray(val)) return [];
+	const items: ProjectItem[] = [];
+	for (const entry of val) {
+		const parsed = parseProjectItem(entry);
+		if (parsed) {
+			items.push(parsed);
+		}
+	}
+	return items;
 }
 
 function openDB(): Promise<IDBDatabase> {
@@ -64,7 +66,7 @@ export function loadSettings(): EditorSettings | null {
 		const raw = localStorage.getItem(SETTINGS_KEY);
 		if (!raw) return null;
 		const parsed: unknown = JSON.parse(raw);
-		return isEditorSettings(parsed) ? parsed : null;
+		return parseEditorSettings(parsed);
 	} catch {
 		return null;
 	}
@@ -94,7 +96,7 @@ export async function loadCurrentSession(): Promise<ProjectItem | null> {
 		return new Promise((resolve) => {
 			request.onsuccess = () => {
 				const res: unknown = request.result;
-				resolve(isProjectItem(res) ? res : null);
+				resolve(parseProjectItem(res));
 			};
 			request.onerror = () => resolve(null);
 		});

@@ -20,7 +20,7 @@ export const STAMP_CATEGORY_IDS: readonly StampCategory[] = [
 	'shapes',
 ];
 
-//! Type guards для безпечного звуження типів на границях вводу без `as`
+// Type guards for safe boundary narrowing without type assertions (`as`)
 export function isToolMode(val: unknown): val is ToolMode {
 	return (
 		val === 'select' ||
@@ -126,11 +126,9 @@ export type CanvasLayerItem =
 	  };
 
 export interface HistoryItem {
-	imageData?: ImageData;
-	strokeDataUrl?: string;
 	stamps: StampItem[];
-	rulers?: RulerItem[];
-	layers?: CanvasLayerItem[];
+	rulers: RulerItem[];
+	layers: CanvasLayerItem[];
 }
 
 export interface Point {

@@ -47,17 +47,22 @@ export interface EditorSettings {
 	autoCountSequence?: AutoCountItem[];
 }
 
-export interface SerializedHistoryLayer {
-	type: 'stroke' | 'stamp';
-	id: string;
-	stamp?: StampItem;
-	strokeDataUrl?: string;
-}
+export type SerializedHistoryLayer =
+	| {
+			type: 'stroke';
+			id: string;
+			strokeDataUrl?: string;
+	  }
+	| {
+			type: 'stamp';
+			id: string;
+			stamp: StampItem;
+	  };
 
 export interface SerializedHistoryItem {
 	stamps: StampItem[];
-	rulers?: RulerItem[];
-	layers?: SerializedHistoryLayer[];
+	rulers: RulerItem[];
+	layers: SerializedHistoryLayer[];
 }
 
 export interface ProjectItem {
