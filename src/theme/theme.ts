@@ -111,17 +111,29 @@ export const DARK_SURFACE_METADATA: Record<
 	DarkSurfaceTone,
 	{ label: string; bgHex: string; panelHex: string; description: string }
 > = {
+	oled: {
+		label: 'Pure OLED',
+		bgHex: '#000000',
+		panelHex: '#0A0A0C',
+		description: 'Абсолютний 100% чорний для максимального контрасту OLED-екранів',
+	},
+	obsidian: {
+		label: 'Obsidian',
+		bgHex: '#070809',
+		panelHex: '#101215',
+		description: 'Глибокий контрастний чорний обсидіан',
+	},
 	carbon: {
 		label: 'Matte Carbon',
 		bgHex: '#121315',
 		panelHex: '#1C1E22',
 		description: 'Матовий графітовий карбон студійних пристроїв',
 	},
-	obsidian: {
-		label: 'OLED Obsidian',
-		bgHex: '#070809',
-		panelHex: '#101215',
-		description: 'Глибокий контрастний чорний для OLED-екранів',
+	tinted: {
+		label: 'Tinted',
+		bgHex: '#0B0C12',
+		panelHex: '#12131C',
+		description: 'Студійна поверхня з легким відтінком обраного акценту',
 	},
 };
 
@@ -471,9 +483,42 @@ export const createNotykaCssVariablesResolver = (
 	const skinMeta = ACCENT_SKIN_METADATA[activeSkin] ?? ACCENT_SKIN_METADATA.orange;
 
 	// Dark tone variables
-	const darkSurfaces =
-		darkTone === 'obsidian'
-			? {
+	const darkSurfaces = (() => {
+		switch (darkTone) {
+			case 'oled':
+				return {
+					bgDark: '#000000',
+					bg: '#000000',
+					panel: '#0a0a0c',
+					panel2: '#121215',
+					panel3: '#1e1e24',
+					line: 'rgba(255, 255, 255, 0.08)',
+					lineStrong: 'rgba(255, 255, 255, 0.16)',
+					surfaceSpecular: 'rgba(255, 255, 255, 0.05)',
+					keycapBg: '#121215',
+					keycapBorder: 'rgba(255, 255, 255, 0.1)',
+					keycapShadow: 'none',
+					readoutBg: '#000000',
+					readoutBorder: 'rgba(255, 255, 255, 0.14)',
+				};
+			case 'tinted':
+				return {
+					bgDark: `color-mix(in srgb, ${skinMeta.primaryHex} 4%, #07070a)`,
+					bg: `color-mix(in srgb, ${skinMeta.primaryHex} 6%, #0b0c12)`,
+					panel: `color-mix(in srgb, ${skinMeta.primaryHex} 8%, #12131c)`,
+					panel2: `color-mix(in srgb, ${skinMeta.primaryHex} 11%, #181a26)`,
+					panel3: `color-mix(in srgb, ${skinMeta.primaryHex} 16%, #282b3d)`,
+					line: `color-mix(in srgb, ${skinMeta.primaryHex} 12%, rgba(255, 255, 255, 0.08))`,
+					lineStrong: `color-mix(in srgb, ${skinMeta.primaryHex} 20%, rgba(255, 255, 255, 0.16))`,
+					surfaceSpecular: `color-mix(in srgb, ${skinMeta.primaryHex} 10%, rgba(255, 255, 255, 0.05))`,
+					keycapBg: `color-mix(in srgb, ${skinMeta.primaryHex} 11%, #181a26)`,
+					keycapBorder: `color-mix(in srgb, ${skinMeta.primaryHex} 18%, rgba(255, 255, 255, 0.1))`,
+					keycapShadow: 'none',
+					readoutBg: `color-mix(in srgb, ${skinMeta.primaryHex} 5%, #08080d)`,
+					readoutBorder: `color-mix(in srgb, ${skinMeta.primaryHex} 22%, rgba(255, 255, 255, 0.14))`,
+				};
+			case 'obsidian':
+				return {
 					bgDark: '#070809',
 					bg: '#0a0b0d',
 					panel: '#101215',
@@ -487,8 +532,10 @@ export const createNotykaCssVariablesResolver = (
 					keycapShadow: 'none',
 					readoutBg: '#070809',
 					readoutBorder: 'rgba(255, 255, 255, 0.12)',
-				}
-			: {
+				};
+			case 'carbon':
+			default:
+				return {
 					bgDark: '#121315',
 					bg: '#15171a',
 					panel: '#1c1e22',
@@ -503,6 +550,8 @@ export const createNotykaCssVariablesResolver = (
 					readoutBg: '#121315',
 					readoutBorder: 'rgba(255, 255, 255, 0.14)',
 				};
+		}
+	})();
 
 	// Light tone variables
 	const lightSurfaces =

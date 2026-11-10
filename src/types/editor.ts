@@ -6,7 +6,7 @@ export type SelectionShape = 'lasso' | 'rect';
 export type SelectionMode = 'inside' | 'intersect';
 
 export type AccentSkin = 'orange' | 'cobalt' | 'purple' | 'lime' | 'amber';
-export type DarkSurfaceTone = 'carbon' | 'obsidian';
+export type DarkSurfaceTone = 'oled' | 'obsidian' | 'carbon' | 'tinted';
 export type LightSurfaceTone = 'cotton' | 'anodized';
 
 export interface AppearanceConfig {

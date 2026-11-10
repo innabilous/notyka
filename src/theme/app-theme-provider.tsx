@@ -50,7 +50,10 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 								? parsed.accentSkin
 								: prev.accentSkin,
 						darkTone:
-							parsed.darkTone === 'carbon' || parsed.darkTone === 'obsidian'
+							parsed.darkTone === 'oled' ||
+							parsed.darkTone === 'obsidian' ||
+							parsed.darkTone === 'carbon' ||
+							parsed.darkTone === 'tinted'
 								? parsed.darkTone
 								: prev.darkTone,
 						lightTone:

@@ -190,9 +190,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 									size="xs"
 									value={config.darkTone}
 									onChange={(val) => setDarkTone(val as DarkSurfaceTone)}
+									styles={{
+										root: { padding: 2 },
+										label: { padding: '4px 2px', fontSize: '11px' },
+									}}
 									data={[
-										{ value: 'obsidian', label: 'OLED Obsidian' },
-										{ value: 'carbon', label: 'Matte Carbon' },
+										{ value: 'oled', label: 'Pure OLED' },
+										{ value: 'obsidian', label: 'Obsidian' },
+										{ value: 'carbon', label: 'Carbon' },
+										{ value: 'tinted', label: 'Tinted' },
 									]}
 								/>
 							) : (
