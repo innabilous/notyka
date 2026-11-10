@@ -41,7 +41,7 @@ export const AppPreloader: React.FC<AppPreloaderProps> = ({ isLoading }) => {
 			}}
 		>
 			<Stack align="center" gap="1rem">
-				<BrandLogo size={64} showText={true} />
+				<BrandLogo size={64} animated={true} showText={true} />
 			</Stack>
 		</Box>
 	);
