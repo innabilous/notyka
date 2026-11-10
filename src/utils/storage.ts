@@ -7,6 +7,28 @@ const STORE_SESSION = 'session';
 const SETTINGS_KEY = 'notyka_editor_settings';
 const MAX_PROJECTS = 50;
 
+//! Перевірка типів даних на границях `localStorage` та `IndexedDB` без `as`
+function isEditorSettings(val: unknown): val is EditorSettings {
+	if (!val || typeof val !== 'object') return false;
+	const rec: Record<string, unknown> = Object.fromEntries(Object.entries(val));
+	return typeof rec.selectedNote === 'string' && typeof rec.sizeLocked === 'boolean';
+}
+
+function isProjectItem(val: unknown): val is ProjectItem {
+	if (!val || typeof val !== 'object') return false;
+	const rec: Record<string, unknown> = Object.fromEntries(Object.entries(val));
+	return (
+		typeof rec.id === 'string' &&
+		typeof rec.title === 'string' &&
+		typeof rec.updatedAt === 'number' &&
+		Array.isArray(rec.stamps)
+	);
+}
+
+function filterProjectItems(val: unknown): ProjectItem[] {
+	return Array.isArray(val) ? val.filter(isProjectItem) : [];
+}
+
 function openDB(): Promise<IDBDatabase> {
 	return new Promise((resolve, reject) => {
 		if (typeof window === 'undefined' || !window.indexedDB) {
@@ -40,7 +62,9 @@ export function loadSettings(): EditorSettings | null {
 	if (typeof window === 'undefined') return null;
 	try {
 		const raw = localStorage.getItem(SETTINGS_KEY);
-		return raw ? (JSON.parse(raw) as EditorSettings) : null;
+		if (!raw) return null;
+		const parsed: unknown = JSON.parse(raw);
+		return isEditorSettings(parsed) ? parsed : null;
 	} catch {
 		return null;
 	}
@@ -69,8 +93,8 @@ export async function loadCurrentSession(): Promise<ProjectItem | null> {
 		const request = store.get('active_session');
 		return new Promise((resolve) => {
 			request.onsuccess = () => {
-				const res = request.result as ProjectItem | undefined;
-				resolve(res ?? null);
+				const res: unknown = request.result;
+				resolve(isProjectItem(res) ? res : null);
 			};
 			request.onerror = () => resolve(null);
 		});
@@ -100,7 +124,7 @@ export async function saveProject(project: ProjectItem): Promise<void> {
 		// Prune projects exceeding MAX_PROJECTS
 		const getAllReq = store.getAll();
 		getAllReq.onsuccess = () => {
-			const all = (getAllReq.result as ProjectItem[]) || [];
+			const all = filterProjectItems(getAllReq.result);
 			if (all.length > MAX_PROJECTS) {
 				all.sort((a, b) => b.updatedAt - a.updatedAt);
 				const toDelete = all.slice(MAX_PROJECTS);
@@ -125,7 +149,7 @@ export async function getProjectsList(): Promise<ProjectItem[]> {
 		const request = store.getAll();
 		return new Promise((resolve) => {
 			request.onsuccess = () => {
-				const list = (request.result as ProjectItem[]) || [];
+				const list = filterProjectItems(request.result);
 				list.sort((a, b) => b.updatedAt - a.updatedAt);
 				resolve(list);
 			};
