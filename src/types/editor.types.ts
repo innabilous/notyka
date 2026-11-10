@@ -1,13 +1,13 @@
+import { AccentSkin, DarkSurfaceTone, LightSurfaceTone } from './appearance.types';
+
+export * from './appearance.types';
+
 export type ToolMode = 'select' | 'pencil' | 'stamp' | 'eraser' | 'ruler';
 export type StampCategory = 'notes' | 'chords' | 'count' | 'custom' | 'text' | 'draw' | 'shapes';
 export type SelectFilterCategory = 'all' | StampCategory;
 export type ShapeType = 'rect' | 'circle' | 'arrow';
 export type SelectionShape = 'lasso' | 'rect';
 export type SelectionMode = 'inside' | 'intersect';
-
-export type AccentSkin = 'orange' | 'cobalt' | 'purple' | 'lime' | 'amber';
-export type DarkSurfaceTone = 'oled' | 'obsidian' | 'carbon' | 'tinted';
-export type LightSurfaceTone = 'pure' | 'anodized' | 'cotton' | 'tinted';
 
 export const TOOL_MODES: readonly ToolMode[] = ['select', 'pencil', 'stamp', 'ruler', 'eraser'];
 export const STAMP_CATEGORY_IDS: readonly StampCategory[] = [
@@ -63,12 +63,6 @@ export function isDarkSurfaceTone(val: unknown): val is DarkSurfaceTone {
 
 export function isLightSurfaceTone(val: unknown): val is LightSurfaceTone {
 	return val === 'pure' || val === 'anodized' || val === 'cotton' || val === 'tinted';
-}
-
-export interface AppearanceConfig {
-	accentSkin: AccentSkin;
-	darkTone: DarkSurfaceTone;
-	lightTone: LightSurfaceTone;
 }
 
 export interface RulerItem {
@@ -141,4 +135,10 @@ export interface BoundingBox {
 	y: number;
 	w: number;
 	h: number;
+}
+
+export interface SnapGuide {
+	x: number;
+	y1: number;
+	y2: number;
 }

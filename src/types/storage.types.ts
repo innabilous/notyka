@@ -6,7 +6,7 @@ import {
 	StampCategory,
 	StampItem,
 	ToolMode,
-} from './editor';
+} from './editor.types';
 
 export interface EditorSettings {
 	currentMode: ToolMode;
@@ -74,7 +74,7 @@ export interface ProjectItem {
 	bgDataUrl: string | null;
 	baseDataUrl: string | null;
 	stamps: StampItem[];
-	rulers?: RulerItem[];
+	rulers: RulerItem[];
 	width: number;
 	height: number;
 	cssW: number;
