@@ -1,0 +1,122 @@
+.root {
+	--logo-size: 64px;
+	--logo-icon-size: 33px;
+	--logo-radius: 18px;
+	--logo-gap: 10px;
+	--logo-text-gap: 3px;
+	--logo-title-size: 20px;
+	--logo-sub-size: 8px;
+
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	position: relative;
+	gap: 0;
+}
+
+.withText {
+	gap: var(--logo-gap);
+}
+
+.sizeSm {
+	--logo-size: 28px;
+	--logo-icon-size: 15px;
+	--logo-radius: 8px;
+	--logo-gap: 4px;
+	--logo-text-gap: 1px;
+	--logo-title-size: 9px;
+	--logo-sub-size: 8px;
+}
+
+.sizeMd {
+	--logo-size: 36px;
+	--logo-icon-size: 19px;
+	--logo-radius: 10px;
+	--logo-gap: 6px;
+	--logo-text-gap: 1px;
+	--logo-title-size: 12px;
+	--logo-sub-size: 8px;
+}
+
+.sizeLg {
+	--logo-size: 56px;
+	--logo-icon-size: 29px;
+	--logo-radius: 16px;
+	--logo-gap: 9px;
+	--logo-text-gap: 2px;
+	--logo-title-size: 18px;
+	--logo-sub-size: 8px;
+}
+
+.sizeXl {
+	--logo-size: 64px;
+	--logo-icon-size: 33px;
+	--logo-radius: 18px;
+	--logo-gap: 10px;
+	--logo-text-gap: 3px;
+	--logo-title-size: 20px;
+	--logo-sub-size: 8px;
+}
+
+.badge {
+	position: relative;
+	width: var(--logo-size);
+	height: var(--logo-size);
+	border-radius: var(--logo-radius);
+	background: var(--accent, #2563eb);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-shadow: none;
+	border: none;
+	flex-shrink: 0;
+	overflow: hidden;
+}
+
+.badgeIcon {
+	width: var(--logo-icon-size);
+	height: var(--logo-icon-size);
+	stroke: #ffffff;
+	stroke-width: 2.2;
+	display: block;
+	position: relative;
+	z-index: 3;
+}
+
+.bareIcon {
+	width: var(--logo-icon-size);
+	height: var(--logo-icon-size);
+	stroke: var(--accent, #2563eb);
+	stroke-width: 2.2;
+	display: block;
+}
+
+.textStack {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--logo-text-gap);
+	font-family: system-ui, -apple-system, sans-serif;
+	line-height: 1;
+}
+
+.titleText {
+	font-variant: small-caps;
+	text-transform: lowercase;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	font-size: var(--logo-title-size);
+	color: var(--text, #ffffff);
+}
+
+.subtitleText {
+	font-family: system-ui, -apple-system, sans-serif;
+	font-size: var(--logo-sub-size);
+	font-weight: 300;
+	letter-spacing: 0.25em;
+	color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+	text-transform: lowercase;
+	padding-left: 0.25em;
+}
+

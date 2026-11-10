@@ -2,13 +2,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { Box, Stack } from '@mantine/core';
+import clsx from 'clsx';
 import { BrandLogo } from './brand-logo';
+import classes from './app-preloader.module.css';
 
 interface AppPreloaderProps {
 	isLoading: boolean;
 }
 
-export const AppPreloader: React.FC<AppPreloaderProps> = ({ isLoading }) => {
+export function AppPreloader({ isLoading }: AppPreloaderProps) {
 	const [shouldRender, setShouldRender] = useState(true);
 
 	useEffect(() => {
@@ -17,32 +19,18 @@ export const AppPreloader: React.FC<AppPreloaderProps> = ({ isLoading }) => {
 				setShouldRender(false);
 			}, 400);
 			return () => clearTimeout(timer);
-		} else {
-			setShouldRender(true);
 		}
+		setShouldRender(true);
+		return undefined;
 	}, [isLoading]);
 
 	if (!shouldRender) return null;
 
 	return (
-		<Box
-			className="notyka-app-preloader"
-			style={{
-				position: 'fixed',
-				inset: 0,
-				zIndex: 9999,
-				display: 'flex',
-				flexDirection: 'column',
-				alignItems: 'center',
-				justifyContent: 'center',
-				opacity: isLoading ? 1 : 0,
-				transition: 'opacity 0.35s ease-out',
-				pointerEvents: isLoading ? 'auto' : 'none',
-			}}
-		>
-			<Stack align="center" gap="1rem">
-				<BrandLogo size={64} animated={true} showText={true} />
+		<Box className={clsx('notyka-app-preloader', classes.root, !isLoading && classes.hidden)}>
+			<Stack align="center" gap="md">
+				<BrandLogo size="lg" animated={true} showText={true} />
 			</Stack>
 		</Box>
 	);
-};
+}
