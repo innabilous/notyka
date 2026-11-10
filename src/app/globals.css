@@ -645,6 +645,7 @@ footer {
 	max-width: 100%;
 	width: auto;
 	height: 100%;
+	flex-wrap: nowrap;
 }
 
 .select-setting-group {
@@ -716,53 +717,10 @@ footer {
 	flex-shrink: 0;
 }
 
-.select-settings-divider {
-	width: 1px;
-	height: 1.25rem;
-	background: var(--line);
-	margin: 0 0.15rem;
-	flex-shrink: 0;
-}
-
-#select-settings .mantine-SegmentedControl-root {
-	background: var(--panel-2);
-	border-radius: 12px;
-	padding: 2px;
-	border: none;
-	height: 1.85rem;
-}
-
-#select-settings .mantine-SegmentedControl-indicator {
-	background: var(--accent);
-	border-radius: 10px;
-	box-shadow: none;
-}
-
-#select-settings .mantine-SegmentedControl-label {
-	color: var(--text-secondary);
-	font-size: 0.75rem;
-	font-weight: 500;
-	padding: 0 0.55rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	height: calc(1.85rem - 4px);
-	transition: color 0.12s ease;
-}
-
-#select-settings .mantine-SegmentedControl-label[data-active] {
-	color: var(--accent-contrast);
-	font-weight: 600;
-}
 
 @media (max-width: 640px) {
-	.select-setting-btn span.btn-label,
-	#select-settings .btn-label {
+	.select-setting-btn span.btn-label {
 		display: none;
-	}
-
-	#select-settings .mantine-SegmentedControl-label {
-		padding: 0 0.35rem;
 	}
 
 	.select-setting-btn {
@@ -1962,6 +1920,38 @@ footer {
 @keyframes preloader-spin {
 	to {
 		transform: rotate(360deg);
+	}
+}
+
+/* Notyka Brand Logo Animated Surface Sheen */
+.notyka-surface-sheen {
+	position: absolute;
+	top: -50%;
+	left: -50%;
+	width: 200%;
+	height: 200%;
+	background: linear-gradient(
+		125deg,
+		transparent 30%,
+		rgba(255, 255, 255, 0.08) 45%,
+		rgba(255, 255, 255, 0.32) 50%,
+		rgba(255, 255, 255, 0.08) 55%,
+		transparent 70%
+	);
+	transform: translateX(-100%) rotate(25deg);
+	animation: notyka-sheen-sweep 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+	pointer-events: none;
+	z-index: 2;
+}
+
+@keyframes notyka-sheen-sweep {
+	0%,
+	20% {
+		transform: translateX(-120%) rotate(25deg);
+	}
+	60%,
+	100% {
+		transform: translateX(120%) rotate(25deg);
 	}
 }
 

@@ -54,6 +54,9 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 					}}
 					aria-label="Notyka Logo"
 				>
+					{/* Спекулярний відблиск (surface sheen sweep) під час анімації */}
+					{animated && <Box className="notyka-surface-sheen" />}
+
 					<Music
 						className={animated ? 'notyka-note-animated' : undefined}
 						style={{
@@ -63,6 +66,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 							strokeWidth: 2.2,
 							display: 'block',
 							position: 'relative',
+							zIndex: 3,
 						}}
 					/>
 				</Box>
