@@ -2,8 +2,8 @@
 
 import React, { useMemo } from 'react';
 import { Box, SegmentedControl } from '@mantine/core';
-import { SELECT_FILTER_CATEGORIES } from '@/constants/editor';
-import { SelectFilterCategory, StampCategory, isSelectFilterCategory } from '@/types/editor';
+import { SELECT_FILTER_CATEGORIES } from '@/constants/stamps.constants';
+import { SelectFilterCategory, StampCategory, isSelectFilterCategory } from '@/types/editor.types';
 import classes from './select-category-bar.module.css';
 
 interface SelectCategoryBarProps {

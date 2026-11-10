@@ -3,7 +3,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
-import { AppearanceConfigSchema } from '@/schemas/editor';
 import {
 	APPEARANCE_STORAGE_KEY,
 	DEFAULT_APPEARANCE_CONFIG,
@@ -15,33 +14,10 @@ import {
 	AppearanceConfig,
 	DarkSurfaceTone,
 	LightSurfaceTone,
-	isAccentSkin,
-	isDarkSurfaceTone,
-	isLightSurfaceTone,
-} from '@/types/editor';
+} from '@/types/appearance.types';
+import { parseAppearanceConfig } from '@/helpers/appearance.helpers';
 
-// Validate and parse appearance configuration from `localStorage` using Zod
-export function parseAppearanceConfig(
-	raw: string,
-	fallback: AppearanceConfig = DEFAULT_APPEARANCE_CONFIG,
-): AppearanceConfig {
-	try {
-		const parsed: unknown = JSON.parse(raw);
-		const fullCheck = AppearanceConfigSchema.safeParse(parsed);
-		if (fullCheck.success) {
-			return fullCheck.data;
-		}
-		if (!parsed || typeof parsed !== 'object') return fallback;
-		const rec: Record<string, unknown> = Object.fromEntries(Object.entries(parsed));
-		return {
-			accentSkin: isAccentSkin(rec.accentSkin) ? rec.accentSkin : fallback.accentSkin,
-			darkTone: isDarkSurfaceTone(rec.darkTone) ? rec.darkTone : fallback.darkTone,
-			lightTone: isLightSurfaceTone(rec.lightTone) ? rec.lightTone : fallback.lightTone,
-		};
-	} catch {
-		return fallback;
-	}
-}
+export { parseAppearanceConfig };
 
 interface AppearanceContextValue {
 	config: AppearanceConfig;
@@ -70,7 +46,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 		try {
 			const saved = localStorage.getItem(APPEARANCE_STORAGE_KEY);
 			if (saved) {
-				setConfigState((prev) => parseAppearanceConfig(saved, prev));
+				setConfigState(parseAppearanceConfig(saved));
 			}
 		} catch {
 			// Ignore localStorage parsing errors

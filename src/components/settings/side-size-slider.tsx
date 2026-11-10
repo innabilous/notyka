@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { Box, Text, UnstyledButton } from '@mantine/core';
 import clsx from 'clsx';
 import { Minus, Plus } from 'lucide-react';
-import { StampCategory, ToolMode } from '@/types/editor';
+import { StampCategory, ToolMode } from '@/types/editor.types';
 import classes from './side-size-slider.module.css';
 
 interface SideSizeSliderProps {

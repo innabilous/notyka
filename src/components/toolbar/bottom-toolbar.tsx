@@ -4,7 +4,7 @@ import React from 'react';
 import { Box, UnstyledButton } from '@mantine/core';
 import clsx from 'clsx';
 import { Eraser, MousePointer, Pencil, Ruler, Stamp } from 'lucide-react';
-import { ToolMode } from '@/types/editor';
+import { ToolMode } from '@/types/editor.types';
 import classes from './bottom-toolbar.module.css';
 
 interface BottomToolbarProps {

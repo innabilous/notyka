@@ -15,7 +15,8 @@ import {
 	UnstyledButton,
 } from '@mantine/core';
 import { Clock, Trash2 } from 'lucide-react';
-import { ProjectItem } from '@/types/storage';
+import { ProjectItem } from '@/types/storage.types';
+import { formatDate, formatElementsCount } from '@/helpers/format.helpers';
 import classes from './projects-history-modal.module.css';
 
 interface ProjectsHistoryModalProps {
@@ -26,24 +27,7 @@ interface ProjectsHistoryModalProps {
 	onClose: () => void;
 }
 
-export function formatDate(timestamp: number): string {
-	const d = new Date(timestamp);
-	return d.toLocaleString('uk-UA', {
-		month: 'short',
-		day: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit',
-	});
-}
-
-export function formatElementsCount(count: number): string {
-	const mod10 = count % 10;
-	const mod100 = count % 100;
-	if (mod100 >= 11 && mod100 <= 14) return `${count} елементів`;
-	if (mod10 === 1) return `${count} елемент`;
-	if (mod10 >= 2 && mod10 <= 4) return `${count} елементи`;
-	return `${count} елементів`;
-}
+export { formatDate, formatElementsCount };
 
 export function ProjectsHistoryModal({
 	opened,

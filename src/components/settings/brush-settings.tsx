@@ -4,7 +4,7 @@ import React, { useLayoutEffect, useRef } from 'react';
 import { Box, UnstyledButton } from '@mantine/core';
 import clsx from 'clsx';
 import { ArrowUpDown, Lock, Minus, Plus, Unlock } from 'lucide-react';
-import { StampCategory, ToolMode } from '@/types/editor';
+import { StampCategory, ToolMode } from '@/types/editor.types';
 import classes from './brush-settings.module.css';
 
 interface BrushSettingsProps {

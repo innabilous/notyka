@@ -1,5 +1,10 @@
 import { CSSVariablesResolver, MantineColorsTuple, createTheme } from '@mantine/core';
-import { AccentSkin, AppearanceConfig, DarkSurfaceTone, LightSurfaceTone } from '@/types/editor';
+import {
+	AccentSkin,
+	AppearanceConfig,
+	DarkSurfaceTone,
+	LightSurfaceTone,
+} from '@/types/appearance.types';
 
 export const APPEARANCE_STORAGE_KEY = 'notyka_appearance_v2';
 

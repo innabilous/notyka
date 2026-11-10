@@ -7,8 +7,11 @@ import { Menu, Redo2, Trash2, Undo2 } from 'lucide-react';
 import { BrushSettings } from '@/components/settings/brush-settings';
 import { RulerSettings } from '@/components/settings/ruler-settings';
 import { SelectSettings } from '@/components/settings/select-settings';
-import { SelectionMode, SelectionShape, StampCategory, ToolMode } from '@/types/editor';
+import { SelectionMode, SelectionShape, StampCategory, ToolMode } from '@/types/editor.types';
+import { formatElementsCount } from '@/helpers/format.helpers';
 import classes from './top-toolbar.module.css';
+
+export { formatElementsCount };
 
 interface TopToolbarProps {
 	canUndo: boolean;

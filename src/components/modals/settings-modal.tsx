@@ -46,7 +46,7 @@ import {
 	isAccentSkin,
 	isDarkSurfaceTone,
 	isLightSurfaceTone,
-} from '@/types/editor';
+} from '@/types/editor.types';
 import classes from './settings-modal.module.css';
 
 function isColorSchemeMode(val: string): val is 'dark' | 'light' | 'auto' {

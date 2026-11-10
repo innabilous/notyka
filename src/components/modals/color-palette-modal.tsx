@@ -14,8 +14,8 @@ import {
 } from '@mantine/core';
 import clsx from 'clsx';
 import { Ban, Check, Pipette } from 'lucide-react';
-import { PALETTE_COLORS } from '@/constants/editor';
-import { ShapeType, StampCategory, ToolMode } from '@/types/editor';
+import { PALETTE_COLORS } from '@/constants/editor.constants';
+import { ShapeType, StampCategory, ToolMode } from '@/types/editor.types';
 import classes from './color-palette-modal.module.css';
 
 interface ColorPaletteModalProps {

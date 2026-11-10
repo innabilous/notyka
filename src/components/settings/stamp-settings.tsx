@@ -23,8 +23,8 @@ import {
 	COUNT_ITEMS,
 	NOTES,
 	STAMP_CATEGORIES,
-} from '@/constants/editor';
-import { AutoCountItem, ShapeType, StampCategory, isStampCategory } from '@/types/editor';
+} from '@/constants/stamps.constants';
+import { AutoCountItem, ShapeType, StampCategory, isStampCategory } from '@/types/editor.types';
 import classes from './stamp-settings.module.css';
 
 export type { StampCategory };

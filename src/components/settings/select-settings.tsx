@@ -4,7 +4,7 @@ import React from 'react';
 import { Box, Indicator, UnstyledButton } from '@mantine/core';
 import clsx from 'clsx';
 import { BoxSelect, LassoSelect, MousePointerSquareDashed, Trash2 } from 'lucide-react';
-import { SelectionMode, SelectionShape } from '@/types/editor';
+import { SelectionMode, SelectionShape } from '@/types/editor.types';
 import classes from './select-settings.module.css';
 
 interface SelectSettingsProps {

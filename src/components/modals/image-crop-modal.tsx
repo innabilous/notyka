@@ -13,6 +13,11 @@ import {
 	Undo2,
 	X,
 } from 'lucide-react';
+import {
+	CropAspectRatio,
+	NormalizedCropRect,
+	applyCropAspectRatio,
+} from '@/helpers/crop.helpers';
 import classes from './image-crop-modal.module.css';
 
 interface ImageCropModalProps {
@@ -23,14 +28,7 @@ interface ImageCropModalProps {
 	onCancel: () => void;
 }
 
-type AspectRatio = 'free' | '1:1' | '4:3' | '16:9' | '3:4';
-
-interface NormalizedRect {
-	x: number; // 0..1
-	y: number; // 0..1
-	w: number; // 0..1
-	h: number; // 0..1
-}
+export type { CropAspectRatio as AspectRatio, NormalizedCropRect as NormalizedRect };
 
 export function ImageCropModal({
 	opened,
@@ -47,12 +45,12 @@ export function ImageCropModal({
 	const [rotation, setRotation] = useState<number>(0); // 0, 90, 180, 270
 	const [flipH, setFlipH] = useState<boolean>(false);
 	const [flipV, setFlipV] = useState<boolean>(false);
-	const [aspectRatio, setAspectRatio] = useState<AspectRatio>('free');
+	const [aspectRatio, setAspectRatio] = useState<CropAspectRatio>('free');
 	const [enhanceClarity, setEnhanceClarity] = useState<boolean>(false);
 
-	const [crop, setCrop] = useState<NormalizedRect>({ x: 0, y: 0, w: 1, h: 1 });
+	const [crop, setCrop] = useState<NormalizedCropRect>({ x: 0, y: 0, w: 1, h: 1 });
 	const dragModeRef = useRef<'move' | 'nw' | 'ne' | 'se' | 'sw' | null>(null);
-	const dragStartRef = useRef<{ clientX: number; clientY: number; startCrop: NormalizedRect }>({
+	const dragStartRef = useRef<{ clientX: number; clientY: number; startCrop: NormalizedCropRect }>({
 		clientX: 0,
 		clientY: 0,
 		startCrop: { x: 0, y: 0, w: 1, h: 1 },
@@ -109,50 +107,12 @@ export function ImageCropModal({
 		}
 	}, [imageElement, isRotated90or270, rotation, flipH, flipV, enhanceClarity, crop]);
 
-	// Adjust crop rect when aspect ratio changes
-	const applyAspect = useCallback(
-		(ratio: AspectRatio, currentCrop: NormalizedRect, imgW: number, imgH: number) => {
-			if (ratio === 'free') return currentCrop;
-
-			let targetRatio = 1;
-			if (ratio === '1:1') targetRatio = 1;
-			if (ratio === '4:3') targetRatio = 4 / 3;
-			if (ratio === '16:9') targetRatio = 16 / 9;
-			if (ratio === '3:4') targetRatio = 3 / 4;
-
-			const isSwap = rotation % 180 !== 0;
-			const effectiveW = isSwap ? imgH : imgW;
-			const effectiveH = isSwap ? imgW : imgH;
-			const currentAspect = (currentCrop.w * effectiveW) / (currentCrop.h * effectiveH);
-
-			let newW = currentCrop.w;
-			let newH = currentCrop.h;
-
-			if (currentAspect > targetRatio) {
-				newW = (newH * effectiveH * targetRatio) / effectiveW;
-			} else {
-				newH = (newW * effectiveW) / (effectiveH * targetRatio);
-			}
-
-			newW = Math.min(1, Math.max(0.1, newW));
-			newH = Math.min(1, Math.max(0.1, newH));
-
-			let newX = currentCrop.x + (currentCrop.w - newW) / 2;
-			let newY = currentCrop.y + (currentCrop.h - newH) / 2;
-			newX = Math.max(0, Math.min(1 - newW, newX));
-			newY = Math.max(0, Math.min(1 - newH, newY));
-
-			return { x: newX, y: newY, w: newW, h: newH };
-		},
-		[rotation],
-	);
-
-	function handleAspectChange(ratio: AspectRatio) {
+	function handleAspectChange(ratio: CropAspectRatio) {
 		setAspectRatio(ratio);
 		if (!imageElement) return;
 		const nw = imageElement.naturalWidth || imageElement.width;
 		const nh = imageElement.naturalHeight || imageElement.height;
-		setCrop((prev) => applyAspect(ratio, prev, nw, nh));
+		setCrop((prev: NormalizedCropRect) => applyCropAspectRatio(ratio, prev, nw, nh, rotation));
 	}
 
 	function handleRotateLeft() {

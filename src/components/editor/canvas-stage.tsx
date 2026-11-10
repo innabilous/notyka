@@ -16,7 +16,7 @@ import {
 	MIN_CANVAS_SIDE,
 	MIN_SCALE,
 	SMOOTH,
-} from '@/constants/editor';
+} from '@/constants/editor.constants';
 import {
 	CanvasLayerItem,
 	HistoryItem,
@@ -26,41 +26,45 @@ import {
 	SelectionMode,
 	SelectionShape,
 	ShapeType,
+	SnapGuide,
 	StampCategory,
 	StampDrawingPath,
 	StampItem,
 	ToolMode,
-} from '@/types/editor';
-import { ProjectItem, SerializedHistoryItem } from '@/types/storage';
+} from '@/types/editor.types';
+import { ProjectItem, SerializedHistoryItem } from '@/types/storage.types';
 import {
-	calculateStampBox,
 	clampArrowHead,
-	clampStampPosition,
-	drawRulers,
-	drawStamp,
-	drawAreaSelectionOverlay,
-	drawMultiSelectionBox,
-	getMultiSelectionBounds,
-	isPointInStampBounds,
-	isStampInSelection,
+	isPointInCornerResizeHandle,
+} from '@/helpers/geometry.helpers';
+import {
 	findRulerNearPoint,
 	getClosestRulerY,
+	isPointInRulerDelete,
+	isStampAttachedToRuler,
+} from '@/helpers/ruler.helpers';
+import { getStampCategory } from '@/helpers/stamp.helpers';
+import {
+	calculateStampBox,
+	clampStampPosition,
+	drawAreaSelectionOverlay,
+	drawMultiSelectionBox,
+	drawRulers,
 	drawSmartGuide,
+	drawStamp,
 	getDeleteCoords,
 	getHandleCoords,
+	getMultiSelectionBounds,
 	getResizeHandleCoords,
 	getStampItemHorizontalSnap,
 	isPointInDelete,
 	isPointInHandle,
 	isPointInResizeHandle,
-	isPointInCornerResizeHandle,
 	isPointInRotateHandle,
-	isPointInRulerDelete,
 	isPointInStamp,
-	getStampCategory,
-	isStampAttachedToRuler,
-	SnapGuide,
-} from '@/utils/canvas-renderer';
+	isPointInStampBounds,
+	isStampInSelection,
+} from '@/services/canvas-renderer.service';
 import classes from './canvas-stage.module.css';
 
 interface CanvasStageProps {

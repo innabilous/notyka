@@ -25,12 +25,14 @@ import {
 	COUNT_PATTERN_STEP,
 	DEFAULT_AUTO_COUNT_SEQUENCE,
 	DEFAULT_COUNT_PATTERN,
-	DEFAULT_VISIBLE_STAMP_CATEGORIES,
-	DEFAULT_VISIBLE_TOOLS,
 	MAX_COUNT_PATTERN_LENGTH,
 	MIN_COUNT_PATTERN_LENGTH,
 	NOTES,
-} from '@/constants/editor';
+} from '@/constants/stamps.constants';
+import {
+	DEFAULT_VISIBLE_STAMP_CATEGORIES,
+	DEFAULT_VISIBLE_TOOLS,
+} from '@/constants/editor.constants';
 import {
 	AutoCountItem,
 	STAMP_CATEGORY_IDS,
@@ -42,9 +44,10 @@ import {
 	TOOL_MODES,
 	ToolMode,
 	isStampCategory,
-} from '@/types/editor';
-import { ProjectItem } from '@/types/storage';
-import { getStampCategory } from '@/utils/canvas-renderer';
+} from '@/types/editor.types';
+import { ProjectItem } from '@/types/storage.types';
+import { buildChordText } from '@/helpers/chord.helpers';
+import { getStampCategory } from '@/helpers/stamp.helpers';
 import {
 	clearAllStorage,
 	deleteProject,
@@ -54,28 +57,11 @@ import {
 	saveCurrentSession,
 	saveProject,
 	saveSettings,
-} from '@/utils/storage';
+} from '@/services/storage.service';
 import { CanvasStage, CanvasStageHandle } from './canvas-stage';
 import classes from './photo-editor.module.css';
 
-// Build chord stamp label with optional slash bass note (e.g. G/B, Dm/F#)
-export function buildChordText(
-	root: string,
-	acc: string,
-	mod: string,
-	hasSlash: boolean,
-	bassRoot: string,
-	bassAcc: string,
-): string {
-	const main = `${root}${acc}${mod}` || root || 'C';
-	if (hasSlash && bassRoot) {
-		return `${main}/${bassRoot}${bassAcc}`;
-	}
-	if (hasSlash && !bassRoot) {
-		return `${main}/`;
-	}
-	return main;
-}
+export { buildChordText };
 
 export function PhotoEditor() {
 	const stageRef = useRef<CanvasStageHandle | null>(null);
