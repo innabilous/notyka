@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Box, SegmentedControl, Text, Textarea, UnstyledButton } from '@mantine/core';
+import { Box, Group, SegmentedControl, Switch, Text, Textarea, UnstyledButton } from '@mantine/core';
 import {
 	Circle,
-	Copy,
 	Eraser,
 	ListOrdered,
 	MoveRight,
@@ -554,26 +553,42 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 							Об&apos;єднується через 1 секунду
 						</Text>
 						{onToggleDrawDuplicateMode && (
-							<UnstyledButton
-								className={`chip custom-chip ${isDrawDuplicateMode ? 'active' : ''}`}
+							<Group
+								gap="xs"
+								align="center"
+								style={{ flexShrink: 0, cursor: 'pointer' }}
 								onClick={onToggleDrawDuplicateMode}
-								title={
-									isDrawDuplicateMode
-										? 'Дублювання: увімкнено (клік по полотну клонує малюнок)'
-										: 'Дублювання: вимкнено (клік починає новий малюнок)'
-								}
-								style={{
-									display: 'inline-flex',
-									alignItems: 'center',
-									justifyContent: 'center',
-									gap: '0.35rem',
-									flexShrink: 0,
-									padding: '0.3rem 0.65rem',
-								}}
 							>
-								<Copy className="icon" style={{ width: '0.85rem', height: '0.85rem' }} />
-								<span>Дублювати</span>
-							</UnstyledButton>
+								<Text
+									component="label"
+									htmlFor="draw-duplicate-switch"
+									style={{
+										fontSize: '0.75rem',
+										fontWeight: 500,
+										color: isDrawDuplicateMode ? 'var(--text)' : 'var(--muted)',
+										cursor: 'pointer',
+										userSelect: 'none',
+										whiteSpace: 'nowrap',
+									}}
+								>
+									Дублювання
+								</Text>
+								<Switch
+									id="draw-duplicate-switch"
+									size="xs"
+									checked={isDrawDuplicateMode}
+									onChange={(e) => {
+										e.stopPropagation();
+										onToggleDrawDuplicateMode();
+									}}
+									aria-label="Режим дублювання малюнка"
+									title={
+										isDrawDuplicateMode
+											? 'Дублювання: увімкнено (клік по полотну ставить копію малюнка)'
+											: 'Дублювання: вимкнено (клік починає новий малюнок)'
+									}
+								/>
+							</Group>
 						)}
 					</Box>
 				)}

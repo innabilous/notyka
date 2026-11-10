@@ -274,6 +274,10 @@ export const createNotykaTheme = (config: AppearanceConfig = DEFAULT_APPEARANCE_
 				},
 				styles: {
 					root: {
+						'--switch-width-xs': '32px',
+						'--switch-height-xs': '18px',
+						'--switch-thumb-size-xs': '14px',
+						'--switch-track-label-padding-xs': '2px',
 						'--switch-width-sm': '38px',
 						'--switch-height-sm': '22px',
 						'--switch-thumb-size-sm': '16px',
