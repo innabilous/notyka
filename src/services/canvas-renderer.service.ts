@@ -1,26 +1,27 @@
-import { CHORD_ROOTS, COUNT_ITEMS, NOTES } from '@/constants/editor';
 import {
 	BoundingBox,
 	Point,
 	RulerItem,
 	SelectionMode,
 	SelectionShape,
-	StampCategory,
+	SnapGuide,
 	StampItem,
-} from '@/types/editor';
-
-// Determine stamp category from its explicit properties or text prefixes
-export function getStampCategory(stamp: StampItem): StampCategory {
-	if (stamp.category) return stamp.category;
-	if (stamp.shapeType) return 'shapes';
-	if (stamp.isDrawing) return 'draw';
-	if (stamp.isAutoCount) return 'count';
-	const t = (stamp.text || '').trim();
-	if (NOTES.some((n) => t.startsWith(n))) return 'notes';
-	if (COUNT_ITEMS.includes(t)) return 'count';
-	if (CHORD_ROOTS.some((r) => t.startsWith(r))) return 'chords';
-	return 'custom';
-}
+} from '@/types/editor.types';
+import { getStampFont } from '@/helpers/stamp.helpers';
+import {
+	clampArrowHead,
+	doSegmentsIntersect,
+	getShapeRotateHandleCoords,
+	isPointInCornerResizeHandle,
+	isPointInPolygon,
+} from '@/helpers/geometry.helpers';
+import {
+	findRulerNearPoint,
+	getClosestRulerY,
+	getRulerDeleteCoords,
+	isPointInRulerDelete,
+	isStampAttachedToRuler,
+} from '@/helpers/ruler.helpers';
 
 let trashPaths: Path2D[] | null = null;
 let rotatePaths: Path2D[] | null = null;
@@ -34,7 +35,6 @@ export interface CanvasThemeColors {
 	badge: string;
 }
 
-// Resolve active theme accent colors for canvas overlays (frames, rulers, handles)
 export function getCanvasThemeColors(): CanvasThemeColors {
 	if (typeof window !== 'undefined') {
 		const docStyle = getComputedStyle(document.documentElement);
@@ -83,11 +83,6 @@ function getRotatePaths(): Path2D[] {
 	return rotatePaths ?? [];
 }
 
-export function getStampFont(size: number, U: number): string {
-	return `bold ${size * 2 * U}px system-ui, -apple-system, sans-serif`;
-}
-
-// Split stamp text into lines with automatic word wrapping when a line exceeds canvas width
 export function getStampLines(
 	stamp: StampItem,
 	U: number,
@@ -134,7 +129,6 @@ export function calculateStampBox(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): BoundingBox {
-	// Geometric shape stamp (rectangle, circle/oval, arrow)
 	if (stamp.category === 'shapes' || stamp.shapeType) {
 		const pad = 8 * U;
 		if (stamp.shapeType === 'arrow') {
@@ -164,7 +158,6 @@ export function calculateStampBox(
 				h: (ry + pad) * 2,
 			};
 		}
-		// Default rectangle shape
 		const w = (stamp.width || stamp.size * 2) * U;
 		const h = (stamp.height || stamp.size * 1.5) * U;
 		return {
@@ -175,7 +168,6 @@ export function calculateStampBox(
 		};
 	}
 
-	// Freehand drawing stamp: compute bounding box from saved contour bounds
 	if (stamp.isDrawing && stamp.rawBounds) {
 		const scale = stamp.size / (stamp.initialSize || 24);
 		const sw = (stamp.strokeWidth || 4) * U;
@@ -237,50 +229,6 @@ export function getStampBoxOffsets(
 	};
 }
 
-// Constrain arrow head so its tip and wings stay inside canvas bounds
-export function clampArrowHead(
-	p1: Point,
-	target: Point,
-	lw: number,
-	canvasW: number,
-	canvasH: number,
-): Point {
-	const halfLw = lw / 2;
-	let endX = Math.max(halfLw, Math.min(canvasW - halfLw, target.x));
-	let endY = Math.max(halfLw, Math.min(canvasH - halfLw, target.y));
-
-	const dx = endX - p1.x;
-	const dy = endY - p1.y;
-	const len = Math.hypot(dx, dy);
-	if (len < 1e-4) return { x: endX, y: endY };
-
-	const angle = Math.atan2(dy, dx);
-	const baseHeadLen = Math.max(12, lw * 4.5);
-	const headLen = Math.min(len * 0.45, baseHeadLen);
-	const headAngle = Math.PI / 6;
-
-	const w1x = endX - headLen * Math.cos(angle - headAngle);
-	const w1y = endY - headLen * Math.sin(angle - headAngle);
-	const w2x = endX - headLen * Math.cos(angle + headAngle);
-	const w2y = endY - headLen * Math.sin(angle + headAngle);
-
-	const minX = Math.min(endX, w1x, w2x) - halfLw;
-	const maxX = Math.max(endX, w1x, w2x) + halfLw;
-	const minY = Math.min(endY, w1y, w2y) - halfLw;
-	const maxY = Math.max(endY, w1y, w2y) + halfLw;
-
-	if (minX < 0) endX += -minX;
-	if (maxX > canvasW) endX -= maxX - canvasW;
-	if (minY < 0) endY += -minY;
-	if (maxY > canvasH) endY -= maxY - canvasH;
-
-	return {
-		x: Math.max(halfLw, Math.min(canvasW - halfLw, endX)),
-		y: Math.max(halfLw, Math.min(canvasH - halfLw, endY)),
-	};
-}
-
-// Clamp stamp position to canvas boundaries so no part overflows the sheet
 export function clampStampPosition(
 	x: number,
 	y: number,
@@ -291,7 +239,6 @@ export function clampStampPosition(
 	const canvasW = ctx.canvas?.width ?? 10000;
 	const canvasH = ctx.canvas?.height ?? 10000;
 
-	// Exact geometric clamping for shapes right up to the canvas edges
 	if (stamp.category === 'shapes' || stamp.shapeType) {
 		const lw = Math.max(1 * U, (stamp.strokeWidth || stamp.size || 2) * U);
 		const halfLw = lw / 2;
@@ -314,7 +261,6 @@ export function clampStampPosition(
 			const w2x = p2.x - headLen * Math.cos(angle + headAngle);
 			const w2y = p2.y - headLen * Math.sin(angle + headAngle);
 
-			// Arrow bounds relative to anchor point (stamp.x, stamp.y)
 			const minRelX = Math.min(0, dx, w1x - p1.x, w2x - p1.x) - halfLw;
 			const maxRelX = Math.max(0, dx, w1x - p1.x, w2x - p1.x) + halfLw;
 			const minRelY = Math.min(0, dy, w1y - p1.y, w2y - p1.y) - halfLw;
@@ -330,7 +276,6 @@ export function clampStampPosition(
 			return { x: clampedX, y: clampedY };
 		}
 
-		// Rectangle and circle/oval accounting for rotation angle
 		const rot = stamp.rotation || 0;
 		const w = (stamp.width || stamp.size * 2) * U;
 		const h = (stamp.height || stamp.size * 1.5) * U;
@@ -346,7 +291,6 @@ export function clampStampPosition(
 			projW = Math.sqrt((rx * cos) ** 2 + (ry * sin) ** 2) + halfLw;
 			projH = Math.sqrt((rx * sin) ** 2 + (ry * cos) ** 2) + halfLw;
 		} else {
-			// Rectangle
 			const absCos = Math.abs(Math.cos(rot));
 			const absSin = Math.abs(Math.sin(rot));
 			projW = (w / 2) * absCos + (h / 2) * absSin + halfLw;
@@ -364,8 +308,6 @@ export function clampStampPosition(
 	}
 
 	const offsets = getStampBoxOffsets(stamp, U, ctx);
-
-	// Account for side resize half-circles (6 * U)
 	const sideMargin = 7 * U;
 	const topBottomMargin = 2 * U;
 
@@ -394,7 +336,6 @@ export function getHandleCoords(
 	const spaceAbove = bx.y;
 	const neededSpace = 24 * U + radius + 4 * U;
 
-	// Flip move handle above the stamp if there is not enough space below
 	const isFlipped = spaceBelow < neededSpace && spaceAbove >= neededSpace;
 	const rawY = isFlipped ? bx.y - 24 * U : bx.y + bx.h + 24 * U;
 
@@ -418,7 +359,6 @@ export function getDeleteCoords(
 	const spaceBelow = canvasH - (bx.y + bx.h);
 	const neededSpace = 15 * U + radius + 4 * U;
 
-	// Adaptive delete button placement above or below geometric shapes
 	if (stamp.category === 'shapes' || stamp.shapeType) {
 		if (stamp.shapeType === 'arrow') {
 			const p1 = { x: stamp.x, y: stamp.y };
@@ -433,7 +373,6 @@ export function getDeleteCoords(
 			return { x: targetX, y: Math.min(canvasH - radius - 2 * U, maxY + 13 * U), radius };
 		}
 
-		// Exact rotated bounds for rectangle and circle/oval
 		const rot = stamp.rotation || 0;
 		const w = (stamp.width || stamp.size * 2) * U;
 		const h = (stamp.height || stamp.size * 1.5) * U;
@@ -459,15 +398,12 @@ export function getDeleteCoords(
 
 	const handle = getHandleCoords(stamp, U, ctx);
 
-	// When the move handle is flipped to the top (due to tight bottom space):
 	if (handle.isFlipped) {
-		// Place trash button below if space allows
 		if (spaceBelow >= neededSpace) {
 			const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
 			const y = Math.min(canvasH - radius - 2 * U, bx.y + bx.h + 15 * U);
 			return { x, y, radius };
 		}
-		// Otherwise share top space alongside the move handle (prefer right, fallback left)
 		const offset = 26 * U;
 		const preferRight = handle.x + offset + radius <= canvasW - 4 * U;
 		const rawX = preferRight ? handle.x + offset : handle.x - offset;
@@ -476,14 +412,12 @@ export function getDeleteCoords(
 		return { x, y, radius };
 	}
 
-	// Move handle is at the bottom: place trash button above if space allows
 	if (spaceAbove >= neededSpace) {
 		const x = Math.max(radius + 4 * U, Math.min(canvasW - radius - 4 * U, stamp.x));
 		const y = Math.max(radius + 2 * U, bx.y - 15 * U);
 		return { x, y, radius };
 	}
 
-	// If top edge is blocked, place trash button next to the bottom move handle
 	const offset = 26 * U;
 	const preferRight = handle.x + offset + radius <= canvasW - 4 * U;
 	const rawX = preferRight ? handle.x + offset : handle.x - offset;
@@ -500,7 +434,6 @@ export function getResizeHandleCoords(
 	left: { x: number; y: number; radius: number; hitRadius: number };
 	right: { x: number; y: number; radius: number; hitRadius: number };
 } {
-	// For arrows, left handle is the tail (start) and right handle is the head (end)
 	if (stamp.shapeType === 'arrow') {
 		const p1 = { x: stamp.x, y: stamp.y };
 		const p2 = {
@@ -517,7 +450,6 @@ export function getResizeHandleCoords(
 
 	const bx = calculateStampBox(stamp, U, ctx);
 	const cy = bx.y + bx.h / 2;
-	// Scale handle radius proportionally for small stamps so it stays on the straight edge
 	const radius = Math.min(6 * U, Math.max(2.5 * U, bx.h * 0.25));
 	const hitRadius = Math.max(12 * U, 12);
 	return {
@@ -549,8 +481,6 @@ export function isPointInResizeHandle(
 	}
 
 	const bx = calculateStampBox(stamp, U, ctx);
-
-	// Limit inward hit zone (max 15% of width or 4*U) so clicking the stamp body drags rather than resizes
 	const maxInward = Math.min(bx.w * 0.15, 4 * U);
 
 	if (p.x <= bx.x + maxInward) {
@@ -572,57 +502,6 @@ export function isPointInResizeHandle(
 	return null;
 }
 
-export function getShapeRotateHandleCoords(
-	stamp: StampItem,
-	U: number,
-	canvasW: number,
-	canvasH: number,
-): { x: number; y: number; stemFrom: Point; radius: number } {
-	const rot = stamp.rotation || 0;
-	const w = (stamp.width || stamp.size * 2) * U;
-	const h = (stamp.height || stamp.size * 1.5) * U;
-	const cos = Math.cos(rot);
-	const sin = Math.sin(rot);
-	const radius = 8.5 * U;
-
-	const toCanvas = (lx: number, ly: number) => ({
-		x: stamp.x + lx * cos - ly * sin,
-		y: stamp.y + lx * sin + ly * cos,
-	});
-
-	// Default position: top-right corner
-	const normLX = w / 2 + 16 * U;
-	const normLY = -h / 2 - 16 * U;
-	const normPt = toCanvas(normLX, normLY);
-
-	const margin = radius + 4 * U;
-	const fitsTopRight =
-		normPt.x >= margin &&
-		normPt.x <= canvasW - margin &&
-		normPt.y >= margin &&
-		normPt.y <= canvasH - margin;
-
-	if (fitsTopRight) {
-		return {
-			x: normPt.x,
-			y: normPt.y,
-			stemFrom: toCanvas(w / 2, -h / 2),
-			radius,
-		};
-	}
-
-	// Fallback to opposite corner (bottom-left) if top-right is clipped by canvas edge
-	const flipLX = -w / 2 - 16 * U;
-	const flipLY = h / 2 + 16 * U;
-	const flipPt = toCanvas(flipLX, flipLY);
-	return {
-		x: Math.max(margin, Math.min(canvasW - margin, flipPt.x)),
-		y: Math.max(margin, Math.min(canvasH - margin, flipPt.y)),
-		stemFrom: toCanvas(-w / 2, h / 2),
-		radius,
-	};
-}
-
 export function isPointInRotateHandle(
 	p: Point,
 	stamp: StampItem,
@@ -639,46 +518,12 @@ export function isPointInRotateHandle(
 	return dx * dx + dy * dy <= hitRadius * hitRadius;
 }
 
-export function isPointInCornerResizeHandle(
-	p: Point,
-	stamp: StampItem,
-	U: number,
-): 'tl' | 'tr' | 'br' | 'bl' | null {
-	if (stamp.category !== 'shapes' || stamp.shapeType === 'arrow') return null;
-	const rot = stamp.rotation || 0;
-	const w = (stamp.width || stamp.size * 2) * U;
-	const h = (stamp.height || stamp.size * 1.5) * U;
-	const cos = Math.cos(rot);
-	const sin = Math.sin(rot);
-	const hitRadius = Math.max(14 * U, 14);
-	const hitSq = hitRadius * hitRadius;
-
-	const corners: Array<{ side: 'tl' | 'tr' | 'br' | 'bl'; lx: number; ly: number }> = [
-		{ side: 'tl', lx: -w / 2, ly: -h / 2 },
-		{ side: 'tr', lx: w / 2, ly: -h / 2 },
-		{ side: 'br', lx: w / 2, ly: h / 2 },
-		{ side: 'bl', lx: -w / 2, ly: h / 2 },
-	];
-
-	for (const { side, lx, ly } of corners) {
-		const cx = stamp.x + lx * cos - ly * sin;
-		const cy = stamp.y + lx * sin + ly * cos;
-		const dx = p.x - cx;
-		const dy = p.y - cy;
-		if (dx * dx + dy * dy <= hitSq) {
-			return side;
-		}
-	}
-	return null;
-}
-
 export function isPointInStamp(
 	p: Point,
 	stamp: StampItem,
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): boolean {
-	// Geometric hit-testing for shape stamps
 	if (stamp.category === 'shapes' || stamp.shapeType) {
 		const pad = 12 * U;
 		if (stamp.shapeType === 'arrow') {
@@ -697,7 +542,6 @@ export function isPointInStamp(
 			return Math.hypot(p.x - projX, p.y - projY) <= Math.max(pad, 14 * U);
 		}
 
-		// Transform point into local unrotated coordinates for rectangle and circle/oval
 		const rot = stamp.rotation || 0;
 		const cos = Math.cos(-rot);
 		const sin = Math.sin(-rot);
@@ -713,7 +557,6 @@ export function isPointInStamp(
 			const ey = ly / ry;
 			return ex * ex + ey * ey <= 1;
 		}
-		// Rectangle
 		const w = (stamp.width || stamp.size * 2) * U;
 		const h = (stamp.height || stamp.size * 1.5) * U;
 		return Math.abs(lx) <= w / 2 + pad && Math.abs(ly) <= h / 2 + pad;
@@ -723,7 +566,6 @@ export function isPointInStamp(
 	return p.x >= bx.x && p.x <= bx.x + bx.w && p.y >= bx.y && p.y <= bx.y + bx.h;
 }
 
-// Check if a point lies inside the full selection bounding box of a stamp
 export function isPointInStampBounds(
 	p: Point,
 	stamp: StampItem,
@@ -746,7 +588,6 @@ export function isPointInStampBounds(
 			return p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY;
 		}
 
-		// Test in local rotated coordinate space for rotated shapes
 		const rot = stamp.rotation || 0;
 		const cos = Math.cos(-rot);
 		const sin = Math.sin(-rot);
@@ -775,7 +616,6 @@ export function isPointInHandle(
 	U: number,
 	ctx: CanvasRenderingContext2D,
 ): boolean {
-	// Shapes do not have a bottom move stem handle (they move by dragging the body and rotate via the rotate handle)
 	if (stamp.category === 'shapes') return false;
 	const h = getHandleCoords(stamp, U, ctx);
 	const dx = p.x - h.x;
@@ -820,7 +660,6 @@ export function drawStamp(
 		ctx.lineCap = 'round';
 		ctx.lineJoin = 'round';
 
-		// Draw stroke outline if configured
 		if (stamp.strokeColor && stamp.strokeColor !== 'transparent') {
 			ctx.strokeStyle = stamp.strokeColor;
 			ctx.lineWidth = sw / scale + 4 * U;
@@ -841,7 +680,6 @@ export function drawStamp(
 			});
 		}
 
-		// Draw primary stroke paths
 		ctx.strokeStyle = stamp.mainColor;
 		ctx.lineWidth = sw / scale;
 		stamp.paths.forEach((path) => {
@@ -892,13 +730,11 @@ export function drawStamp(
 			ctx.lineCap = 'round';
 			ctx.lineJoin = 'miter';
 
-			// Arrow shaft line
 			ctx.beginPath();
 			ctx.moveTo(p1.x, p1.y);
 			ctx.lineTo(p2.x - headLen * 0.6 * Math.cos(angle), p2.y - headLen * 0.6 * Math.sin(angle));
 			ctx.stroke();
 
-			// Arrowhead triangle
 			const headAngle = Math.PI / 6;
 			const a1 = angle - headAngle;
 			const a2 = angle + headAngle;
@@ -974,11 +810,9 @@ export function drawStamp(
 
 		if (stamp.strokeColor !== 'transparent') {
 			if (stamp.badgeMode) {
-				// Draw solid colored badge behind text
 				const bx = calculateStampBox(stamp, U, ctx);
 				ctx.fillStyle = stamp.strokeColor;
 				ctx.beginPath();
-				// Scale badge corner radius down for small stamps so the badge remains rectangular
 				const maxBadgeRadius = Math.min(bx.w, bx.h) * 0.25;
 				const baseBadgeRadius =
 					stamp.size < 8 ? Math.max(1.5 * U, (stamp.size / 8) * 6 * U) : 6 * U;
@@ -1021,7 +855,6 @@ export function drawStamp(
 				y: stamp.y + lx * sin + ly * cos,
 			});
 
-			// 1. Dashed selection border
 			ctx.save();
 			ctx.translate(stamp.x, stamp.y);
 			ctx.rotate(rot);
@@ -1031,7 +864,6 @@ export function drawStamp(
 			ctx.strokeRect(-w / 2, -h / 2, w, h);
 			ctx.restore();
 
-			// 2. Adaptive rotation handle (top-right or bottom-left near canvas edge)
 			const rotInfo = getShapeRotateHandleCoords(
 				stamp,
 				U,
@@ -1056,7 +888,6 @@ export function drawStamp(
 			ctx.lineWidth = 1.5 * U;
 			ctx.stroke();
 
-			// Upright circular rotation arrow icon inside handle
 			const rPaths = getRotatePaths();
 			if (rPaths.length > 0) {
 				ctx.save();
@@ -1073,7 +904,6 @@ export function drawStamp(
 			}
 			ctx.restore();
 
-			// 3. Four corner resize handles
 			if (resizeHandlesOn) {
 				const corners = [
 					{ lx: -w / 2, ly: -h / 2 },
@@ -1093,7 +923,6 @@ export function drawStamp(
 				});
 			}
 
-			// 4. Delete button
 			if (deleteBtnOn) {
 				const d = getDeleteCoords(stamp, U, ctx);
 				ctx.beginPath();
@@ -1117,86 +946,40 @@ export function drawStamp(
 					paths.forEach((pth) => ctx.stroke(pth));
 					ctx.restore();
 				}
-			}
-		} else if (isArrow) {
-			if (deleteBtnOn) {
-				const d = getDeleteCoords(stamp, U, ctx);
-				ctx.beginPath();
-				ctx.arc(d.x, d.y, 8.5 * U, 0, Math.PI * 2);
-				ctx.fillStyle = '#ef4444';
-				ctx.fill();
-				ctx.strokeStyle = '#ffffff';
-				ctx.lineWidth = 1.5 * U;
-				ctx.stroke();
-
-				const paths = getTrashPaths();
-				if (paths.length > 0) {
-					ctx.save();
-					const k = (9 * U) / 24;
-					ctx.translate(d.x - 12 * k, d.y - 12 * k);
-					ctx.scale(k, k);
-					ctx.strokeStyle = '#ffffff';
-					ctx.lineWidth = 2.2;
-					ctx.lineCap = 'round';
-					ctx.lineJoin = 'round';
-					paths.forEach((pth) => ctx.stroke(pth));
-					ctx.restore();
-				}
-			}
-
-			if (resizeHandlesOn) {
-				const resizes = getResizeHandleCoords(stamp, U, ctx);
-				ctx.fillStyle = themeColors.primary;
-				ctx.strokeStyle = '#ffffff';
-				ctx.lineWidth = 1.5 * U;
-
-				ctx.beginPath();
-				ctx.arc(resizes.left.x, resizes.left.y, resizes.left.radius, 0, Math.PI * 2);
-				ctx.fill();
-				ctx.stroke();
-
-				ctx.beginPath();
-				ctx.arc(resizes.right.x, resizes.right.y, resizes.right.radius, 0, Math.PI * 2);
-				ctx.fill();
-				ctx.stroke();
 			}
 		} else {
 			const bx = calculateStampBox(stamp, U, ctx);
+			ctx.save();
 			ctx.strokeStyle = themeColors.border;
-			ctx.lineWidth = 2 * U;
+			ctx.lineWidth = 1.5 * U;
 			ctx.setLineDash([5 * U, 4 * U]);
-			ctx.beginPath();
-			const maxBoxRadius = Math.min(bx.w, bx.h) * 0.25;
-			const baseBoxRadius = stamp.size < 8 ? Math.max(1.5 * U, (stamp.size / 8) * 8 * U) : 8 * U;
-			const activeRadius = Math.min(baseBoxRadius, maxBoxRadius);
-			if (typeof ctx.roundRect === 'function') {
-				ctx.roundRect(bx.x, bx.y, bx.w, bx.h, activeRadius);
-			} else {
-				ctx.rect(bx.x, bx.y, bx.w, bx.h);
-			}
-			ctx.stroke();
+			ctx.strokeRect(bx.x, bx.y, bx.w, bx.h);
+			ctx.restore();
 
-			const handle = getHandleCoords(stamp, U, ctx);
-			const hx = handle.x;
-			const hy = handle.y;
-			ctx.setLineDash([]);
+			const h = getHandleCoords(stamp, U, ctx);
+
 			ctx.beginPath();
-			const stemStartY = handle.isFlipped ? bx.y : bx.y + bx.h;
-			ctx.moveTo(hx, stemStartY);
-			ctx.lineTo(hx, hy);
+			ctx.strokeStyle = themeColors.border;
+			ctx.lineWidth = 1.5 * U;
+			ctx.moveTo(stamp.x, h.isFlipped ? bx.y : bx.y + bx.h);
+			ctx.lineTo(h.x, h.y);
 			ctx.stroke();
 
 			ctx.beginPath();
-			ctx.arc(hx, hy, 14 * U, 0, Math.PI * 2);
+			ctx.arc(h.x, h.y, h.radius, 0, Math.PI * 2);
 			ctx.fillStyle = themeColors.primary;
 			ctx.fill();
 			ctx.strokeStyle = '#ffffff';
+			ctx.lineWidth = 1.5 * U;
 			ctx.stroke();
 
-			// 4-directional move arrows inside handle
-			const s = 6.5 * U;
+			ctx.strokeStyle = '#ffffff';
+			ctx.lineWidth = 1.6 * U;
+			ctx.lineCap = 'round';
+			const hx = h.x;
+			const hy = h.y;
+			const s = 6 * U;
 			const a = 2.5 * U;
-			ctx.lineWidth = 1.5 * U;
 			ctx.beginPath();
 			ctx.moveTo(hx - s, hy);
 			ctx.lineTo(hx + s, hy);
@@ -1262,8 +1045,6 @@ export function drawStamp(
 					ctx.fillStyle = themeColors.primary;
 					ctx.strokeStyle = '#ffffff';
 					ctx.lineWidth = 1.5 * U;
-					ctx.strokeStyle = '#ffffff';
-					ctx.lineWidth = 1.5 * U;
 
 					ctx.beginPath();
 					ctx.arc(resizes.left.x, resizes.left.y, resizes.left.radius, Math.PI / 2, (3 * Math.PI) / 2);
@@ -1282,77 +1063,6 @@ export function drawStamp(
 	ctx.restore();
 }
 
-// Coordinates of the ruler delete button (18px from left edge)
-export function getRulerDeleteCoords(
-	ruler: RulerItem,
-	U: number,
-): { x: number; y: number; radius: number } {
-	return { x: Math.max(18 * U, 18), y: ruler.y, radius: 9 * U };
-}
-
-export function isPointInRulerDelete(p: Point, ruler: RulerItem, U: number): boolean {
-	const d = getRulerDeleteCoords(ruler, U);
-	const hitRadius = Math.max(d.radius + 6 * U, 18);
-	const dx = p.x - d.x;
-	const dy = p.y - d.y;
-	return dx * dx + dy * dy <= hitRadius * hitRadius;
-}
-
-// Check if a stamp is centered on and attached to the target ruler
-export function isStampAttachedToRuler(
-	stamp: StampItem,
-	targetRuler: RulerItem,
-	allRulers: RulerItem[],
-	U: number,
-): boolean {
-	const distToTarget = Math.abs(stamp.y - targetRuler.y);
-	// Center alignment tolerance: stamp center must sit on the ruler axis
-	const maxCenterTolerance = Math.max(2 * U, 2.5);
-	if (distToTarget > maxCenterTolerance) return false;
-
-	// Target ruler must be the closest ruler to the stamp center
-	for (const r of allRulers) {
-		if (r.id !== targetRuler.id && Math.abs(stamp.y - r.y) < distToTarget) {
-			return false;
-		}
-	}
-	return true;
-}
-
-export function findRulerNearPoint(p: Point, rulers: RulerItem[], U: number): RulerItem | null {
-	const threshold = Math.max(16 * U, 14);
-	let closest: RulerItem | null = null;
-	let minDist = Infinity;
-	for (const r of rulers) {
-		const dist = Math.abs(p.y - r.y);
-		if (dist <= threshold && dist < minDist) {
-			minDist = dist;
-			closest = r;
-		}
-	}
-	return closest;
-}
-
-export function getClosestRulerY(y: number, rulers: RulerItem[], threshold: number): number | null {
-	let closestDist = Infinity;
-	let closestY: number | null = null;
-	for (const r of rulers) {
-		const dist = Math.abs(y - r.y);
-		if (dist <= threshold && dist < closestDist) {
-			closestDist = dist;
-			closestY = r.y;
-		}
-	}
-	return closestY;
-}
-
-export interface SnapGuide {
-	x: number;
-	y1: number;
-	y2: number;
-}
-
-// Compute horizontal magnetic snap of an active stamp to stamps on other rulers (Smart Guides)
 export function getStampItemHorizontalSnap(
 	targetX: number,
 	targetY: number,
@@ -1364,12 +1074,10 @@ export function getStampItemHorizontalSnap(
 ): { snappedX: number; guide: SnapGuide | null } {
 	if (rulers.length < 2) return { snappedX: targetX, guide: null };
 
-	// Check if targetY is near or snapped to a ruler
 	const nearThreshold = Math.max(16 * U, 14);
 	const activeRuler = rulers.find((r) => Math.abs(targetY - r.y) <= nearThreshold);
 	if (!activeRuler) return { snappedX: targetX, guide: null };
 
-	// Candidate targets: stamps attached to other rulers
 	const otherRulers = rulers.filter((r) => r.id !== activeRuler.id);
 	const targetCandidates: { stamp: StampItem; ruler: RulerItem }[] = [];
 
@@ -1398,7 +1106,6 @@ export function getStampItemHorizontalSnap(
 		const targetLeft = target.x - targetOffsets.left;
 		const targetRight = target.x + targetOffsets.right;
 
-		// 1. Center-to-center alignment (primary priority for notes)
 		const dCenter = target.x - targetX;
 		const absCenter = Math.abs(dCenter);
 		if (absCenter <= snapThreshold && absCenter < bestDist) {
@@ -1408,7 +1115,6 @@ export function getStampItemHorizontalSnap(
 			matchedRulers = [activeRuler, targetRuler];
 		}
 
-		// 2. Left-edge alignment
 		const snappedFromLeft = targetLeft + activeOffsets.left;
 		const dLeft = snappedFromLeft - targetX;
 		const absLeft = Math.abs(dLeft);
@@ -1419,7 +1125,6 @@ export function getStampItemHorizontalSnap(
 			matchedRulers = [activeRuler, targetRuler];
 		}
 
-		// 3. Right-edge alignment
 		const snappedFromRight = targetRight - activeOffsets.right;
 		const dRight = snappedFromRight - targetX;
 		const absRight = Math.abs(dRight);
@@ -1455,7 +1160,6 @@ export function getStampItemHorizontalSnap(
 	};
 }
 
-// Draw vertical smart alignment guide line
 export function drawSmartGuide(ctx: CanvasRenderingContext2D, guide: SnapGuide, U: number): void {
 	const themeColors = getCanvasThemeColors();
 	ctx.save();
@@ -1536,7 +1240,6 @@ export function drawRulers(
 		ctx.restore();
 	}
 
-	// Render pixel distance badges between adjacent rulers (36px from left edge)
 	if (showDistance && rulers.length >= 2) {
 		const sorted = [...rulers].sort((a, b) => a.y - b.y);
 		const dimX = Math.max(36 * U, 36);
@@ -1566,7 +1269,6 @@ export function drawRulers(
 			const bx = dimX - bw / 2;
 			const by = midY - bh / 2;
 
-			// Badge background using ruler accent color
 			ctx.fillStyle = themeColors.badge;
 			ctx.setLineDash([]);
 			ctx.beginPath();
@@ -1589,37 +1291,6 @@ export function drawRulers(
 	}
 }
 
-function doSegmentsIntersect(
-	p1: Point,
-	p2: Point,
-	p3: Point,
-	p4: Point,
-): boolean {
-	const ccw = (a: Point, b: Point, c: Point) =>
-		(c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
-	return (
-		ccw(p1, p3, p4) !== ccw(p2, p3, p4) &&
-		ccw(p1, p2, p3) !== ccw(p1, p2, p4)
-	);
-}
-
-export function isPointInPolygon(pt: Point, poly: Point[]): boolean {
-	if (poly.length < 3) return false;
-	let inside = false;
-	for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-		const xi = poly[i].x;
-		const yi = poly[i].y;
-		const xj = poly[j].x;
-		const yj = poly[j].y;
-		const intersect =
-			yi > pt.y !== yj > pt.y &&
-			pt.x < ((xj - xi) * (pt.y - yi)) / (yj - yi) + xi;
-		if (intersect) inside = !inside;
-	}
-	return inside;
-}
-
-// Return key polygon/bounding points of a stamp for area selection hit-testing
 export function getStampBoundingPoints(
 	stamp: StampItem,
 	U: number,
@@ -1684,7 +1355,6 @@ export function getStampBoundingPoints(
 	];
 }
 
-// Test whether a stamp falls within the active area selection shape and mode
 export function isStampInSelection(
 	stamp: StampItem,
 	shape: SelectionShape,
@@ -1777,7 +1447,6 @@ export function isStampInSelection(
 	}
 }
 
-// Draw interactive marquee rectangle or lasso contour during area selection
 export function drawAreaSelectionOverlay(
 	ctx: CanvasRenderingContext2D,
 	shape: SelectionShape,
@@ -1842,7 +1511,6 @@ export function drawAreaSelectionOverlay(
 	ctx.restore();
 }
 
-// Compute combined bounding box for a group of selected stamps
 export function getMultiSelectionBounds(
 	stamps: StampItem[],
 	U: number,
@@ -1876,7 +1544,6 @@ export function getMultiSelectionBounds(
 	};
 }
 
-// Draw shared dashed bounding box around multiple selected stamps
 export function drawMultiSelectionBox(
 	ctx: CanvasRenderingContext2D,
 	stamps: StampItem[],
