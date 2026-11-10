@@ -29,6 +29,154 @@ interface ColorPaletteModalProps {
 	onToggleBadgeMode?: (isBadge: boolean) => void;
 }
 
+const isLightColor = (color: string): boolean => {
+	const c = color.toLowerCase();
+	return c === '#ffffff' || c === '#fff200' || c === '#ffff00' || c === '#f59e0b';
+};
+
+interface PaletteGridProps {
+	selectedColor: string;
+	onSelectColor: (color: string) => void;
+	showTransparent?: boolean;
+	isTransparentSelected?: boolean;
+	isTransparentDisabled?: boolean;
+	transparentTooltip?: string;
+	onSelectTransparent?: () => void;
+	ariaPrefix: string;
+}
+
+const PaletteGrid: React.FC<PaletteGridProps> = ({
+	selectedColor,
+	onSelectColor,
+	showTransparent = false,
+	isTransparentSelected = false,
+	isTransparentDisabled = false,
+	transparentTooltip = 'Без кольору (прозоро)',
+	onSelectTransparent,
+	ariaPrefix,
+}) => {
+	const normSelected = selectedColor.toLowerCase();
+
+	return (
+		<Box
+			style={{
+				display: 'grid',
+				gridTemplateColumns: 'repeat(11, 1fr)',
+				gap: 5,
+				alignItems: 'center',
+				justifyItems: 'center',
+				padding: '4px 2px',
+			}}
+		>
+			{PALETTE_COLORS.map((color) => {
+				const isSelected = normSelected === color.toLowerCase();
+				const isLight = isLightColor(color);
+
+				return (
+					<ColorSwatch
+						key={`${ariaPrefix}-${color}`}
+						component="button"
+						type="button"
+						color={color}
+						size={24}
+						radius="xl"
+						style={{
+							cursor: 'pointer',
+							flexShrink: 0,
+							border: 'none',
+							boxShadow: isSelected
+								? '0 0 0 2px var(--panel), 0 0 0 3.5px var(--accent)'
+								: 'inset 0 0 0 1px rgba(0, 0, 0, 0.15)',
+							transition: 'box-shadow 0.12s ease',
+							display: 'inline-flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+						}}
+						onClick={() => onSelectColor(color)}
+						aria-label={`Обрати ${ariaPrefix} ${color}`}
+					>
+						{isSelected && (
+							<Check
+								size={13}
+								strokeWidth={3}
+								color={isLight ? '#000000' : '#ffffff'}
+								style={{ display: 'block', pointerEvents: 'none' }}
+							/>
+						)}
+					</ColorSwatch>
+				);
+			})}
+
+			{showTransparent ? (
+				<Tooltip label={transparentTooltip}>
+					<ActionIcon
+						variant="subtle"
+						size={24}
+						radius="xl"
+						style={{
+							flexShrink: 0,
+							background: 'transparent',
+							boxShadow: isTransparentSelected
+								? '0 0 0 2px var(--panel), 0 0 0 3.5px #ef4444'
+								: 'inset 0 0 0 1px rgba(0, 0, 0, 0.15)',
+							transition: 'box-shadow 0.12s ease',
+						}}
+						disabled={isTransparentDisabled}
+						onClick={onSelectTransparent}
+						aria-label="Вимкнути колір"
+					>
+						<Ban
+							size={13}
+							color="#ef4444"
+							strokeWidth={isTransparentSelected ? 2.5 : 2}
+						/>
+					</ActionIcon>
+				</Tooltip>
+			) : (
+				<Box w={24} h={24} />
+			)}
+		</Box>
+	);
+};
+
+interface PipettePickerProps {
+	value: string;
+	onChange: (color: string) => void;
+}
+
+const PipettePicker: React.FC<PipettePickerProps> = ({ value, onChange }) => (
+	<Box
+		component="label"
+		style={{
+			display: 'inline-flex',
+			alignItems: 'center',
+			gap: 4,
+			cursor: 'pointer',
+			color: 'var(--muted)',
+			fontSize: '0.75rem',
+			opacity: 0.75,
+			transition: 'opacity 0.12s ease',
+		}}
+		onMouseEnter={(e) => {
+			e.currentTarget.style.opacity = '1';
+		}}
+		onMouseLeave={(e) => {
+			e.currentTarget.style.opacity = '0.75';
+		}}
+	>
+		<Pipette size={12} strokeWidth={2} />
+		<Text size="xs" c="dimmed">
+			Свій
+		</Text>
+		<input
+			type="color"
+			value={value.startsWith('#') ? value : '#ef4444'}
+			onChange={(e) => onChange(e.target.value)}
+			style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+		/>
+	</Box>
+);
+
 export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 	opened,
 	currentMode,
@@ -65,9 +213,8 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 				id="color-palette-popup"
 				className="popup"
 				p="xs"
-				withBorder
 				shadow="xl"
-				radius="md"
+				radius="lg"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<Stack gap={6}>
@@ -75,38 +222,15 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 						<Text size="xs" fw={600} c="dimmed">
 							Колір стрілки:
 						</Text>
-						<Box component="label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: '0.75rem' }}>
-							<Pipette size={14} />
-							<Text size="xs">Свій</Text>
-							<input
-								type="color"
-								value={arrowColor.startsWith('#') ? arrowColor : '#ef4444'}
-								onChange={(e) => handleSetArrowColor(e.target.value)}
-								style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-							/>
-						</Box>
+						<PipettePicker value={arrowColor} onChange={handleSetArrowColor} />
 					</Group>
 
-					<Group gap={6} wrap="wrap">
-						{PALETTE_COLORS.map((color) => {
-							const isSelected = arrowColor.toLowerCase() === color.toLowerCase();
-							return (
-								<ColorSwatch
-									key={`arrow-${color}`}
-									component="button"
-									type="button"
-									color={color}
-									size={26}
-									radius="sm"
-									style={{ cursor: 'pointer' }}
-									onClick={() => handleSetArrowColor(color)}
-									aria-label={`Обрати колір стрілки ${color}`}
-								>
-									{isSelected && <Check size={14} color="#ffffff" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />}
-								</ColorSwatch>
-							);
-						})}
-					</Group>
+					<PaletteGrid
+						selectedColor={arrowColor}
+						onSelectColor={handleSetArrowColor}
+						showTransparent={false}
+						ariaPrefix="колір стрілки"
+					/>
 				</Stack>
 			</Paper>
 		);
@@ -122,9 +246,8 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 				id="color-palette-popup"
 				className="popup"
 				p="xs"
-				withBorder
 				shadow="xl"
-				radius="md"
+				radius="lg"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<Stack gap="xs">
@@ -134,58 +257,25 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 							<Text size="xs" fw={600} c="dimmed">
 								Заливка фігури:
 							</Text>
-							<Box component="label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: '0.75rem' }}>
-								<Pipette size={14} />
-								<Text size="xs">Свій</Text>
-								<input
-									type="color"
-									value={mainColor.startsWith('#') ? mainColor : '#ef4444'}
-									onChange={(e) => onChangeMainColor(e.target.value)}
-									style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-								/>
-							</Box>
+							<PipettePicker value={mainColor} onChange={onChangeMainColor} />
 						</Group>
 
-						<Group gap={6} wrap="wrap">
-							{PALETTE_COLORS.map((color) => {
-								const isSelected = mainColor.toLowerCase() === color.toLowerCase();
-								return (
-									<ColorSwatch
-										key={`fill-${color}`}
-										component="button"
-										type="button"
-										color={color}
-										size={26}
-										radius="sm"
-										style={{ cursor: 'pointer' }}
-										onClick={() => onChangeMainColor(color)}
-										aria-label={`Обрати колір заливки ${color}`}
-									>
-										{isSelected && <Check size={14} color="#ffffff" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />}
-									</ColorSwatch>
-								);
-							})}
-
-							<Tooltip
-								label={
-									isStrokeTransparent
-										? 'Фігура має мати обводку або заливку'
-										: 'Без заливки (прозоро)'
-								}
-							>
-								<ActionIcon
-									variant={isFillTransparent ? 'filled' : 'subtle'}
-									color="red"
-									size={26}
-									radius="sm"
-									disabled={isStrokeTransparent}
-									onClick={() => !isStrokeTransparent && onChangeMainColor('transparent')}
-									aria-label="Вимкнути заливку"
-								>
-									<Ban size={14} />
-								</ActionIcon>
-							</Tooltip>
-						</Group>
+						<PaletteGrid
+							selectedColor={mainColor}
+							onSelectColor={onChangeMainColor}
+							showTransparent={true}
+							isTransparentSelected={isFillTransparent}
+							isTransparentDisabled={isStrokeTransparent}
+							transparentTooltip={
+								isStrokeTransparent
+									? 'Фігура має мати обводку або заливку'
+									: 'Без заливки (прозоро)'
+							}
+							onSelectTransparent={() =>
+								!isStrokeTransparent && onChangeMainColor('transparent')
+							}
+							ariaPrefix="заливка"
+						/>
 					</Stack>
 
 					{/* 2. Обводка фігури */}
@@ -194,58 +284,25 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 							<Text size="xs" fw={600} c="dimmed">
 								Обводка фігури:
 							</Text>
-							<Box component="label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: '0.75rem' }}>
-								<Pipette size={14} />
-								<Text size="xs">Свій</Text>
-								<input
-									type="color"
-									value={strokeColor.startsWith('#') ? strokeColor : '#ef4444'}
-									onChange={(e) => onChangeStrokeColor(e.target.value)}
-									style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-								/>
-							</Box>
+							<PipettePicker value={strokeColor} onChange={onChangeStrokeColor} />
 						</Group>
 
-						<Group gap={6} wrap="wrap">
-							{PALETTE_COLORS.map((color) => {
-								const isSelected = strokeColor.toLowerCase() === color.toLowerCase();
-								return (
-									<ColorSwatch
-										key={`stroke-${color}`}
-										component="button"
-										type="button"
-										color={color}
-										size={26}
-										radius="sm"
-										style={{ cursor: 'pointer' }}
-										onClick={() => onChangeStrokeColor(color)}
-										aria-label={`Обрати колір обводки ${color}`}
-									>
-										{isSelected && <Check size={14} color="#ffffff" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />}
-									</ColorSwatch>
-								);
-							})}
-
-							<Tooltip
-								label={
-									isFillTransparent
-										? 'Фігура має мати обводку або заливку'
-										: 'Без обводки (прозоро)'
-								}
-							>
-								<ActionIcon
-									variant={isStrokeTransparent ? 'filled' : 'subtle'}
-									color="red"
-									size={26}
-									radius="sm"
-									disabled={isFillTransparent}
-									onClick={() => !isFillTransparent && onChangeStrokeColor('transparent')}
-									aria-label="Вимкнути обводку"
-								>
-									<Ban size={14} />
-								</ActionIcon>
-							</Tooltip>
-						</Group>
+						<PaletteGrid
+							selectedColor={strokeColor}
+							onSelectColor={onChangeStrokeColor}
+							showTransparent={true}
+							isTransparentSelected={isStrokeTransparent}
+							isTransparentDisabled={isFillTransparent}
+							transparentTooltip={
+								isFillTransparent
+									? 'Фігура має мати обводку або заливку'
+									: 'Без обводки (прозоро)'
+							}
+							onSelectTransparent={() =>
+								!isFillTransparent && onChangeStrokeColor('transparent')
+							}
+							ariaPrefix="обводка"
+						/>
 					</Stack>
 				</Stack>
 			</Paper>
@@ -257,9 +314,8 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 			id="color-palette-popup"
 			className="popup"
 			p="xs"
-			withBorder
 			shadow="xl"
-			radius="md"
+			radius="lg"
 			onClick={(e) => e.stopPropagation()}
 		>
 			<Stack gap="xs">
@@ -268,38 +324,15 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 						<Text size="xs" fw={600} c="dimmed">
 							{isStamp ? 'Колір штампа:' : 'Колір олівця:'}
 						</Text>
-						<Box component="label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: '0.75rem' }}>
-							<Pipette size={14} />
-							<Text size="xs">Свій</Text>
-							<input
-								type="color"
-								value={mainColor.startsWith('#') ? mainColor : '#ef4444'}
-								onChange={(e) => onChangeMainColor(e.target.value)}
-								style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-							/>
-						</Box>
+						<PipettePicker value={mainColor} onChange={onChangeMainColor} />
 					</Group>
 
-					<Group gap={6} wrap="wrap">
-						{PALETTE_COLORS.map((color) => {
-							const isSelected = mainColor.toLowerCase() === color.toLowerCase();
-							return (
-								<ColorSwatch
-									key={`fill-${color}`}
-									component="button"
-									type="button"
-									color={color}
-									size={26}
-									radius="sm"
-									style={{ cursor: 'pointer' }}
-									onClick={() => onChangeMainColor(color)}
-									aria-label={`Обрати колір ${color}`}
-								>
-									{isSelected && <Check size={14} color="#ffffff" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />}
-								</ColorSwatch>
-							);
-						})}
-					</Group>
+					<PaletteGrid
+						selectedColor={mainColor}
+						onSelectColor={onChangeMainColor}
+						showTransparent={false}
+						ariaPrefix={isStamp ? 'колір штампа' : 'колір олівця'}
+					/>
 				</Stack>
 
 				{isStamp && (
@@ -308,16 +341,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 							<Text size="xs" fw={600} c="dimmed">
 								{stampBadgeMode ? 'Колір плашки:' : 'Колір обводки:'}
 							</Text>
-							<Box component="label" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: '0.75rem' }}>
-								<Pipette size={14} />
-								<Text size="xs">Свій</Text>
-								<input
-									type="color"
-									value={strokeColor.startsWith('#') ? strokeColor : '#000000'}
-									onChange={(e) => onChangeStrokeColor(e.target.value)}
-									style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-								/>
-							</Box>
+							<PipettePicker value={strokeColor} onChange={onChangeStrokeColor} />
 						</Group>
 
 						{/* Перемикач стилю: обводка або суцільна плашка */}
@@ -333,39 +357,15 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 							]}
 						/>
 
-						<Group gap={6} wrap="wrap">
-							{PALETTE_COLORS.map((color) => {
-								const isSelected = strokeColor.toLowerCase() === color.toLowerCase();
-								return (
-									<ColorSwatch
-										key={`stroke-${color}`}
-										component="button"
-										type="button"
-										color={color}
-										size={26}
-										radius="sm"
-										style={{ cursor: 'pointer' }}
-										onClick={() => onChangeStrokeColor(color)}
-										aria-label={`Обрати обводку ${color}`}
-									>
-										{isSelected && <Check size={14} color="#ffffff" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))' }} />}
-									</ColorSwatch>
-								);
-							})}
-
-							<Tooltip label="Вимкнути обводку">
-								<ActionIcon
-									variant={strokeColor === 'transparent' ? 'filled' : 'subtle'}
-									color="red"
-									size={26}
-									radius="sm"
-									onClick={() => onChangeStrokeColor('transparent')}
-									aria-label="Вимкнути обводку"
-								>
-									<Ban size={14} />
-								</ActionIcon>
-							</Tooltip>
-						</Group>
+						<PaletteGrid
+							selectedColor={strokeColor}
+							onSelectColor={onChangeStrokeColor}
+							showTransparent={true}
+							isTransparentSelected={strokeColor === 'transparent'}
+							transparentTooltip="Вимкнути обводку"
+							onSelectTransparent={() => onChangeStrokeColor('transparent')}
+							ariaPrefix="обводка штампа"
+						/>
 					</Stack>
 				)}
 			</Stack>
