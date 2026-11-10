@@ -17,7 +17,7 @@ export function getStampCategory(stamp: StampItem): StampCategory {
 	if (stamp.isAutoCount) return 'count';
 	const t = (stamp.text || '').trim();
 	if (NOTES.some((n) => t.startsWith(n))) return 'notes';
-	if ((COUNT_ITEMS as readonly string[]).includes(t)) return 'count';
+	if (COUNT_ITEMS.includes(t)) return 'count';
 	if (CHORD_ROOTS.some((r) => t.startsWith(r))) return 'chords';
 	return 'custom';
 }

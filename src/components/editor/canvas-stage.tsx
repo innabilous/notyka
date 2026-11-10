@@ -1068,7 +1068,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					return {
 						type: 'stamp',
 						id: l.id,
-						stamp: JSON.parse(JSON.stringify(l.stamp!)),
+						stamp: JSON.parse(JSON.stringify(l.stamp)),
 					};
 				});
 
@@ -1079,9 +1079,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				if (firstStroke) {
 					baseCanvasRef.current = firstStroke.canvas;
 				}
+				const lastLayer = layersRef.current[layersRef.current.length - 1];
 				activeStrokeCanvasRef.current =
-					layersRef.current[layersRef.current.length - 1]?.type === 'stroke'
-						? (layersRef.current[layersRef.current.length - 1] as { type: 'stroke'; id: string; canvas: HTMLCanvasElement }).canvas
+					lastLayer && lastLayer.type === 'stroke'
+						? lastLayer.canvas
 						: (firstStroke ? firstStroke.canvas : base);
 			} else {
 				const bctx = base.getContext('2d');
@@ -2928,12 +2929,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			const serializedHistory: SerializedHistoryItem[] = historyStackRef.current.map((item) => ({
 				stamps: JSON.parse(JSON.stringify(item.stamps || [])),
 				rulers: JSON.parse(JSON.stringify(item.rulers || [])),
-				layers: (item.layers || []).map((l) => ({
-					type: l.type,
-					id: l.id,
-					stamp: l.stamp ? JSON.parse(JSON.stringify(l.stamp)) : undefined,
-					strokeDataUrl: l.strokeDataUrl,
-				})),
+				layers: (item.layers || []).map((l) =>
+					l.type === 'stroke'
+						? { type: 'stroke', id: l.id, strokeDataUrl: l.strokeDataUrl }
+						: { type: 'stamp', id: l.id, stamp: JSON.parse(JSON.stringify(l.stamp)) },
+				),
 			}));
 
 			const project: ProjectItem = {
@@ -2998,31 +2998,29 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			bctx.clearRect(0, 0, base.width, base.height);
 			bgctx.clearRect(0, 0, bg.width, bg.height);
 
-			if (project.hasImage && project.bgDataUrl) {
-				await new Promise<void>((resolve) => {
+			const loadDataUrlImage = (src: string): Promise<HTMLImageElement | null> =>
+				new Promise((resolve) => {
 					const img = new Image();
-					img.onload = () => {
-						currentImageRef.current = img;
-						bgctx.drawImage(img, 0, 0);
-						resolve();
-					};
-					img.onerror = () => resolve();
-					img.src = project.bgDataUrl!;
+					img.onload = () => resolve(img);
+					img.onerror = () => resolve(null);
+					img.src = src;
 				});
+
+			if (project.hasImage && project.bgDataUrl) {
+				const bgImg = await loadDataUrlImage(project.bgDataUrl);
+				if (bgImg) {
+					currentImageRef.current = bgImg;
+					bgctx.drawImage(bgImg, 0, 0);
+				}
 			} else {
 				currentImageRef.current = null;
 			}
 
 			if (project.baseDataUrl) {
-				await new Promise<void>((resolve) => {
-					const img = new Image();
-					img.onload = () => {
-						bctx.drawImage(img, 0, 0);
-						resolve();
-					};
-					img.onerror = () => resolve();
-					img.src = project.baseDataUrl!;
-				});
+				const baseImg = await loadDataUrlImage(project.baseDataUrl);
+				if (baseImg) {
+					bctx.drawImage(baseImg, 0, 0);
+				}
 			}
 
 			layersRef.current = [{ type: 'stroke', id: 'base', canvas: base }];
@@ -3053,12 +3051,15 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				historyStackRef.current = project.history.map((item) => ({
 					stamps: item.stamps || [],
 					rulers: item.rulers || [],
-					layers: (item.layers || []).map((l) => ({
-						type: l.type,
-						id: l.id,
-						stamp: l.stamp,
-						strokeDataUrl: l.strokeDataUrl,
-					})),
+					layers: (item.layers || []).flatMap((l): CanvasLayerItem[] => {
+						if (l.type === 'stroke') {
+							return [{ type: 'stroke', id: l.id, strokeDataUrl: l.strokeDataUrl }];
+						}
+						if (l.type === 'stamp' && l.stamp) {
+							return [{ type: 'stamp', id: l.id, stamp: l.stamp }];
+						}
+						return [];
+					}),
 				}));
 				const restoredStep =
 					typeof project.historyStep === 'number' &&
@@ -3329,8 +3330,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 					};
 				}
 			} else if (e.touches.length === 1 && !isMultiTouchRef.current) {
-				const target = e.target as HTMLElement | null;
-				if (target?.closest('#placeholder button')) return;
+				if (e.target instanceof Element && e.target.closest('#placeholder button')) return;
 				if (!hasCanvas) createBlank();
 				const t = e.touches[0];
 				cancelPending();
@@ -3459,8 +3459,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 			}
 			if (ignoreMouseDownRef.current) return;
 			if (e.button !== 0) return;
-			const target = e.target as HTMLElement | null;
-			if (target?.closest('#placeholder button')) return;
+			if (e.target instanceof Element && e.target.closest('#placeholder button')) return;
 			if (!hasCanvas) createBlank();
 			pointerDown(getCanvasCoords(e.clientX, e.clientY));
 		};
@@ -3490,7 +3489,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 				isDraggingRulerRef.current
 			) {
 				pointerMove(pt);
-			} else if (currentMode === 'eraser' && container.contains(e.target as Node)) {
+			} else if (
+				currentMode === 'eraser' &&
+				e.target instanceof Node &&
+				container.contains(e.target)
+			) {
 				cursorPosRef.current = pt;
 				render();
 			}

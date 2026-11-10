@@ -14,7 +14,6 @@ interface SelectSettingsProps {
 	onChangeShape: (shape: SelectionShape) => void;
 	onChangeMode: (mode: SelectionMode) => void;
 	onDeleteSelected: () => void;
-	onClearSelection?: () => void;
 }
 
 export const SelectSettings: React.FC<SelectSettingsProps> = ({

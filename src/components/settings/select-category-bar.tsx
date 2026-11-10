@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { Box, SegmentedControl } from '@mantine/core';
 import { SELECT_FILTER_CATEGORIES } from '@/constants/editor';
-import { SelectFilterCategory, StampCategory } from '@/types/editor';
+import { SelectFilterCategory, StampCategory, isSelectFilterCategory } from '@/types/editor';
 
 interface SelectCategoryBarProps {
 	category: SelectFilterCategory;
@@ -22,7 +22,7 @@ export const SelectCategoryBar: React.FC<SelectCategoryBarProps> = ({
 			SELECT_FILTER_CATEGORIES.map((c) => ({
 				label: c.label,
 				value: c.id,
-				disabled: c.id !== 'all' && !availableSet.has(c.id as StampCategory),
+				disabled: c.id !== 'all' && !availableSet.has(c.id),
 			})),
 		[availableSet],
 	);
@@ -35,7 +35,9 @@ export const SelectCategoryBar: React.FC<SelectCategoryBarProps> = ({
 					size="xs"
 					withItemsBorders={false}
 					value={category}
-					onChange={(val) => onChangeCategory(val as SelectFilterCategory)}
+					onChange={(val) => {
+						if (isSelectFilterCategory(val)) onChangeCategory(val);
+					}}
 					data={data}
 					classNames={{
 						root: 'stamp-segmented-root',

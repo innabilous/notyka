@@ -53,20 +53,9 @@ export const BrushSettings: React.FC<BrushSettingsProps> = ({
 				? 'transparent'
 				: mainColor;
 
-	let previewBorderColor = 'var(--line-strong)';
-	if (isStamp) {
-		previewBorderColor = isShapes
-			? strokeColor !== 'transparent'
-				? strokeColor
-				: 'var(--line-strong)'
-			: isFillTransparent
-				? isStrokeTransparent
-					? 'var(--line-strong)'
-					: strokeColor
-				: isStrokeTransparent
-					? 'var(--line-strong)'
-					: strokeColor;
-	}
+	//! Колір обводки прев'ю: якщо штамп має видиму обводку — беремо її, інакше нейтральну лінію
+	const previewBorderColor =
+		isStamp && !isStrokeTransparent ? strokeColor : 'var(--line-strong)';
 
 	const handleDecrease = () => {
 		onChangeSize(Math.max(1, brushSize - 1));

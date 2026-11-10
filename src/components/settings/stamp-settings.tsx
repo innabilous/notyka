@@ -23,7 +23,7 @@ import {
 	NOTES,
 	STAMP_CATEGORIES,
 } from '@/constants/editor';
-import { AutoCountItem, ShapeType, StampCategory } from '@/types/editor';
+import { AutoCountItem, ShapeType, StampCategory, isStampCategory } from '@/types/editor';
 
 export type { StampCategory };
 
@@ -138,7 +138,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 	const [isDeleteMode, setIsDeleteMode] = useState<boolean>(false);
 
 	const availableCategories = visibleCategories
-		? ALL_STAMP_CATEGORIES_DATA.filter((c) => visibleCategories[c.value as StampCategory] ?? true)
+		? ALL_STAMP_CATEGORIES_DATA.filter((c) => visibleCategories[c.value] ?? true)
 		: ALL_STAMP_CATEGORIES_DATA;
 	const displayedCategories =
 		availableCategories.length > 0 ? availableCategories : ALL_STAMP_CATEGORIES_DATA;
@@ -153,9 +153,11 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 					withItemsBorders={false}
 					value={category}
 					onChange={(val) => {
-						onChangeCategory(val as StampCategory);
-						if (val !== 'custom') {
-							setIsDeleteMode(false);
+						if (isStampCategory(val)) {
+							onChangeCategory(val);
+							if (val !== 'custom') {
+								setIsDeleteMode(false);
+							}
 						}
 					}}
 					data={displayedCategories}

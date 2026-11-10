@@ -38,13 +38,12 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 		if (!opened) return;
 
 		const handlePointerDown = (e: PointerEvent) => {
-			const target = e.target as HTMLElement | null;
-			if (!target) return;
+			if (!(e.target instanceof Element)) return;
 			// Якщо клік всередині бічного слайдера або по кнопці розміру в тулбарі — не закриваємо
 			if (
-				containerRef.current?.contains(target) ||
-				target.closest('.btn-size-value') ||
-				target.closest('.btn-size-step')
+				containerRef.current?.contains(e.target) ||
+				e.target.closest('.btn-size-value') ||
+				e.target.closest('.btn-size-step')
 			) {
 				return;
 			}
@@ -77,7 +76,7 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 	const handleTrackPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
 		e.preventDefault();
 		e.stopPropagation();
-		(e.target as HTMLElement).setPointerCapture(e.pointerId);
+		e.currentTarget.setPointerCapture(e.pointerId);
 		setIsDragging(true);
 		updateSizeFromY(e.clientY);
 	};
@@ -91,7 +90,7 @@ export const SideSizeSlider: React.FC<SideSizeSliderProps> = ({
 	const handleTrackPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
 		if (!isDragging) return;
 		try {
-			(e.target as HTMLElement).releasePointerCapture(e.pointerId);
+			e.currentTarget.releasePointerCapture(e.pointerId);
 		} catch {
 			// Pointer capture might have already been released
 		}

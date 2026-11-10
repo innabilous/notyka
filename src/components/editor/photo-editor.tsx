@@ -32,12 +32,15 @@ import {
 } from '@/constants/editor';
 import {
 	AutoCountItem,
+	STAMP_CATEGORY_IDS,
 	SelectFilterCategory,
 	SelectionMode,
 	SelectionShape,
 	ShapeType,
 	StampItem,
+	TOOL_MODES,
 	ToolMode,
+	isStampCategory,
 } from '@/types/editor';
 import { ProjectItem } from '@/types/storage';
 import { getStampCategory } from '@/utils/canvas-renderer';
@@ -190,7 +193,7 @@ export const PhotoEditor: React.FC = () => {
 	useEffect(() => {
 		if (
 			selectFilterCategory !== 'all' &&
-			!availableStampCategories.includes(selectFilterCategory as StampCategory)
+			!availableStampCategories.includes(selectFilterCategory)
 		) {
 			setSelectFilterCategory('all');
 		}
@@ -200,18 +203,20 @@ export const PhotoEditor: React.FC = () => {
 	useEffect(() => {
 		const handleDocClick = (e: MouseEvent) => {
 			const path = e.composedPath();
-			const isInsideMenu = path.some((el) => {
-				const htmlEl = el as HTMLElement;
-				return htmlEl?.id === 'image-menu' || htmlEl?.id === 'btn-toggle-menu';
-			});
+			const isInsideMenu = path.some(
+				(el) =>
+					el instanceof HTMLElement &&
+					(el.id === 'image-menu' || el.id === 'btn-toggle-menu'),
+			);
 			if (!isInsideMenu) {
 				setIsMenuOpen(false);
 			}
 
-			const isInsidePalette = path.some((el) => {
-				const htmlEl = el as HTMLElement;
-				return htmlEl?.id === 'color-palette-popup' || htmlEl?.id === 'btn-toggle-palette';
-			});
+			const isInsidePalette = path.some(
+				(el) =>
+					el instanceof HTMLElement &&
+					(el.id === 'color-palette-popup' || el.id === 'btn-toggle-palette'),
+			);
 			if (!isInsidePalette) {
 				setIsPaletteOpen(false);
 			}
@@ -266,8 +271,8 @@ export const PhotoEditor: React.FC = () => {
 			if (savedSettings.stampBadgeMode !== undefined)
 				setStampBadgeMode(savedSettings.stampBadgeMode);
 			if (savedSettings.activeStampText) setActiveStampText(savedSettings.activeStampText);
-			if (savedSettings.stampCategory)
-				setStampCategory(savedSettings.stampCategory as StampCategory);
+			if (isStampCategory(savedSettings.stampCategory))
+				setStampCategory(savedSettings.stampCategory);
 			if (savedSettings.customStamps) setCustomStamps(savedSettings.customStamps);
 			if (savedSettings.sizeLocked !== undefined) setSizeLocked(savedSettings.sizeLocked);
 			if (savedSettings.noteSizes) setNoteSizes(savedSettings.noteSizes);
@@ -1087,7 +1092,7 @@ export const PhotoEditor: React.FC = () => {
 					showToast('Авторахунок увімкнено (патерн порожній)');
 				}
 			} else {
-				const countItem = (COUNT_ITEMS as readonly string[]).includes(selectedCount)
+				const countItem = COUNT_ITEMS.includes(selectedCount)
 					? selectedCount
 					: COUNT_ITEMS[0];
 				setActiveStampText(countItem);
@@ -1198,13 +1203,13 @@ export const PhotoEditor: React.FC = () => {
 			setStampCategory(cat);
 			let nextText = '';
 			if (cat === 'notes') {
-				const note = (NOTES as readonly string[]).includes(selectedNote) ? selectedNote : NOTES[0];
+				const note = NOTES.includes(selectedNote) ? selectedNote : NOTES[0];
 				if (note !== selectedNote) {
 					setSelectedNote(note);
 				}
 				nextText = `${note}${selectedAccidental}`;
 			} else if (cat === 'chords') {
-				const root = (CHORD_ROOTS as readonly string[]).includes(selectedChordRoot)
+				const root = CHORD_ROOTS.includes(selectedChordRoot)
 					? selectedChordRoot
 					: CHORD_ROOTS[0];
 				if (root !== selectedChordRoot) {
@@ -1241,7 +1246,7 @@ export const PhotoEditor: React.FC = () => {
 						}
 					}
 				} else {
-					const countItem = (COUNT_ITEMS as readonly string[]).includes(selectedCount)
+					const countItem = COUNT_ITEMS.includes(selectedCount)
 						? selectedCount
 						: COUNT_ITEMS[0];
 					if (countItem !== selectedCount) {
@@ -1676,10 +1681,6 @@ export const PhotoEditor: React.FC = () => {
 		stageRef.current?.deleteSelectedStamps();
 	}, []);
 
-	const handleClearSelection = useCallback(() => {
-		stageRef.current?.clearSelection();
-	}, []);
-
 	const handleToggleCompactRulers = useCallback(() => {
 		setCompactRulers((prev) => {
 			const next = !prev;
@@ -1736,12 +1737,12 @@ export const PhotoEditor: React.FC = () => {
 			const acc = stamp.text.match(/[♭♯]$/);
 			const accidental = acc ? acc[0] : '';
 			const note = stamp.text.replace(/[♭♯]$/, '');
-			if ((NOTES as readonly string[]).includes(note)) {
+			if (NOTES.includes(note)) {
 				setSelectedNote(note);
 				setSelectedAccidental(accidental);
 			}
 		} else if (cat === 'count') {
-			if ((COUNT_ITEMS as readonly string[]).includes(stamp.text)) {
+			if (COUNT_ITEMS.includes(stamp.text)) {
 				setSelectedCount(stamp.text);
 			}
 		} else if (cat === 'custom') {
@@ -1749,7 +1750,7 @@ export const PhotoEditor: React.FC = () => {
 		} else if (cat === 'text') {
 			setCustomText(stamp.text);
 		} else if (cat === 'chords') {
-			const root = (CHORD_ROOTS as readonly string[]).find((r) => stamp.text.startsWith(r));
+			const root = CHORD_ROOTS.find((r) => stamp.text.startsWith(r));
 			if (root) {
 				setSelectedChordRoot(root);
 			}
@@ -1822,9 +1823,7 @@ export const PhotoEditor: React.FC = () => {
 				}
 				const next = { ...prev, [tool]: !isCurrentlyEnabled };
 				if (!next[currentMode]) {
-					const firstAvailable = (['select', 'pencil', 'stamp', 'ruler', 'eraser'] as ToolMode[]).find(
-						(t) => next[t],
-					);
+					const firstAvailable = TOOL_MODES.find((t) => next[t]);
 					if (firstAvailable) {
 						handleSelectMode(firstAvailable);
 					}
@@ -1846,9 +1845,7 @@ export const PhotoEditor: React.FC = () => {
 				}
 				const next = { ...prev, [category]: !isCurrentlyEnabled };
 				if (!next[stampCategory]) {
-					const firstAvailable = (
-						['notes', 'chords', 'count', 'custom', 'text', 'draw', 'shapes'] as StampCategory[]
-					).find((c) => next[c]);
+					const firstAvailable = STAMP_CATEGORY_IDS.find((c) => next[c]);
 					if (firstAvailable) {
 						handleChangeStampCategory(firstAvailable);
 					}
@@ -2160,7 +2157,6 @@ export const PhotoEditor: React.FC = () => {
 				onChangeSelectionShape={setSelectionShape}
 				onChangeSelectionMode={setSelectionMode}
 				onDeleteSelected={handleDeleteSelected}
-				onClearSelection={handleClearSelection}
 				onUndo={() => stageRef.current?.undo()}
 				onRedo={() => stageRef.current?.redo()}
 				onToggleMenu={handleToggleMenu}

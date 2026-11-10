@@ -41,7 +41,6 @@ interface TopToolbarProps {
 	onChangeSelectionShape?: (shape: SelectionShape) => void;
 	onChangeSelectionMode?: (mode: SelectionMode) => void;
 	onDeleteSelected?: () => void;
-	onClearSelection?: () => void;
 	onToggleRulersVisible?: () => void;
 	onToggleRulersSnap?: () => void;
 	onToggleRulersSnapItems?: () => void;
@@ -85,7 +84,6 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 	onChangeSelectionShape,
 	onChangeSelectionMode,
 	onDeleteSelected,
-	onClearSelection,
 	onSyncCategorySizes,
 	onToggleRulersVisible,
 	onToggleRulersSnap,
@@ -166,7 +164,6 @@ export const TopToolbar: React.FC<TopToolbarProps> = ({
 						onChangeShape={(s) => onChangeSelectionShape?.(s)}
 						onChangeMode={(m) => onChangeSelectionMode?.(m)}
 						onDeleteSelected={() => onDeleteSelected?.()}
-						onClearSelection={() => onClearSelection?.()}
 					/>
 				) : (
 					<BrushSettings
