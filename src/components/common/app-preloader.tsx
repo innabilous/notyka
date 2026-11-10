@@ -26,11 +26,11 @@ export const AppPreloader: React.FC<AppPreloaderProps> = ({ isLoading }) => {
 
 	return (
 		<Box
+			className="notyka-app-preloader"
 			style={{
 				position: 'fixed',
 				inset: 0,
 				zIndex: 9999,
-				backgroundColor: 'var(--bg-dark)',
 				display: 'flex',
 				flexDirection: 'column',
 				alignItems: 'center',

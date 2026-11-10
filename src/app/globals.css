@@ -1913,6 +1913,15 @@ footer {
 	opacity: 1;
 }
 
+/* App preloader screen: strictly pure black for dark theme, pure white for light theme */
+.notyka-app-preloader {
+	background-color: #000000 !important;
+}
+
+[data-mantine-color-scheme='light'] .notyka-app-preloader {
+	background-color: #ffffff !important;
+}
+
 .preloader-spinner {
 	animation: preloader-spin 0.75s linear infinite;
 }
