@@ -60,8 +60,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 						display: 'inline-flex',
 						alignItems: 'center',
 						justifyContent: 'center',
-						boxShadow:
-							'inset 0 1px 1.5px rgba(255, 255, 255, 0.4), 0 8px 24px color-mix(in srgb, var(--accent, #3b82f6) 38%, transparent), 0 2px 6px rgba(0, 0, 0, 0.25)',
+						boxShadow: 'none',
 						flexShrink: 0,
 						overflow: 'hidden',
 					}}
@@ -131,7 +130,6 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 							stroke: '#ffffff',
 							strokeWidth: 2.2,
 							display: 'block',
-							filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.28))',
 							position: 'relative',
 							zIndex: 3,
 						}}

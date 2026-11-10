@@ -57,7 +57,7 @@ export const ImageMenuModal: React.FC<ImageMenuModalProps> = ({
 				id="image-menu"
 				className="popup"
 				p={6}
-				shadow="xl"
+				shadow="none"
 				radius="lg"
 				onClick={(e) => e.stopPropagation()}
 				onMouseDown={(e) => e.stopPropagation()}

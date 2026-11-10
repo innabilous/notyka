@@ -213,7 +213,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 				id="color-palette-popup"
 				className="popup"
 				p="xs"
-				shadow="xl"
+				shadow="none"
 				radius="lg"
 				onClick={(e) => e.stopPropagation()}
 			>
@@ -246,7 +246,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 				id="color-palette-popup"
 				className="popup"
 				p="xs"
-				shadow="xl"
+				shadow="none"
 				radius="lg"
 				onClick={(e) => e.stopPropagation()}
 			>
@@ -314,7 +314,7 @@ export const ColorPaletteModal: React.FC<ColorPaletteModalProps> = ({
 			id="color-palette-popup"
 			className="popup"
 			p="xs"
-			shadow="xl"
+			shadow="none"
 			radius="lg"
 			onClick={(e) => e.stopPropagation()}
 		>
