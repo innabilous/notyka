@@ -57,7 +57,10 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 								? parsed.darkTone
 								: prev.darkTone,
 						lightTone:
-							parsed.lightTone === 'cotton' || parsed.lightTone === 'anodized'
+							parsed.lightTone === 'pure' ||
+							parsed.lightTone === 'anodized' ||
+							parsed.lightTone === 'cotton' ||
+							parsed.lightTone === 'tinted'
 								? parsed.lightTone
 								: prev.lightTone,
 					}));

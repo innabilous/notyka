@@ -141,17 +141,29 @@ export const LIGHT_SURFACE_METADATA: Record<
 	LightSurfaceTone,
 	{ label: string; bgHex: string; panelHex: string; description: string }
 > = {
-	cotton: {
-		label: 'Warm Cotton',
-		bgHex: '#E6E2D8',
-		panelHex: '#F4F1EA',
-		description: 'Теплий бавовняний папір партитур та скетчбуків',
+	pure: {
+		label: 'Pure White',
+		bgHex: '#FFFFFF',
+		panelHex: '#F8F9FA',
+		description: 'Максимально чистий 100% білий контрастний фон (протилежність OLED)',
 	},
 	anodized: {
 		label: 'Anodized Silver',
 		bgHex: '#DCE0E5',
 		panelHex: '#ECEEF1',
 		description: 'Студійний анодований алюміній Apple & Teenage',
+	},
+	cotton: {
+		label: 'Warm Cotton',
+		bgHex: '#E6E2D8',
+		panelHex: '#F4F1EA',
+		description: 'Теплий бавовняний папір партитур та скетчбуків',
+	},
+	tinted: {
+		label: 'Tinted',
+		bgHex: '#F6F8FB',
+		panelHex: '#FAFBFE',
+		description: 'Світла поверхня з легким відтінком обраного акценту',
 	},
 };
 
@@ -554,24 +566,42 @@ export const createNotykaCssVariablesResolver = (
 	})();
 
 	// Light tone variables
-	const lightSurfaces =
-		lightTone === 'anodized'
-			? {
-					bgDark: '#dce0e5',
-					bg: '#e4e7ec',
-					panel: '#eceef1',
-					panel2: '#dee2e7',
-					panel3: '#cfd5dc',
-					line: 'rgba(0, 0, 0, 0.08)',
-					lineStrong: '#c8ced6',
-					surfaceSpecular: 'rgba(255, 255, 255, 0.75)',
+	const lightSurfaces = (() => {
+		switch (lightTone) {
+			case 'pure':
+				return {
+					bgDark: '#ffffff',
+					bg: '#ffffff',
+					panel: '#f8f9fa',
+					panel2: '#f1f3f5',
+					panel3: '#e9ecef',
+					line: 'rgba(0, 0, 0, 0.07)',
+					lineStrong: '#e2e5e8',
+					surfaceSpecular: 'rgba(255, 255, 255, 0.95)',
 					keycapBg: '#ffffff',
-					keycapBorder: '#cbd1d9',
+					keycapBorder: '#e2e5e8',
 					keycapShadow: 'none',
-					readoutBg: '#dee2e7',
-					readoutBorder: '#c4cacf',
-				}
-			: {
+					readoutBg: '#ffffff',
+					readoutBorder: '#dee2e6',
+				};
+			case 'tinted':
+				return {
+					bgDark: `color-mix(in srgb, ${skinMeta.primaryHex} 4%, #f1f3f7)`,
+					bg: `color-mix(in srgb, ${skinMeta.primaryHex} 5%, #f6f8fb)`,
+					panel: `color-mix(in srgb, ${skinMeta.primaryHex} 7%, #fafbfe)`,
+					panel2: `color-mix(in srgb, ${skinMeta.primaryHex} 10%, #eff2f8)`,
+					panel3: `color-mix(in srgb, ${skinMeta.primaryHex} 14%, #e2e6f1)`,
+					line: `color-mix(in srgb, ${skinMeta.primaryHex} 10%, rgba(0, 0, 0, 0.08))`,
+					lineStrong: `color-mix(in srgb, ${skinMeta.primaryHex} 18%, #cdd3e2)`,
+					surfaceSpecular: 'rgba(255, 255, 255, 0.85)',
+					keycapBg: '#ffffff',
+					keycapBorder: `color-mix(in srgb, ${skinMeta.primaryHex} 15%, #d5dae6)`,
+					keycapShadow: 'none',
+					readoutBg: `color-mix(in srgb, ${skinMeta.primaryHex} 6%, #eff2f8)`,
+					readoutBorder: `color-mix(in srgb, ${skinMeta.primaryHex} 18%, #cbd1e0)`,
+				};
+			case 'cotton':
+				return {
 					bgDark: '#e6e2d8',
 					bg: '#ece8df',
 					panel: '#f4f1ea',
@@ -586,6 +616,25 @@ export const createNotykaCssVariablesResolver = (
 					readoutBg: '#e5e1d7',
 					readoutBorder: '#d0c9bc',
 				};
+			case 'anodized':
+			default:
+				return {
+					bgDark: '#dce0e5',
+					bg: '#e4e7ec',
+					panel: '#eceef1',
+					panel2: '#dee2e7',
+					panel3: '#cfd5dc',
+					line: 'rgba(0, 0, 0, 0.08)',
+					lineStrong: '#c8ced6',
+					surfaceSpecular: 'rgba(255, 255, 255, 0.75)',
+					keycapBg: '#ffffff',
+					keycapBorder: '#cbd1d9',
+					keycapShadow: 'none',
+					readoutBg: '#dee2e7',
+					readoutBorder: '#c4cacf',
+				};
+		}
+	})();
 
 	return () => ({
 		variables: {

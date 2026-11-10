@@ -207,9 +207,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 									size="xs"
 									value={config.lightTone}
 									onChange={(val) => setLightTone(val as LightSurfaceTone)}
+									styles={{
+										root: { padding: 2 },
+										label: { padding: '4px 2px', fontSize: '11px' },
+									}}
 									data={[
-										{ value: 'anodized', label: 'Anodized Silver' },
-										{ value: 'cotton', label: 'Warm Cotton' },
+										{ value: 'pure', label: 'Pure White' },
+										{ value: 'anodized', label: 'Anodized' },
+										{ value: 'cotton', label: 'Cotton' },
+										{ value: 'tinted', label: 'Tinted' },
 									]}
 								/>
 							)}
