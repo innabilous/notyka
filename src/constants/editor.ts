@@ -15,10 +15,10 @@ export const SELECT_FILTER_CATEGORIES: readonly { id: SelectFilterCategory; labe
 	...STAMP_CATEGORIES,
 ] as const;
 
-export const NOTES = ['До', 'Ре', 'Мі', 'Фа', 'Соль', 'Ля', 'Сі'] as const;
+export const NOTES: readonly string[] = ['До', 'Ре', 'Мі', 'Фа', 'Соль', 'Ля', 'Сі'];
 export const ACCIDENTALS = ['♯', '♭'] as const;
 
-export const CHORD_ROOTS = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const;
+export const CHORD_ROOTS: readonly string[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 export const CHORD_ACCIDENTALS = ['#', 'b'] as const;
 
 export const CHORD_QUALITIES = [
@@ -43,7 +43,7 @@ export const CHORD_EXTENSIONS = [
 	'5',
 ] as const;
 
-export const COUNT_ITEMS = [
+export const COUNT_ITEMS: readonly string[] = [
 	'1',
 	'2',
 	'3',
@@ -55,7 +55,7 @@ export const COUNT_ITEMS = [
 	'і',
 	'та',
 	'на',
-] as const;
+];
 
 //! Стандартний 16-кроковий патерн для авторахунку (1, 2, 3, 4 на сильних долях з пропусками)
 export const DEFAULT_COUNT_PATTERN: readonly string[] = [
@@ -68,9 +68,6 @@ export const DEFAULT_COUNT_PATTERN: readonly string[] = [
 export const MAX_COUNT_PATTERN_LENGTH = 64;
 export const MIN_COUNT_PATTERN_LENGTH = 16;
 export const COUNT_PATTERN_STEP = 16;
-
-//! Legacy alias для сумісності
-export const DEFAULT_COUNT_PATTERN_32: readonly string[] = DEFAULT_COUNT_PATTERN;
 
 export const DEFAULT_AUTO_COUNT_SEQUENCE = [
 	{ id: 'ac_1', text: '1', enabled: true },

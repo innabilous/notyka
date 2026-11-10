@@ -9,6 +9,62 @@ export type AccentSkin = 'orange' | 'cobalt' | 'purple' | 'lime' | 'amber';
 export type DarkSurfaceTone = 'oled' | 'obsidian' | 'carbon' | 'tinted';
 export type LightSurfaceTone = 'pure' | 'anodized' | 'cotton' | 'tinted';
 
+export const TOOL_MODES: readonly ToolMode[] = ['select', 'pencil', 'stamp', 'ruler', 'eraser'];
+export const STAMP_CATEGORY_IDS: readonly StampCategory[] = [
+	'notes',
+	'chords',
+	'count',
+	'custom',
+	'text',
+	'draw',
+	'shapes',
+];
+
+//! Type guards для безпечного звуження типів на границях вводу без `as`
+export function isToolMode(val: unknown): val is ToolMode {
+	return (
+		val === 'select' ||
+		val === 'pencil' ||
+		val === 'stamp' ||
+		val === 'eraser' ||
+		val === 'ruler'
+	);
+}
+
+export function isStampCategory(val: unknown): val is StampCategory {
+	return (
+		val === 'notes' ||
+		val === 'chords' ||
+		val === 'count' ||
+		val === 'custom' ||
+		val === 'text' ||
+		val === 'draw' ||
+		val === 'shapes'
+	);
+}
+
+export function isSelectFilterCategory(val: unknown): val is SelectFilterCategory {
+	return val === 'all' || isStampCategory(val);
+}
+
+export function isAccentSkin(val: unknown): val is AccentSkin {
+	return (
+		val === 'orange' ||
+		val === 'cobalt' ||
+		val === 'purple' ||
+		val === 'lime' ||
+		val === 'amber'
+	);
+}
+
+export function isDarkSurfaceTone(val: unknown): val is DarkSurfaceTone {
+	return val === 'oled' || val === 'obsidian' || val === 'carbon' || val === 'tinted';
+}
+
+export function isLightSurfaceTone(val: unknown): val is LightSurfaceTone {
+	return val === 'pure' || val === 'anodized' || val === 'cotton' || val === 'tinted';
+}
+
 export interface AppearanceConfig {
 	accentSkin: AccentSkin;
 	darkTone: DarkSurfaceTone;
@@ -56,13 +112,18 @@ export interface StampItem {
 	rotation?: number;
 }
 
-export interface CanvasLayerItem {
-	type: 'stroke' | 'stamp';
-	id: string;
-	imageData?: ImageData;
-	strokeDataUrl?: string;
-	stamp?: StampItem;
-}
+export type CanvasLayerItem =
+	| {
+			type: 'stroke';
+			id: string;
+			imageData?: ImageData;
+			strokeDataUrl?: string;
+	  }
+	| {
+			type: 'stamp';
+			id: string;
+			stamp: StampItem;
+	  };
 
 export interface HistoryItem {
 	imageData?: ImageData;

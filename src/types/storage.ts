@@ -23,7 +23,7 @@ export interface EditorSettings {
 	selectedChordBassAccidental?: string;
 	stampBadgeMode?: boolean;
 	activeStampText?: string;
-	stampCategory?: string;
+	stampCategory?: StampCategory;
 	customStamps?: string[];
 	sizeLocked: boolean;
 	noteSizes: Record<string, number>;
