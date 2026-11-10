@@ -21,15 +21,15 @@
 	--text-secondary: #9ea4b0;
 	--muted: #6b7382;
 
-	/* Dynamic accent default: Cobalt Blue */
-	--accent: #3b82f6;
-	--accent-hover: #3b82f6;
+	/* Dynamic accent default: Cobalt Studio */
+	--accent: #2563eb;
+	--accent-hover: #2563eb;
 	--accent-contrast: #ffffff;
-	--accent-text: #3b82f6;
-	--accent-gradient: #3b82f6;
-	--accent-subtle: rgba(59, 130, 246, 0.16);
-	--accent-subtle-hover: rgba(59, 130, 246, 0.26);
-	--accent-border: rgba(59, 130, 246, 0.4);
+	--accent-text: #2563eb;
+	--accent-gradient: #2563eb;
+	--accent-subtle: rgba(37, 99, 235, 0.16);
+	--accent-subtle-hover: rgba(37, 99, 235, 0.26);
+	--accent-border: rgba(37, 99, 235, 0.4);
 	--accent-glow: none;
 
 	/* System Danger: Red (flat utility) */
@@ -48,36 +48,36 @@
 }
 
 [data-mantine-color-scheme='light'] {
-	/* Anodized Silver palette default */
-	--bg: #ecebe6;
-	--bg-dark: #e0ded7;
-	--panel: #ffffff;
-	--panel-2: #e2e0d8;
-	--panel-3: #d7d5cb;
+	/* Pure White palette default */
+	--bg: #ffffff;
+	--bg-dark: #ffffff;
+	--panel: #f8f9fa;
+	--panel-2: #f1f3f5;
+	--panel-3: #e9ecef;
 	--panel-bg-translucent: #ffffff;
 	--popup-bg: #ffffff;
 	--top-bar-gradient: #ffffff;
-	--line: #d3d0c6;
-	--line-strong: #bcb8ac;
-	--surface-specular: rgba(255, 255, 255, 0.85);
-	--keycap-bg: #f5f4f0;
-	--keycap-border: #d3d0c6;
-	--keycap-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), inset 0 1px 0 #ffffff;
-	--readout-bg: #e0ded7;
-	--readout-border: #bcb8ac;
+	--line: rgba(0, 0, 0, 0.07);
+	--line-strong: #e2e5e8;
+	--surface-specular: rgba(255, 255, 255, 0.95);
+	--keycap-bg: #ffffff;
+	--keycap-border: #e2e5e8;
+	--keycap-shadow: none;
+	--readout-bg: #ffffff;
+	--readout-border: #dee2e6;
 	--text: #141619;
 	--text-secondary: #4d535e;
 	--muted: #727986;
 
-	/* Dynamic accent default: Cobalt Blue */
-	--accent: #1d4ed8;
-	--accent-hover: #1d4ed8;
+	/* Dynamic accent default: Cobalt Studio */
+	--accent: #2563eb;
+	--accent-hover: #2563eb;
 	--accent-contrast: #ffffff;
-	--accent-text: #1d4ed8;
-	--accent-gradient: #1d4ed8;
-	--accent-subtle: rgba(29, 78, 216, 0.12);
-	--accent-subtle-hover: rgba(29, 78, 216, 0.2);
-	--accent-border: rgba(29, 78, 216, 0.32);
+	--accent-text: #2563eb;
+	--accent-gradient: #2563eb;
+	--accent-subtle: rgba(37, 99, 235, 0.12);
+	--accent-subtle-hover: rgba(37, 99, 235, 0.2);
+	--accent-border: rgba(37, 99, 235, 0.32);
 	--accent-glow: none;
 
 	/* System Danger: Red (flat utility) */

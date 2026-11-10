@@ -18,6 +18,7 @@ interface AppearanceContextValue {
 	setDarkTone: (tone: DarkSurfaceTone) => void;
 	setLightTone: (tone: LightSurfaceTone) => void;
 	setConfig: (config: AppearanceConfig) => void;
+	resetAppearance: () => void;
 }
 
 const AppearanceContext = createContext<AppearanceContextValue | null>(null);
@@ -92,6 +93,16 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 		setConfig({ ...config, lightTone });
 	};
 
+	const resetAppearance = () => {
+		setConfigState(DEFAULT_APPEARANCE_CONFIG);
+		try {
+			localStorage.removeItem(STORAGE_KEY);
+			localStorage.removeItem('mantine-color-scheme-value');
+		} catch {
+			// Ignore
+		}
+	};
+
 	const theme = useMemo(() => createNotykaTheme(config), [config]);
 	const cssVariablesResolver = useMemo(() => createNotykaCssVariablesResolver(config), [config]);
 
@@ -102,6 +113,7 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
 			setDarkTone,
 			setLightTone,
 			setConfig,
+			resetAppearance,
 		}),
 		[config]
 	);

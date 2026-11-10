@@ -4,7 +4,7 @@ import { AccentSkin, AppearanceConfig, DarkSurfaceTone, LightSurfaceTone } from 
 export const DEFAULT_APPEARANCE_CONFIG: AppearanceConfig = {
 	accentSkin: 'cobalt',
 	darkTone: 'obsidian',
-	lightTone: 'anodized',
+	lightTone: 'pure',
 };
 
 // 10-shade Mantine palettes for Accent Skins

@@ -117,7 +117,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
 	const { colorScheme, setColorScheme } = useMantineColorScheme({ keepTransitions: true });
 	const computedColorScheme = useComputedColorScheme('dark');
-	const { config, setAccentSkin, setDarkTone, setLightTone, setConfig } = useAppearance();
+	const { config, setAccentSkin, setDarkTone, setLightTone, resetAppearance } = useAppearance();
 	const [confirmModal, setConfirmModal] = useState<'settings' | 'all' | null>(null);
 
 	return (
@@ -516,10 +516,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 								setConfirmModal(null);
 								if (action === 'settings') {
 									onResetSettings();
-									setConfig(DEFAULT_APPEARANCE_CONFIG);
+									resetAppearance();
+									setColorScheme('auto');
 								} else {
 									onClearAllData();
-									setConfig(DEFAULT_APPEARANCE_CONFIG);
+									resetAppearance();
+									setColorScheme('auto');
 								}
 							}}
 						>
