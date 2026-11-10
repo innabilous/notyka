@@ -34,18 +34,6 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 				position: 'relative',
 			}}
 		>
-			<svg width={0} height={0} style={{ position: 'absolute', pointerEvents: 'none' }}>
-				<defs>
-					<linearGradient id="notyka-note-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-						<stop offset="0%" stopColor="var(--accent, #3b82f6)" />
-						<stop
-							offset="100%"
-							stopColor="color-mix(in srgb, var(--accent, #3b82f6) 75%, #000000 25%)"
-						/>
-					</linearGradient>
-				</defs>
-			</svg>
-
 			{/* Бейдж з іконкою або чиста іконка */}
 			{showBadge ? (
 				<Box
@@ -55,73 +43,17 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 						width: numericSize,
 						height: numericSize,
 						borderRadius,
-						background:
-							'linear-gradient(145deg, var(--accent, #3b82f6) 0%, color-mix(in srgb, var(--accent, #3b82f6) 76%, #000000 24%) 100%)',
+						background: 'var(--accent, #3b82f6)',
 						display: 'inline-flex',
 						alignItems: 'center',
 						justifyContent: 'center',
 						boxShadow: 'none',
+						border: 'none',
 						flexShrink: 0,
 						overflow: 'hidden',
 					}}
 					aria-label="Notyka Logo"
 				>
-					{/* Анімований промінь по контуру (border beam) */}
-					{animated && (
-						<svg
-							className="notyka-border-beam"
-							style={{
-								position: 'absolute',
-								inset: -2,
-								width: numericSize + 4,
-								height: numericSize + 4,
-								pointerEvents: 'none',
-								borderRadius: borderRadius + 2,
-								zIndex: 2,
-							}}
-							viewBox={`0 0 ${numericSize + 4} ${numericSize + 4}`}
-							fill="none"
-						>
-							<defs>
-								<filter id="notyka-beam-glow" x="-50%" y="-50%" width="200%" height="200%">
-									<feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
-									<feMerge>
-										<feMergeNode in="blur" />
-										<feMergeNode in="SourceGraphic" />
-									</feMerge>
-								</filter>
-								<linearGradient id="notyka-beam-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-									<stop offset="0%" stopColor="rgba(255, 255, 255, 0)" />
-									<stop offset="50%" stopColor="rgba(255, 255, 255, 0.6)" />
-									<stop offset="100%" stopColor="#ffffff" />
-								</linearGradient>
-							</defs>
-							<rect
-								x={2}
-								y={2}
-								width={numericSize}
-								height={numericSize}
-								rx={borderRadius}
-								ry={borderRadius}
-								className="notyka-beam-track"
-							/>
-							<rect
-								x={2}
-								y={2}
-								width={numericSize}
-								height={numericSize}
-								rx={borderRadius}
-								ry={borderRadius}
-								className="notyka-beam-head"
-								filter="url(#notyka-beam-glow)"
-								pathLength="100"
-							/>
-						</svg>
-					)}
-
-					{/* Спекулярний відблиск (surface sheen sweep) під час анімації */}
-					{animated && <Box className="notyka-surface-sheen" />}
-
 					<Music
 						className={animated ? 'notyka-note-animated' : undefined}
 						style={{
@@ -131,17 +63,17 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 							strokeWidth: 2.2,
 							display: 'block',
 							position: 'relative',
-							zIndex: 3,
 						}}
 					/>
 				</Box>
 			) : (
 				/* Чиста іконка без підкладки */
 				<Music
+					className={animated ? 'notyka-note-animated' : undefined}
 					style={{
 						width: iconSize,
 						height: iconSize,
-						stroke: 'url(#notyka-note-grad)',
+						stroke: 'var(--accent, #3b82f6)',
 						strokeWidth: 2.2,
 						display: 'block',
 					}}
