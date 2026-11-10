@@ -74,13 +74,10 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 						{projects.map((item) => (
 							<Paper
 								key={item.id}
-								withBorder
 								p="xs"
-								radius="sm"
+								radius="lg"
 								style={{
-									background: 'var(--keycap-bg)',
-									border: '1px solid var(--keycap-border)',
-									boxShadow: 'var(--keycap-shadow)',
+									background: 'var(--panel-2)',
 								}}
 							>
 								<Group justify="space-between" wrap="nowrap">
@@ -95,8 +92,8 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 												h={46}
 												style={{
 													background: 'var(--panel-3)',
-													border: '1px solid var(--line)',
-													borderRadius: 4,
+													border: 'none',
+													borderRadius: 10,
 													overflow: 'hidden',
 													flexShrink: 0,
 													display: 'flex',

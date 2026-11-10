@@ -379,8 +379,8 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 				px="md"
 				py="xs"
 				style={{
-					borderBottom: '1px solid var(--line)',
 					background: 'var(--panel)',
+					boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
 					zIndex: 10,
 				}}
 			>
@@ -577,7 +577,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 				py="xs"
 				style={{
 					background: 'var(--panel)',
-					borderTop: '1px solid var(--line)',
+					boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.15)',
 					paddingBottom: 'calc(0.65rem + env(safe-area-inset-bottom, 0px))',
 					zIndex: 10,
 				}}
@@ -588,7 +588,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 						<Button
 							key={ratio}
 							size="compact-xs"
-							radius="xs"
+							radius="md"
 							variant={aspectRatio === ratio ? 'filled' : 'default'}
 							onClick={() => handleAspectChange(ratio)}
 							style={{ textTransform: 'uppercase' }}
@@ -603,7 +603,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 					<Tooltip label="Повернути проти годинникової стрілки (-90°)">
 						<ActionIcon
 							size={36}
-							radius="sm"
+							radius="md"
 							variant="default"
 							onClick={handleRotateLeft}
 							aria-label="Повернути проти годинникової стрілки"
@@ -615,7 +615,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 					<Tooltip label="Повернути за годинниковою стрілкою (+90°)">
 						<ActionIcon
 							size={36}
-							radius="sm"
+							radius="md"
 							variant="default"
 							onClick={handleRotateRight}
 							aria-label="Повернути за годинниковою стрілкою"
@@ -627,7 +627,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 					<Tooltip label="Віддзеркалити горизонтально">
 						<ActionIcon
 							size={36}
-							radius="sm"
+							radius="md"
 							variant={flipH ? 'filled' : 'default'}
 							onClick={handleToggleFlipH}
 							aria-label="Віддзеркалити горизонтально"
@@ -639,7 +639,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 					<Tooltip label="Віддзеркалити вертикально">
 						<ActionIcon
 							size={36}
-							radius="sm"
+							radius="md"
 							variant={flipV ? 'filled' : 'default'}
 							onClick={handleToggleFlipV}
 							aria-label="Віддзеркалити вертикально"
@@ -657,7 +657,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 					>
 						<ActionIcon
 							size={36}
-							radius="sm"
+							radius="md"
 							variant={enhanceClarity ? 'filled' : 'default'}
 							onClick={handleToggleEnhance}
 							aria-label="Покращити чіткість нот та контраст партитури"
@@ -669,7 +669,7 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 					<Tooltip label="Скинути налаштування">
 						<ActionIcon
 							size={36}
-							radius="sm"
+							radius="md"
 							variant="default"
 							color="gray"
 							onClick={handleReset}

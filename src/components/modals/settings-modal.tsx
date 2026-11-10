@@ -110,7 +110,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 	onClearAllData,
 	onClose,
 }) => {
-	const { colorScheme, setColorScheme } = useMantineColorScheme();
+	const { colorScheme, setColorScheme } = useMantineColorScheme({ keepTransitions: true });
 	const computedColorScheme = useComputedColorScheme('dark');
 	const { config, setAccentSkin, setDarkTone, setLightTone, setConfig } = useAppearance();
 	const [confirmModal, setConfirmModal] = useState<'settings' | 'all' | null>(null);
@@ -131,8 +131,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 				size="sm"
 				centered
 			>
-				<ScrollArea.Autosize mah="75vh" type="hover" scrollbarSize={5} offsetScrollbars>
-					<Stack gap="md" py="xs" pr="xs">
+				<ScrollArea.Autosize mah="75vh" type="hover" scrollbarSize={4}>
+					<Stack gap="md" py="xs">
 					{/* Тема оформлення */}
 					<Stack gap="xs">
 						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
@@ -209,48 +209,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							<Text size="xs" c="dimmed">
 								Акцентний скін
 							</Text>
-							<Group gap="xs" grow>
-								{ACCENT_SKINS.map((skin) => {
-									const isSelected = config.accentSkin === skin.id;
-									return (
-										<UnstyledButton
-											key={skin.id}
-											onClick={() => setAccentSkin(skin.id)}
-											aria-label={`Обрати скін ${skin.label}`}
-											style={{
-												display: 'flex',
-												flexDirection: 'column',
-												alignItems: 'center',
-												gap: 5,
-												padding: '6px 4px',
-												borderRadius: 6,
-												border: `1px solid ${isSelected ? 'var(--accent)' : 'var(--line)'}`,
-												background: isSelected ? 'var(--accent-subtle)' : 'var(--keycap-bg)',
-												cursor: 'pointer',
-												transition: 'all 0.12s ease',
-											}}
-										>
+							<SegmentedControl
+								fullWidth
+								size="xs"
+								value={config.accentSkin}
+								onChange={(val) => setAccentSkin(val as AccentSkin)}
+								data={ACCENT_SKINS.map((skin) => ({
+									value: skin.id,
+									label: (
+										<Center style={{ gap: 6 }}>
 											<div
 												style={{
-													width: 14,
-													height: 14,
+													width: 10,
+													height: 10,
 													borderRadius: '50%',
 													background: skin.hex,
-													border: isSelected ? '2px solid var(--accent-contrast)' : 'none',
-													boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+													flexShrink: 0,
 												}}
 											/>
-											<Text
-												size="11px"
-												fw={isSelected ? 700 : 500}
-												c={isSelected ? 'var(--text)' : 'dimmed'}
-											>
-												{skin.label}
-											</Text>
-										</UnstyledButton>
-									);
-								})}
-							</Group>
+											<span>{skin.label}</span>
+										</Center>
+									),
+								}))}
+							/>
 						</Stack>
 					</Stack>
 
@@ -265,7 +246,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							{TOOLS_CONFIG.map(({ id, label, icon: Icon }) => {
 								const isChecked = visibleTools[id] ?? true;
 								return (
-									<Paper key={id} withBorder p="xs" radius="sm">
+									<Paper key={id} p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 										<UnstyledButton
 											onClick={() => onToggleTool(id)}
 											style={{ width: '100%' }}
@@ -303,7 +284,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							{CATEGORIES_CONFIG.map(({ id, label, icon: Icon }) => {
 								const isChecked = visibleStampCategories[id] ?? true;
 								return (
-									<Paper key={id} withBorder p="xs" radius="sm">
+									<Paper key={id} p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 										<UnstyledButton
 											onClick={() => onToggleStampCategory(id)}
 											style={{ width: '100%' }}
@@ -338,7 +319,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 							Штамп на полотні
 						</Text>
 						<Stack gap="xs">
-							<Paper withBorder p="xs" radius="sm">
+							<Paper p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 								<UnstyledButton
 									onClick={onToggleDeleteBtn}
 									style={{ width: '100%' }}
@@ -361,7 +342,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 								</UnstyledButton>
 							</Paper>
 
-							<Paper withBorder p="xs" radius="sm">
+							<Paper p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 								<UnstyledButton
 									onClick={onToggleResizeHandles}
 									style={{ width: '100%' }}
@@ -393,7 +374,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 						<Text size="xs" fw={700} c="dimmed" tt="uppercase" lts="0.05em">
 							Панель лінійок
 						</Text>
-						<Paper withBorder p="xs" radius="sm">
+						<Paper p="xs" radius="lg" style={{ background: 'var(--panel-2)' }}>
 							<UnstyledButton
 								onClick={onToggleCompactRulers}
 								style={{ width: '100%' }}
@@ -426,27 +407,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
 					<Divider />
 
-					{/* Група 5: Скидання */}
+					{/* Група 5: Небезпечна зона */}
 					<Stack gap="xs" pt="xs">
-						<Button
-							variant="light"
-							color="red"
-							leftSection={<RotateCcw size={16} />}
-							onClick={() => setConfirmModal('settings')}
-							fullWidth
+						<Text size="xs" fw={700} c="red" tt="uppercase" lts="0.05em">
+							Небезпечна зона
+						</Text>
+						<Paper
+							p="xs"
+							radius="lg"
+							style={{
+								background: 'var(--danger-subtle)',
+								border: 'none',
+							}}
 						>
-							Скинути налаштування
-						</Button>
+							<Stack gap="xs">
+								<Button
+									variant="light"
+									color="red"
+									leftSection={<RotateCcw size={16} />}
+									onClick={() => setConfirmModal('settings')}
+									fullWidth
+								>
+									Скинути налаштування
+								</Button>
 
-						<Button
-							variant="filled"
-							color="red"
-							leftSection={<Trash2 size={16} />}
-							onClick={() => setConfirmModal('all')}
-							fullWidth
-						>
-							Очистити всі дані
-						</Button>
+								<Button
+									variant="filled"
+									color="red"
+									leftSection={<Trash2 size={16} />}
+									onClick={() => setConfirmModal('all')}
+									fullWidth
+								>
+									Очистити всі дані
+								</Button>
+							</Stack>
+						</Paper>
 					</Stack>
 				</Stack>
 				</ScrollArea.Autosize>
