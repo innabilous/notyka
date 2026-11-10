@@ -356,7 +356,6 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 											const isCurrent = idx === selectedStepIndex;
 											const isNext = idx === currentAutoCountIndex;
 											const isFilled = Boolean(token && token.trim());
-											const isBeatStart = idx % 4 === 0;
 
 											let statusTitle = '';
 											if (isCurrent && isNext) {
@@ -370,7 +369,7 @@ export const StampSettings: React.FC<StampSettingsProps> = ({
 											return (
 												<UnstyledButton
 													key={idx}
-													className={`step-cube ${isFilled ? 'filled' : 'empty'} ${isNext ? 'is-next' : ''} ${isCurrent ? 'is-current' : ''} ${isBeatStart ? 'beat-start' : ''}`}
+													className={`step-cube ${isFilled ? 'filled' : 'empty'} ${isNext ? 'is-next' : ''} ${isCurrent ? 'is-current' : ''}`}
 													onClick={() => onSelectStep?.(idx)}
 													title={`Крок ${idx + 1}: «${token || 'порожньо'}»${statusTitle}`}
 												>
