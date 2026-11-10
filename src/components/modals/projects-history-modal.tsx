@@ -52,7 +52,11 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 					<Text fw={600} size="sm">
 						Історія проектів
 					</Text>
-					<Badge size="xs" variant="light">
+					<Badge
+						size="xs"
+						variant="light"
+						style={{ fontFamily: 'var(--mantine-font-family-monospace)' }}
+					>
 						{projects.length}/50
 					</Badge>
 				</Group>
@@ -68,7 +72,17 @@ export const ProjectsHistoryModal: React.FC<ProjectsHistoryModalProps> = ({
 				) : (
 					<Stack gap="xs">
 						{projects.map((item) => (
-							<Paper key={item.id} withBorder p="xs" radius="sm">
+							<Paper
+								key={item.id}
+								withBorder
+								p="xs"
+								radius="sm"
+								style={{
+									background: 'var(--keycap-bg)',
+									border: '1px solid var(--keycap-border)',
+									boxShadow: 'var(--keycap-shadow)',
+								}}
+							>
 								<Group justify="space-between" wrap="nowrap">
 									<UnstyledButton
 										onClick={() => onSelectProject(item)}

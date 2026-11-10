@@ -394,7 +394,6 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 				</Button>
 
 				<Button
-					color="sky"
 					leftSection={<Check size={18} />}
 					onClick={handleApply}
 				>
@@ -591,7 +590,6 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 							size="compact-xs"
 							radius="xs"
 							variant={aspectRatio === ratio ? 'filled' : 'default'}
-							color="sky"
 							onClick={() => handleAspectChange(ratio)}
 							style={{ textTransform: 'uppercase' }}
 						>
@@ -631,7 +629,6 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 							size={36}
 							radius="sm"
 							variant={flipH ? 'filled' : 'default'}
-							color="sky"
 							onClick={handleToggleFlipH}
 							aria-label="Віддзеркалити горизонтально"
 						>
@@ -644,7 +641,6 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 							size={36}
 							radius="sm"
 							variant={flipV ? 'filled' : 'default'}
-							color="sky"
 							onClick={handleToggleFlipV}
 							aria-label="Віддзеркалити вертикально"
 						>
@@ -663,7 +659,6 @@ export const ImageCropModal: React.FC<ImageCropModalProps> = ({
 							size={36}
 							radius="sm"
 							variant={enhanceClarity ? 'filled' : 'default'}
-							color="sky"
 							onClick={handleToggleEnhance}
 							aria-label="Покращити чіткість нот та контраст партитури"
 						>
